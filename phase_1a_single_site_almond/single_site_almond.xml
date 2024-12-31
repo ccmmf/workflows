@@ -13,9 +13,9 @@
    lives in `file.path(settings$outdir, "out", runid)`. We should fix this,
    but meanwhile name your settings$host$outdir by adding
    "/out" to the value in settings$outdir. -->
- <outdir>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/output</outdir>
- <modeloutdir>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/output/out</modeloutdir>
- <rundir>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/output/run</rundir>
+ <outdir>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/output</outdir>
+ <modeloutdir>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/output/out</modeloutdir>
+ <rundir>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/output/run</rundir>
  <database>
   <bety>
    <!-- <user>bety</user>
@@ -31,8 +31,8 @@
  <pfts>
   <pft>
    <name>temperate.deciduous</name>
-   <!-- <outdir>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/pfts/temperate</outdir> -->
-   <posterior.files>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/pfts/temperate/post.distns.Rdata</posterior.files>
+   <!-- <outdir>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/pfts/temperate</outdir> -->
+   <posterior.files>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/pfts/temperate/post.distns.Rdata</posterior.files>
    <!-- When no DB, posteriorid must be present and empty -->
    <!-- TODO: allow it to be entirely missing -->
    <posteriorid></posteriorid>
@@ -105,16 +105,16 @@
     <output>SIPNET</output>
     <id></id>
     <path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.1.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.2.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.3.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.4.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.5.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.6.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.7.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.8.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.9.1999-01-01.2012-12-31.clim</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/ERA5_losthills_SIPNET/ERA5.10.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.1.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.2.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.3.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.4.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.5.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.6.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.7.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.8.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.9.1999-01-01.2012-12-31.clim</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/ERA5_losthills_SIPNET/ERA5.10.1999-01-01.2012-12-31.clim</path>
     </path>
    </met>
    <poolinitcond>
@@ -122,106 +122,106 @@
      <output>poolinitcond</output>
      <ensemble>100</ensemble>
      <path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_1.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_2.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_3.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_4.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_5.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_6.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_7.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_8.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_9.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_10.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_11.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_12.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_13.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_14.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_15.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_16.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_17.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_18.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_19.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_20.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_21.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_22.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_23.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_24.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_25.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_26.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_27.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_28.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_29.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_30.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_31.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_32.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_33.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_34.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_35.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_36.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_37.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_38.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_39.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_40.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_41.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_42.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_43.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_44.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_45.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_46.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_47.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_48.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_49.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_50.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_51.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_52.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_53.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_54.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_55.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_56.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_57.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_58.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_59.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_60.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_61.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_62.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_63.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_64.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_65.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_66.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_67.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_68.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_69.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_70.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_71.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_72.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_73.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_74.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_75.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_76.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_77.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_78.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_79.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_80.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_81.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_82.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_83.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_84.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_85.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_86.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_87.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_88.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_89.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_90.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_91.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_92.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_93.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_94.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_95.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_96.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_97.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_98.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_99.nc</path>
-      <path>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/IC_files/losthills/IC_site_losthills_100.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_1.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_2.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_3.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_4.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_5.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_6.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_7.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_8.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_9.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_10.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_11.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_12.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_13.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_14.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_15.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_16.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_17.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_18.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_19.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_20.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_21.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_22.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_23.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_24.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_25.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_26.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_27.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_28.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_29.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_30.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_31.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_32.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_33.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_34.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_35.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_36.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_37.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_38.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_39.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_40.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_41.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_42.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_43.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_44.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_45.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_46.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_47.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_48.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_49.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_50.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_51.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_52.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_53.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_54.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_55.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_56.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_57.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_58.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_59.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_60.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_61.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_62.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_63.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_64.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_65.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_66.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_67.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_68.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_69.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_70.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_71.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_72.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_73.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_74.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_75.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_76.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_77.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_78.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_79.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_80.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_81.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_82.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_83.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_84.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_85.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_86.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_87.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_88.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_89.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_90.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_91.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_92.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_93.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_94.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_95.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_96.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_97.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_98.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_99.nc</path>
+      <path>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/IC_files/losthills/IC_site_losthills_100.nc</path>
      </path>
    </poolinitcond>
   </inputs>
@@ -236,7 +236,7 @@
   </rabbitmq> -->
 <!--   <outdir>/hostdisk/ccmmf_almond_1site/losthills/out</outdir>
   <rundir>/hostdisk/ccmmf_almond_1site/losthills/run</rundir> -->
-  <outdir>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/output/out</outdir>
-  <rundir>/Users/chrisb/cur/ccmmf/ccmmf_phase_1a/output/run</rundir>
+  <outdir>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/output/out</outdir>
+  <rundir>/Users/chrisb/cur/ccmmf/workflows/phase_1a_single_site_almond/output/run</rundir>
  </host>
 </pecan>
