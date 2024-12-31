@@ -100,7 +100,7 @@ PEcAn.all::pecan_version()
 
 # Open and read in settings file for PEcAn run.
 settings <- PEcAn.settings::read.settings(args$settings)
-# settings$outdir <- outdir
+
 if (!dir.exists(settings$outdir)) {
   dir.create(settings$outdir, recursive = TRUE)
 }
@@ -109,7 +109,6 @@ if (!dir.exists(settings$outdir)) {
 # Standard PEcAn workflow calls update.settings() here
 # Skipping because it requires a DB connection -- consider changing that,
 # but we can fix XML files by hand until then
-PEcAn.settings::write.settings(settings, outputfile = "pecan.CHECKED.xml")
 
 # start from scratch if no continue is passed in
 status_file <- file.path(settings$outdir, "STATUS")
@@ -132,7 +131,7 @@ if (args$continue && file.exists(status_file)) {
 #   settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.TRAIT.xml"))
 # }
 
-#NO. this is secretly a calibration
+# NO. this is secretly a calibration
 # # Run the PEcAn meta.analysis
 # if (!is.null(settings$meta.analysis)) {
 #   if (PEcAn.utils::status.check("META") == 0) {
@@ -151,7 +150,9 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
   PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
   PEcAn.utils::status.end()
 } else if (file.exists(file.path(settings$outdir, "pecan.CONFIGS.xml"))) {
-  settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.CONFIGS.xml"))
+  settings <- PEcAn.settings::read.settings(
+    file.path(settings$outdir, "pecan.CONFIGS.xml")
+  )
 }
 
 
@@ -169,7 +170,8 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
       stop_on_error <- FALSE
     }
   }
-  PEcAn.workflow::runModule_start_model_runs(settings, stop.on.error = stop_on_error)
+  PEcAn.workflow::runModule_start_model_runs(settings,
+                                             stop.on.error = stop_on_error)
   PEcAn.utils::status.end()
 }
 
