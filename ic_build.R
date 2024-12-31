@@ -184,16 +184,12 @@ initial_condition_estimated <- dplyr::bind_rows(
     dplyr::select(site_id = site.id,
                   mean = sm.mean,
                   sd = sm.uncertainty) |>
-    # convert to percent -- yes, Sipnet wants a fraction,
+    # Note that we pass this as a percent -- yes, Sipnet wants a fraction,
     # but write.configs.SIPNET hardcodes a division by 100.
     # TODO consider modifying write.configs.SIPNET
     #   to not convert when 0 > SoilMoistFrac > 1
-    dplyr::mutate(across(
-      c("mean", "sd"),
-      ~PEcAn.utils::ud_convert(.x, "1", "percent")
-    )) |>
     dplyr::mutate(lower_bound = 0,
-                  upper_bound = 1),
+                  upper_bound = 100),
   AbvGrndWood = agb_est |> # NB this assumes AGB ~= AGB woody
     dplyr::select(site_id = site_id,
                   mean = AGB_Mg_ha,
