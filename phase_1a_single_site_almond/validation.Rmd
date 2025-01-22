@@ -1,0 +1,253 @@
+---
+title: "Sipnet validation for Lost Hills almonds"
+output: html_document
+---
+
+Chris Black, CCMMF
+2025-01-08
+
+As an initial demonstration of the CCMMF model prototype, we have used the existing versions of PEcAn and Sipnet to simulate almond growth in one California orchard.
+
+The focal site is a commercial almond orchard near Lost Hills, CA that was used for a long-term fertilization experiment as described by Khalsa et al (2020) and Muhammad et al (2015). We used global remote-sensing datasets to set initial soil carbon, water content, and aboveground biomass at planting in 1999, then used Sipnet to simulate 14 years of tree growth and soil carbon dynamics through termination of the experiment in 2012.
+
+We consider here the 224 ("reduced N") and 309 ("intensive N") treatments, simulated by using the existing model with no N limitation.
+
+```{R setup}
+library(tidyverse)
+
+set.seed(455384)
+theme_set(theme_bw())
+
+pecan_output_dir <- "./output"
+```
+
+## Read validation
+
+This part's easy. All validation data is lumped into one file -- we'll filter down as need for each step.
+```{R val_data}
+val_data <- read.csv("validation_data.csv")
+```
+
+## Read model output
+
+Now read in the existing PEcAn output. Running the model is described in README.md; Before executing this notebook, first run prequisite scripts up through `workflow.R` to generate output if needed.
+
+
+```{R output}
+model_out <- pecan_output_dir |>
+  list.files(pattern = "*.nc$", full.names = TRUE, recursive = TRUE) |>
+  grep(pattern = "ENS", value = TRUE) |>
+  data.frame(file = _) |>
+  mutate(
+    ens_num = as.numeric(str_extract(file, "ENS-(\\d+)", group = 1))
+  ) |>
+  nest_by(ens_num, .key = "path") |>
+  mutate(
+    contents = map(
+      path,
+      ~PEcAn.utils::read.output(
+        ncfiles = .x,
+        dataframe = TRUE,
+        variables = NULL, # attempt to read all
+        print_summary = FALSE,
+        verbose = FALSE
+      )
+    )
+  ) |>
+  unnest(contents)
+```
+
+For many variables it's useful to visualize against the modeled confidence interval. I'll define a helper function to generate these:
+
+```{R timeci}
+
+time_ci <- function(df, var, group = posix){
+  df |>
+  group_by({{ group }}) |>
+  summarize(
+    q5 = quantile({{ var }}, 0.05),
+    q95 = quantile({{ var }}, 0.95),
+    {{ var }} := mean({{ var }})
+  )
+}
+```
+
+## Soil carbon at end of experiment
+
+
+Caveats: None of the sources I've found for this site report uncertainty of SOC, and the SOC values reported do not all agree with each other. Khalsa et al report 0-50 cm  concentrations in 2007 and 2012 as well as stock changes, but (1) no information on layers that I could use to scale to 0-30, and (2) I can't reproduce their dSOC numbers from the concentrations and bulk densities they report.
+
+Here I use stocks computed from the 2012 concentrations reported for the 224 kg UAN treatment by Schellenberg et al, which are _probably_ 0-30 cm values: The table does not specify, but the methods refer to 30 cm samples for water content. Bulk density of 1.2 is the value reported in both papers; Khalsa et al treat it as a 0-50 cm value, and per Schellenberg it was computed as the average of 1.1 for the berm and 1.3 for the edge zone, each occupying 15.5 m2 of the 31 m2 irrigated per tree. It is not clear which depths were measured to derive these values or what year the measurements were taken.
+
+
+```{R soilc}
+lh_bulk <- val_data |>
+  filter(param == "bulk_density")
+# If any of these change in the val data, need to edit this notebook to match
+stopifnot(nrow(lh_bulk) == 1, lh_bulk$unit == "g/cm3", is.na(lh_bulk$SE))
+lh_bulk_kg_m2 <-
+  PEcAn.utils::ud_convert(lh_bulk$mean, lh_bulk$unit, "kg/m3") *
+  0.3 # 30 cm sample depth
+
+lh_soc <- val_data |>
+  filter(param == "SOC_concentration_0-30_cm")
+stopifnot(all(lh_soc$unit == "g C/kg"), all(is.na(lh_soc$SE)))
+lh_soc <- lh_soc |>
+  mutate(
+    soc_kg_m2 = PEcAn.utils::ud_convert(mean, "g", "kg") * lh_bulk_kg_m2,
+    posix = as.POSIXct(paste0(date, "-12-31"))
+  )
+
+model_out |>
+  time_ci(TotSoilCarb) |>
+  ggplot() +
+  aes(x = posix, y = TotSoilCarb, ymin = q5, ymax = q95, color = "model") +
+  geom_ribbon(alpha = 0.7) +
+  geom_path() +
+  geom_point(
+    data = lh_soc,
+    aes(x = posix, y = soc_kg_m2, ymin = NULL, ymax = NULL, color = "data"))
+
+```
+
+## NPP
+
+```{R npp}
+lh_npp <- val_data |>
+  filter(param == "5_year_NPP")
+stopifnot(all(lh_npp$unit == "Mg C/ha"), all(is.na(lh_npp$SE)))
+lh_npp <- lh_npp |>
+  mutate(mean = PEcAn.utils::ud_convert(mean, "Mg/ha", "kg/m2"))
+
+seconds_in_5yr <- interval("2008-01-01", "2013-01-01") |>
+  seconds() |>
+  as.numeric()
+
+model_out |>
+  filter(year %in% 2008:2012) |>
+  group_by(ens_num) |>
+  summarize(NPP_5_year = sum(NPP) * seconds_in_5yr) |>
+  ggplot() +
+  aes(x = NPP_5_year, color = "model") +
+  geom_histogram() +
+  geom_vline(
+    data = lh_npp,
+    mapping = aes(xintercept = mean, color = "data", lty = factor(treatment))) +
+  xlab("cumulative NPP 2008-2012, kg C/m2")
+```
+
+## Leaf mass
+
+TODO: Are measured data in g C or g biomass? If biomass, need to convert to C
+
+```{R leafmass}
+lh_leafmass <- val_data |>
+  filter(param == "leaf_biomass", where.in.source == "figure 13") |>
+  mutate(
+    date = as.POSIXct(date),
+    leaf_biomass = PEcAn.utils::ud_convert(mean, "kg/ha", "kg/m2"),
+    leaf_biomass_SE = PEcAn.utils::ud_convert(SE, "kg/ha", "kg/m2"),
+  )
+
+model_out |>
+  filter(year %in% 2011:2012) |>
+  time_ci(leaf_carbon_content) |>
+  ggplot() +
+  aes(
+    x = posix,
+    y = leaf_carbon_content,
+    ymin = q5,
+    ymax = q95,
+    color = "model") +
+  geom_ribbon(alpha = 0.7) +
+  geom_path() +
+  geom_pointrange(
+    data = lh_leafmass,
+    mapping = aes(
+      x = date,
+      y = leaf_biomass,
+      ymin = leaf_biomass - leaf_biomass_SE,
+      ymax = leaf_biomass + leaf_biomass_SE,
+      color = "data"
+    )
+  ) +
+  xlab(NULL)
+```
+
+### 2012 Biomass increment
+
+```{R dbiomass}
+lh_bm_inc <- val_data |>
+  filter(param == "biomass_increment")
+stopifnot(length(unique(lh_bm_inc$unit)) == 1)
+lh_bm_inc <- lh_bm_inc |>
+  mutate(
+    biomass_increment = PEcAn.utils::ud_convert(mean, unit[[1]], "kg/m2"),
+    biomass_increment_SE = PEcAn.utils::ud_convert(SE, unit[[1]], "kg/m2")
+  )
+
+model_out |>
+  filter(year == 2012) |>
+  filter(posix %in% range(posix)) |> # first and last timepoints in year
+  arrange(posix) |>
+  group_by(ens_num) |>
+  summarize(biomass_increment = diff(TotLivBiom)) |>
+  ggplot() +
+  aes(x = biomass_increment, color = "model") +
+  geom_histogram() +
+  geom_pointrange(
+    data = lh_bm_inc,
+    mapping = aes(
+      x = biomass_increment,
+      y = 0,
+      xmin = biomass_increment - biomass_increment_SE,
+      xmax = biomass_increment + biomass_increment_SE,
+      color = "data",
+      lty = factor(treatment)
+    )
+  ) 
+```
+
+## Evapotranspiration
+
+```{R et}
+lh_et <- val_data |>
+  filter(param == "ETc")
+
+model_timestep <-  
+  model_out |>
+  select(ens_num, posix) |>
+  arrange(ens_num, posix) |>
+  group_by(ens_num) |>
+  summarize(ts = posix |> diff(units = "secs") |> mean() |> as.numeric()) |>
+  pull(ts) |>
+  unique()
+stopifnot(length(model_timestep) == 1)
+
+# Sipnet reports ET in cm, then PEcAn converts to W/m2 on storage
+# We'll reverse the conversion via latent heat function  
+model_et <- model_out |>
+  filter(year %in% 2008:2012) |>
+  mutate(ET = Qle * model_timestep / PEcAn.data.atmosphere::get.lv()) |>
+  group_by(year, ens_num) |>
+  summarize(ET = sum(ET))
+
+ggplot(model_et) +
+  aes(
+    x = ET,
+    color = "model") +
+  facet_wrap(~year) +
+  geom_histogram() +
+  geom_pointrange(
+    data = lh_et,
+    mapping = aes(
+      x = mean,
+      y = 0,
+      ymin = mean - SE,
+      ymax = mean + SE,
+      color = "data"
+    )
+  ) +
+  xlab("ET, mm")
+```
+
