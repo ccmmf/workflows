@@ -8,7 +8,7 @@ Chris Black, CCMMF
 
 As an initial demonstration of the CCMMF model prototype, we have used the existing versions of PEcAn and Sipnet to simulate almond growth in one California orchard.
 
-The focal site is a commercial almond orchard near Lost Hills, CA that was used for a long-term fertilization experiment as described by Khalsa et al (2020) and Muhammad et al (2015). We used global remote-sensing datasets to set initial soil carbon, water content, and aboveground biomass at planting in 1999, then used Sipnet to simulate 14 years of tree growth and soil carbon dynamics through termination of the experiment in 2012.
+The focal site is a commercial almond orchard near Lost Hills, CA that was used for a long-term fertilization experiment as described by Khalsa et al 2020[1], Muhammad et al 2015[2], and Schellenberg et al 2012[3]. We used global remote-sensing datasets to set initial soil carbon, water content, and aboveground biomass at planting in 1999, then used Sipnet to simulate 14 years of tree growth and soil carbon dynamics through termination of the experiment in 2012.
 
 We consider here the 224 ("reduced N") and 309 ("intensive N") treatments, simulated by using the existing model with no N limitation.
 
@@ -111,6 +111,8 @@ model_out |>
 ```
 
 ## NPP
+
+Khalsa et al report one cumulative NPP for 2008-2012, so let's sum up model outputs to match.
 
 ```{R npp}
 lh_npp <- val_data |>
@@ -251,3 +253,10 @@ ggplot(model_et) +
   xlab("ET, mm")
 ```
 
+## References
+
+[1] Khalsa, Sat Darshan S., David R. Smart, Saiful Muhammad, Christine M. Armstrong, Blake L. Sanden, Benjamin Z. Houlton, and Patrick H. Brown. “Intensive Fertilizer Use Increases Orchard N Cycling and Lowers Net Global Warming Potential.” Science of the Total Environment 722 (June 2020): 137889. https://doi.org/10.1016/j.scitotenv.2020.137889.
+
+[2] Muhammad, Saiful, Blake L. Sanden, Bruce D. Lampinen, Sebastian Saa, Muhammad I. Siddiqui, David R. Smart, Andres Olivos, Kenneth A. Shackel, Theodore DeJong, and Patrick H. Brown. “Seasonal Changes in Nutrient Content and Concentrations in a Mature Deciduous Tree Species: Studies in Almond (Prunus Dulcis (Mill.) D. A. Webb).” European Journal of Agronomy 65 (April 2015): 52–68. https://doi.org/10.1016/j.eja.2015.01.004.
+
+[3] Schellenberg, Daniel L., Maria M. Alsina, Saiful Muhammad, Christine M. Stockert, Michael W. Wolff, Blake L. Sanden, Patrick H. Brown, and David R. Smart. “Yield-Scaled Global Warming Potential from N2O Emissions and CH4 Oxidation for Almond (Prunus Dulcis) Irrigated with Nitrogen Fertilizers on Arid Land.” Agriculture, Ecosystems & Environment 155 (July 2012): 7–15. https://doi.org/10.1016/j.agee.2012.03.008.
