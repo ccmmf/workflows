@@ -55,6 +55,18 @@ model_out <- pecan_output_dir |>
     )
   ) |>
   unnest(contents)
+
+# used below to convert some per-second values to per-timestep
+model_timestep <-
+  model_out |>
+  select(ens_num, posix) |>
+  arrange(ens_num, posix) |>
+  group_by(ens_num) |>
+  summarize(ts = posix |> diff(units = "secs") |> mean() |> as.numeric()) |>
+  pull(ts) |>
+  unique()
+stopifnot(length(model_timestep) == 1)
+
 ```
 
 For many variables it's useful to visualize against the modeled confidence interval. I'll define a helper function to generate these:
@@ -128,7 +140,7 @@ seconds_in_5yr <- interval("2008-01-01", "2013-01-01") |>
 model_out |>
   filter(year %in% 2008:2012) |>
   group_by(ens_num) |>
-  summarize(NPP_5_year = sum(NPP) * seconds_in_5yr) |>
+  summarize(NPP_5_year = sum(NPP * model_timestep)) |>
   ggplot() +
   aes(x = NPP_5_year, color = "model") +
   geom_histogram() +
@@ -140,15 +152,15 @@ model_out |>
 
 ## Leaf mass
 
-TODO: Are measured data in g C or g biomass? If biomass, need to convert to C
+Measured data are in kg biomass; assuming 48% C for the comparison.
 
 ```{R leafmass}
 lh_leafmass <- val_data |>
   filter(param == "leaf_biomass", where.in.source == "figure 13") |>
   mutate(
     date = as.POSIXct(date),
-    leaf_biomass = PEcAn.utils::ud_convert(mean, "kg/ha", "kg/m2"),
-    leaf_biomass_SE = PEcAn.utils::ud_convert(SE, "kg/ha", "kg/m2"),
+    leaf_biomass = PEcAn.utils::ud_convert(mean, "kg/ha", "kg/m2") * 0.48,
+    leaf_biomass_SE = PEcAn.utils::ud_convert(SE, "kg/ha", "kg/m2") * 0.48,
   )
 
 model_out |>
@@ -173,10 +185,16 @@ model_out |>
       color = "data"
     )
   ) +
-  xlab(NULL)
+  xlab(NULL) +
+  ylab("Leaf carbon content, kg C/m2")
 ```
 
+## Biomass
+
 ### 2012 Biomass increment
+
+Sipnet reports biomass C, Muhammad et al. report one-year change in whole-tree biomass.
+I'm assuming 50% C.
 
 ```{R dbiomass}
 lh_bm_inc <- val_data |>
@@ -184,8 +202,8 @@ lh_bm_inc <- val_data |>
 stopifnot(length(unique(lh_bm_inc$unit)) == 1)
 lh_bm_inc <- lh_bm_inc |>
   mutate(
-    biomass_increment = PEcAn.utils::ud_convert(mean, unit[[1]], "kg/m2"),
-    biomass_increment_SE = PEcAn.utils::ud_convert(SE, unit[[1]], "kg/m2")
+    biomass_increment = PEcAn.utils::ud_convert(mean, unit[[1]], "kg/m2") * 0.5,
+    biomass_increment_SE = PEcAn.utils::ud_convert(SE, unit[[1]], "kg/m2") * 0.5
   )
 
 model_out |>
@@ -207,24 +225,66 @@ model_out |>
       color = "data",
       lty = factor(treatment)
     )
-  ) 
+  ) +
+  xlab("2012 biomass increment, kg/m2")
 ```
+
+### CARB allometry
+
+Let's also compare simulated growth against the NWL orchard allometry for almonds, shared by Tara Seeley.
+
+Note that Lost Hills was planted at 215 trees/ha (87 trees/acre) and apparently maintained at or near this density throughout the experiment, while the allometry starts higher at 125 trees/acre but reduces to a comparable 85 trees/acre at end of experiment in year 14.
+
+```{R allom}
+allom_almond_trees_acre <- function(age) {
+  if(any(age > 50)) stop("this allometry only valid to age 50")
+  -15.45 * log(age) + 125.72
+}
+
+allom_almond_lbC_tree <- function(age) {
+  if(any(age > 50)) stop("this allometry only valid to age 50")
+  12.9823 * (age^1.3923)
+}
+
+allom_almond_kgC_m2 <- function(age){
+  (allom_almond_trees_acre(age) * allom_almond_lbC_tree(age))|>
+    PEcAn.utils::ud_convert("lb acre-1", "kg m-2")
+}
+
+lh_allom_agb <- data.frame(
+  posix = ymd_hms(paste0(1999:2012, "-12-31 23:59:59")),
+  agb = allom_almond_kgC_m2(1:14))
+
+model_out |>
+  time_ci(AbvGrndWood) |>
+  ggplot() +
+  aes(
+    x = posix,
+    y = AbvGrndWood,
+    ymin = q5,
+    ymax = q95,
+    color = "model") +
+  geom_ribbon(alpha = 0.7) +
+  geom_path() +
+  geom_path(
+    data = lh_allom_agb,
+    mapping = aes(
+      x = posix,
+      y = agb,
+      ymin = NULL,
+      ymax = NULL,
+      color = "allometry")) +
+  xlab(NULL) +
+  ylab("Aboveground biomass, kg C/ha")
+
+```
+
 
 ## Evapotranspiration
 
 ```{R et}
 lh_et <- val_data |>
   filter(param == "ETc")
-
-model_timestep <-  
-  model_out |>
-  select(ens_num, posix) |>
-  arrange(ens_num, posix) |>
-  group_by(ens_num) |>
-  summarize(ts = posix |> diff(units = "secs") |> mean() |> as.numeric()) |>
-  pull(ts) |>
-  unique()
-stopifnot(length(model_timestep) == 1)
 
 # Sipnet reports ET in cm, then PEcAn converts to W/m2 on storage
 # We'll reverse the conversion via latent heat function  
