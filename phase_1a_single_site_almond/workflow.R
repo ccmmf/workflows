@@ -106,40 +106,11 @@ if (!dir.exists(settings$outdir)) {
 }
 
 
-# Standard PEcAn workflow calls update.settings() here
-# Skipping because it requires a DB connection -- consider changing that,
-# but we can fix XML files by hand until then
-
 # start from scratch if no continue is passed in
 status_file <- file.path(settings$outdir, "STATUS")
 if (args$continue && file.exists(status_file)) {
   file.remove(status_file)
 }
-
-# Do conversions
-# settings <- PEcAn.workflow::do_conversions(settings)
-
-# # Query the trait database for data and priors
-# if (PEcAn.utils::status.check("TRAIT") == 0) {
-#   PEcAn.utils::status.start("TRAIT")
-#   settings <- PEcAn.workflow::runModule.get.trait.data(settings)
-#   PEcAn.settings::write.settings(settings,
-#     outputfile = "pecan.TRAIT.xml"
-#   )
-#   PEcAn.utils::status.end()
-# } else if (file.exists(file.path(settings$outdir, "pecan.TRAIT.xml"))) {
-#   settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.TRAIT.xml"))
-# }
-
-# NO. this is secretly a calibration
-# # Run the PEcAn meta.analysis
-# if (!is.null(settings$meta.analysis)) {
-#   if (PEcAn.utils::status.check("META") == 0) {
-#     PEcAn.utils::status.start("META")
-#     PEcAn.MA::runModule.run.meta.analysis(settings)
-#     PEcAn.utils::status.end()
-#   }
-# }
 
 
 # Write model specific configs
