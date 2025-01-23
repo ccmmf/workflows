@@ -86,16 +86,16 @@
     <output>SIPNET</output>
     <id></id>
     <path>
-      <path>ERA5_losthills_SIPNET/ERA5.1.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.2.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.3.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.4.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.5.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.6.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.7.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.8.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.9.1999-01-01.2012-12-31.clim</path>
-      <path>ERA5_losthills_SIPNET/ERA5.10.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.1.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.2.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.3.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.4.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.5.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.6.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.7.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.8.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.9.1999-01-01.2012-12-31.clim</path>
+      <path>ERA5_losthills_dailyrain/ERA5.10.1999-01-01.2012-12-31.clim</path>
     </path>
    </met>
    <poolinitcond>
