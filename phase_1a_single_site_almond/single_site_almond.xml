@@ -30,6 +30,8 @@
   <variable>NPP</variable>
   <variable>TotSoilCarb</variable>
   <variable>AbvGrndWood</variable>
+  <variable>Qle</variable>
+  <variable>SoilMoistFrac</variable>
   <perpft>TRUE</perpft>
     <start.year>1999</start.year>
     <end.year>2012</end.year>
