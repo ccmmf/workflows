@@ -5,10 +5,6 @@
   <userid>-1</userid>
   <username></username>
  </info>
- <!-- <outdir>/hostdisk/out</outdir>
- <modeloutdir>/hostdisk/out</modeloutdir>
- <rundir>/hostdisk/run</rundir> -->
-
  <!-- TODO at least one function hardcodes an assumption that model output
    lives in `file.path(settings$outdir, "out", runid)`. We should fix this,
    but meanwhile name your settings$host$outdir by adding
@@ -16,26 +12,10 @@
  <outdir>output</outdir>
  <modeloutdir>output/out</modeloutdir>
  <rundir>output/run</rundir>
- <database>
-  <bety>
-   <!-- <user>bety</user>
-   <password>bety</password>
-   <host>postgres</host>
-   <port>5432</port>
-   <dbname>bety</dbname>
-   <driver>PostgreSQL</driver> -->
-   <write>FALSE</write>
-  </bety>
-  <!-- <dbfiles>/data/dbfiles</dbfiles> -->
- </database>
  <pfts>
   <pft>
    <name>temperate.deciduous</name>
-   <!-- <outdir>pfts/temperate</outdir> -->
    <posterior.files>pfts/temperate/post.distns.Rdata</posterior.files>
-   <!-- When no DB, posteriorid must be present and empty -->
-   <!-- TODO: allow it to be entirely missing -->
-   <posteriorid></posteriorid>
   </pft>
  </pfts>
  <sensitivity.analysis>
@@ -64,7 +44,6 @@
   <update>AUTO</update>
  </meta.analysis>
  <ensemble>
-  <!-- <size>3</size> -->
   <size>100</size>
   <variable>NPP</variable>
   <variable>TotSoilCarb</variable>
