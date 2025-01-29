@@ -1,0 +1,240 @@
+---
+title: "Workflow Setup and Data Preparation"
+format: html
+author: David LeBauer
+date: sys.Date()
+---
+
+# Overview
+
+## TODO
+
+- Use consistent projection(s):
+  - California Albers EPSG:33110 for joins
+  - WGS84 EPSG:4326 for plotting, subsetting rasters?
+- Clean up domain code
+
+## Install & Load PEcAn
+
+See https://pecanproject.github.io/documentation/develop/
+
+```{r}
+
+options(repos = c(
+  pecanproject = 'https://pecanproject.r-universe.dev',
+  ropensci     = 'https://ropensci.r-universe.dev',
+  CRAN         = 'https://cloud.r-project.org'))
+
+# install.packages("PEcAn.all")
+library(PEcAn.all)
+library(dplyr)
+library(caladaptr)
+library(sf)
+
+
+## Required until PR 3423is merged https://github.com/PecanProject/pecan/pull/3423
+# check if PR is merged
+source('https://raw.githubusercontent.com/dlebauer/pecan/refs/heads/shp2gpkg/modules/data.land/R/landiq2std.R')
+source('https://raw.githubusercontent.com/dlebauer/pecan/refs/heads/shp2gpkg/modules/data.land/R/shp2gpkg.R')
+
+## Check available compute resources
+benchmarkme::get_ram()
+benchmarkme::get_cpu()
+
+```
+
+## Organize Input Data
+
+### Domain Polygons
+
+- ca_convex_hull_reduced: a simplified convex hull for CA
+- yolo_bbox: a smaller domain limited to Yolo County
+
+```{r eval = FALSE}
+# remotes::install_github("ucanr-igis/caladaptr")
+caladapt_domain <- caladaptr::ca_aoipreset_geom("counties") |>
+     sf::st_transform(4326) |>
+     sf::st_union() |>
+     sf::st_convex_hull()
+st_write(caladapt_domain, "data/caladapt_domain_convex_hull.geojson")
+
+ca_counties_polygons <- ca_aoipreset_geom("counties") |>
+     dplyr::filter(state_name == "California") |>
+     dplyr::select(state_name, county_name = name, geom) |>
+     sf::st_transform(4326)
+
+ca_state_polygon <- ca_counties_polygons |>
+     group_by(state_name) |>
+     mutate(geom = sf::st_union(geom)) |>
+     sf::st_transform(33110)
+
+yolo_county_polygon <- ca_counties_polygons |>
+    filter(county_name=='Yolo')
+
+# yolo_county_polygon_simplified <- sf::st_simplify(yolo_county_polygon, dTolerance = 5000)
+yolo_county_convex_hull <- sf::st_convex_hull(yolo_county_polygon_simplified)
+# check if it is sufficiently simple to avoid unnecessary computational expensse
+# st_coordinates(yolo_county_convex_hull)
+ca_state_polygon <- sf::st_read("data/ca_convex_hull_reduced.geojson")
+
+```
+
+### LandIQ Woody Polygons
+
+##### Convert LandIQ to standard
+
+```{r eval=FALSE}
+input_file = 'data/i15_Crop_Mapping_2016_SHP/i15_Crop_Mapping_2016.shp'
+#input_file = "data/landiq_polygons.gpkg"
+output_gpkg = 'data/ca_fields.gpkg'
+output_csv = 'data/ca_field_attributes.csv'
+debugonce(landiq2std)
+#PEcAn.data.land::
+landiq2std(input_file, output_gpkg, output_csv)
+```
+
+##### Subset Fields
+
+```{r}
+## Subset woody fields
+
+# for development lets work with a subset
+#con <- DBI::dbConnect(RSQLite::SQLite(), 'data/ca_fields.gpkg')
+#ca_fields <- dplyr::tbl(con, "sites")
+#query = "select * from landiq_polygons where pft == 'woody perennial crop'"
+
+ca_fields <- sf::st_read("data/ca_fields.gpkg")
+readr::read_csv("data/ca_field_attributes.csv")
+
+ca <- ca_fields |>
+  dplyr::left_join(ca_attributes, by = c("id", "lat", "lon"))
+
+ca_woody <- ca |>
+  dplyr::filter(pft == "woody perennial crop")
+sf::st_write(ca_woody,
+        "data/ca_woody.gpkg", delete_layer = TRUE)
+```
+
+#### Create a subset for dev & test
+
+```{r eval=FALSE}
+set.seed(25)
+ca_woody_subset <- ca_woody  |>
+   dplyr::sample_n(200)
+
+sf::st_write(ca_woody_subset,
+        "data/ca_woody_subset.gpkg", delete_layer = TRUE)
+```
+
+### Woody Crop Polygons that will be used for subsetting during development
+
+TODO replace with
+
+```{r}
+
+woody_gpkg <- "data/ca_woody_subset.gpkg" # TODO replace with ca_woody.gpkg
+ca_woody <- sf::st_read(woody_gpkg)
+```
+
+### SoilGrids
+
+#### Download Soilgrids for California
+
+```{r eval=FALSE}
+
+download_soilgrids_raster(
+   variables  = c("clay", "sand"),
+   depths     = c("0-5", "5-15"),
+   polygon    = yolo_county_convex_hull,
+   output_dir = "~/soilgrids_out/"
+)
+
+```
+
+#### Load Prepared Soilgrids GeoTIFF
+
+```{r}
+soilgrids_north_america_tif <- '/projectnb/dietzelab/dongchen/anchorSites/NA_runs/soil_nc/soilgrids_250m/clay/clay_0-5cm_mean/clay/clay_0-5cm_mean.tif'
+## if we want to clip to CA
+## use terra to read in that file and clip to california
+# soilgrids_california <- terra::crop(soilgrids_north_america, yolo_bbox)
+
+# convert polygons to points
+ca_woody_pts <- ca_woody  |>
+  sf::st_centroid()
+
+# read in the file
+soilgrids_north_america_rast <- terra::rast(soilgrids_north_america_tif)
+
+ca_woody_sg <- extract_raster_values(
+  raster_path = soilgrids_north_america_tif,
+  points_df = ca_woody_pts
+) |>
+dplyr::rename(clay = raster_value) |>
+  dplyr::mutate(clay = clay/10)
+
+```
+
+### Cal-Adapt
+
+#### Cal-Adapt Climate Regions
+
+```{r}
+ca_albers_crs <- 3310 # use California Albers project (EPSG:3310) for speed,
+                      # and so units are in meters
+
+
+ca_climregions <- caladaptr::ca_aoipreset_geom("climregions") |>
+    sf::st_transform(crs = ca_albers_crs) |>
+    dplyr::rename(climregion_id = id,
+           climregion_name = name)
+```
+
+```{r join_climregions}
+ca_woody_sg_cr <- ca_woody_sg |>
+  sf::st_transform(crs = ca_albers_crs) |>
+  sf::st_join(ca_climregions, join = st_intersects, left = TRUE)
+
+```
+
+#### Cal-Adapt Climate
+
+##### Download Cal-Adapt Climate Rasters
+
+LOCA (CMIP5-based)
+
+```{r}
+precip <- ca_fetch_raster_polygon(
+  polygon = ca_state_polygon|> st_make_valid(),
+  var = "pr",
+  gcm = "ens32avg",
+  scenario = "historical",
+  period = "30yavg",
+  #start_year = 2006, end_year = 2010,
+  out_dir = "data/caladapt/")
+
+tmin <- precip <- ca_fetch_raster_polygon(
+  polygon = ca_state_polygon |> st_make_valid(),
+  var = "tasmin",
+  gcm = "ens32avg",
+  scenario = "historical",
+  period = "30yavg",
+  #start_year = 2006, end_year = 2010,
+  out_dir = "data/caladapt/")
+tmax <- precip <- ca_fetch_raster_polygon(
+  polygon = ca_state_polygon|> st_make_valid(),
+  var = "tasmax",
+  gcm = "ens32avg",
+  scenario = "historical",
+  period = "30yavg",
+  #start_year = 2006, end_year = 2010,
+  out_dir = "data/caladapt/")
+
+z <- terra::rast(caladapt_polygon_data$raster)
+
+z <- extract_raster_values(
+  raster_path = caladapt_polygon_data$raster,
+  points_df = ca_woody_pts
+)  |>
+  dplyr::rename(map = raster_value)
+```
