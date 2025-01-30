@@ -16,6 +16,15 @@ library("PEcAn.all")
 
 # --------------------------------------------------
 # get command-line arguments
+# TODO Much of what `get_args` does is not relevant for CCMMF;
+# the main useful effect is it takes the settings XML from the command-line
+# argument `--settings=/path/to/single_site_almond.xml`.
+#
+# Simpler approaches that may work as well:
+# - If you only plan to run this with one settings file, hard-code it here
+#     as args$settings <- "/path/to/single_site_almond.xml"
+# - To accept the settings file as an argument but with less typing,
+#   edit this to args$settings <- commandArgs(trailingOnly = TRUE)[[1]]
 args <- get_args()
 
 
