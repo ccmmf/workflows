@@ -3,15 +3,28 @@
 ## --------- edit for your system and site ----------------------------
 
 # Path to your existing ERA5 data
-# These should be whole-year ensemble netcdfs, as downloaded from ECWMF
+#
+# These should be whole-year ensemble netcdfs as downloaded from ECWMF,
+# with dimensions (latitude, longitude, number [aka ensemble member], time).
+# Files must be named '<raw_era5_path>/ERA5_<year>.nc'
+#
+# In concept you can download these using
+# `PEcAn.data.atmosphere::download.ERA5.old()`, but in practice the ECMWF API
+# has changed and we are waiting for it to stabilize again before we devote
+# time to update the code.
+# Meanwhile, consider manually downloading locations/years of interest via web:
+# https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
 raw_era5_path <- "/projectnb/dietzelab/hamzed/ERA5/Data/Ensemble"
 
+
 # Path to save intermediate format:
-# single site, multi-year netcdfs, one per ensemble member
+# Single site, single-year netcdfs, in subdirectories per ensemble member.
+# Files named '<site_era5_path>/ERA5_<siteid>_<ensid>/ERA5.<ensid>.<year>.nc'
 site_era5_path <- "/projectnb/dietzelab/chrisb/ERA5_losthills"
 
 # Output path:
-# single-site, multi-year Sipnet clim files, one per ensemble member
+# single-site, multi-year Sipnet clim files, one per ensemble member.
+# Files named <site_sipnet_met_path>/ERA5.<ensid>.<startdate>.<enddate>.clim
 site_sipnet_met_path <- "/projectnb/dietzelab/chrisb/ERA5_losthills_SIPNET"
 
 # location and time to extract
