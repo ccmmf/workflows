@@ -1,0 +1,11 @@
+---
+title: "Untitled"
+format: html
+---
+
+# Overview
+
+This workflow will:
+
+- Use SIPNET to simulate SOC and biomass for each design point.
+- generate a dataframe with site_id, lat, lon, soil carbon, biomass
