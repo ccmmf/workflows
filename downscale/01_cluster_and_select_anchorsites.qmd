@@ -1,0 +1,82 @@
+---
+title: "Downscale Anchor Sites"
+---
+
+# Overview
+
+This workflow will:
+
+- Read in a dataset of site environmental data
+- Perform K-means clustering to identify clusters
+- Select anchor sites for each cluster
+
+## Setup
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(sf)
+library(terra)
+library(tidyverse)
+```
+
+## Load Site Environmental Data
+
+```{r}
+
+load("data/ca_woody_sg_twi_cr_climate.rda")
+site_env <- ca_woody_sg_twi_cr_climate
+```
+
+## Anchor Site Selection
+
+### K-means Clustering
+
+K-means on the numeric columns (temp, precip, clay, possibly ignoring 'crop'
+or treat 'crop' as categorical by some encoding if needed)
+For demonstration, let's assume numeric + factor encoding for crop
+
+```{r}
+
+```
+
+crop_ids <- site_env |>
+distinct(crop) |>
+mutate(crop_code = as.integer(as.factor(crop)))
+
+tmp <- site_env |>
+left_join(crop_ids, by = "crop") |>
+select(id, mean_temp, precip, clay, climregion_id, crop_code, twi)
+
+data_for_clust_with_ids <- tmp |>
+na.omit()
+
+data_for_clust <- data_for_clust_with_ids |>
+select(- id)
+
+````
+
+```{r}
+set.seed(123)
+
+km_result <- kmeans(data_for_clust, centers = 10)
+
+data_for_clust_with_ids$cluster <- km_result$cluster
+
+site_env_with_clusters <- data_for_clust_with_ids |>
+  select(id, cluster) |>
+  left_join(site_env, by = "id")
+````
+
+### Anchor Site Selection
+
+TODO: Come up with reasonable way to select anchor sites
+
+Anchor site selection (one anchor per cluster)
+e.g., ??????? pick the polygon with median temp in each cluster
+
+```{r}
+# select representative points from each cluster based on multiple environmental variables
+anchor_sites <- site_env_with_clusters |>
+  group_by(cluster) |>
+  ???????
+```
