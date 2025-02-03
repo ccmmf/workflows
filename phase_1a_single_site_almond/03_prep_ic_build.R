@@ -36,6 +36,7 @@ ic_ensemble_size <- 100
 # Remainder of this script should work with no edits
 # for any CA location(s) in site_info
 
+set.seed(6824625)
 
 # Do parallel processing in separate R processes instead of via forking
 # (without this the {furrr} calls inside soilgrids_soilC_extract

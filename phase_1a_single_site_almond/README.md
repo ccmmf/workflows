@@ -7,7 +7,7 @@
 
 * TKTK installation and system setup.
   - You will need at least a compiled Sipnet binary from https://github.com/PecanProject/sipnet, a working installation of the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries they depend on. Instructions for obtaining these are TK.
-* Input prep steps, for which we provide output files in `00_cccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
+* Input prep steps, for which we provide output files in `00_ccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
   - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it in Sipnet's clim format.
   - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the Sipnet clim files, crudely approximating irrigation.
   - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.

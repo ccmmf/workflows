@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Creating Sipnet inputs with extra precipitation to approximate irrigation
 #
 # Here I add 0.43 mm of pseudo-precip to every line of each climate file.
