@@ -1,0 +1,302 @@
+---
+title: "Cluster and Select Design Points"
+---
+
+# Overview
+
+This workflow will:
+
+- Read in a dataset of site environmental data
+- Perform K-means clustering to identify clusters
+- Select anchor sites for each cluster
+
+## Setup
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+# general utilities
+library(tidyverse)
+
+# spatial
+library(sf)
+library(terra)
+
+# parallel computing
+library(cluster)
+library(factoextra)
+library(pathviewr)
+library(furrr)
+library(doParallel)
+library(dplyr)
+
+# Set up parallel processing with a safe number of cores
+no_cores <- parallel::detectCores(logical = FALSE)
+plan(multicore,  workers = no_cores - 2)
+options(future.globals.maxSize = benchmarkme::get_ram() * 0.9)
+```
+
+## Load Site Environmental Data
+
+Environmental data was pre-processed in the previous workflow 00-prepare.qmd.
+
+```{r}
+
+load("data/data_for_clust_with_ids.rda", verbose = TRUE)
+```
+
+Below are summary statistics of the dataset
+
+- id: Unique identifier for each LandIQ polygon
+- temp: Mean Annual Temperature from ERA5
+- precip: Mean Annual Precipitation from ERA5
+- clay: Clay content from SoilGrids
+- ocd: Organic Carbon content from SoilGrids
+- twi: Topographic Wetness Index
+- crop_id: identifier for crop type, see table in crop_ids.csv
+- climregion_id: Climate Regions as defined by CalAdapt identifier for climate region, see table in climregion_ids.csv
+
+```{r}
+skimr::skim(data_for_clust)
+```
+
+## Anchor Site Selection
+
+```{r}
+## Get Anchor Sites from UC Davis, UC Riverside, and Ameriflux.
+woody_anchor_sites <- readr::read_csv("data/anchor_sites_ids.csv") |>
+  dplyr::filter(pft == "woody perennial crop")
+anchorsites_for_clust <-
+  data_for_clust_with_ids |>
+  dplyr::filter(id %in% woody_anchor_sites$id)
+
+message("Anchor sites included in final selection:")
+knitr::kable(woody_anchor_sites |> dplyr::left_join(anchorsites_for_clust, by = 'id'))
+```
+
+### Subset LandIQ fields for clustering
+
+K-means on the numeric columns (temp, precip, clay, possibly ignoring 'crop'
+or treat 'crop' as categorical by some encoding if needed).
+
+```{r}
+set.seed(42)  # Set seed for random number generator for reproducibility
+
+# subsample for testing (full dataset exceeds available Resources)
+sample_size <- 20000
+data_for_clust <- data_for_clust_with_ids |>
+                    # remove anchor sites
+                    dplyr::filter(!id %in% anchorsites_for_clust$id) |>
+                    sample_n(sample_size - nrow(anchorsites_for_clust)) |>
+                    # row bind anchorsites_for_clust
+                    bind_rows(anchorsites_for_clust) |>
+                    dplyr::mutate(crop_id = factor(crop_id),
+                                  climregion_id = factor(climregion_id))
+assertthat::assert_that(nrow(data_for_clust) == sample_size)
+
+```
+
+### K-means Clustering
+
+First, create a function to perform hierarchical k-means and find optimal clusters.
+
+```{r}
+
+perform_clustering <- function(data) {
+  # Select numeric variables for clustering
+  clust_data <- data |> select(where(is.numeric))
+
+  # Standardize data
+  clust_data_scaled <- scale(clust_data)
+
+  # Determine optimal number of clusters using elbow method
+  k_range <- 3:12
+  tot.withinss <- future_map_dbl(k_range, function(k) {
+    model <- hkmeans(clust_data_scaled, k)
+    model$tot.withinss
+  }, .options = furrr_options(seed = TRUE))
+
+  # Find elbow point
+  elbow_df <- data.frame(k = k_range, tot.withinss = tot.withinss)
+  optimal_k <- find_curve_elbow(elbow_df)
+  message("Optimal number of clusters determined: ", optimal_k)
+
+  # Plot elbow method results
+  elbow_plot <- ggplot(elbow_df, aes(x = k, y = tot.withinss)) +
+    geom_line() +
+    geom_point() +
+    labs(title = "Elbow Method for Optimal k", x = "Number of Clusters", y = "Total Within-Cluster Sum of Squares")
+  print(elbow_plot)
+
+  # Compute silhouette scores to validate clustering quality
+  silhouette_scores <- future_map_dbl(k_range, function(k) {
+    model <- hkmeans(clust_data_scaled, k)
+    mean(silhouette(model$cluster, dist(clust_data_scaled))[, 3])
+  }, .options = furrr_options(seed = TRUE))
+
+  silhouette_df <- data.frame(k = k_range, silhouette = silhouette_scores)
+
+  message("Silhouette scores computed. Higher values indicate better-defined clusters.")
+  print(silhouette_df)
+
+  silhouette_plot <- ggplot(silhouette_df, aes(x = k, y = silhouette)) +
+    geom_line(color = "red") +
+    geom_point(color = "red") +
+    labs(title = "Silhouette Scores for Optimal k", x = "Number of Clusters", y = "Silhouette Score")
+  print(silhouette_plot)
+
+  # Perform hierarchical k-means clustering with optimal k
+  final_hkmeans <- hkmeans(clust_data_scaled, optimal_k)
+  data$cluster <- final_hkmeans$cluster
+
+  return(data)
+}
+```
+
+```{r}
+# Apply clustering function to the sampled dataset in parallel
+data_clustered <- perform_clustering(data_for_clust)
+save(data_clustered, file = "cache/data_clustered.rda")
+```
+
+### Check Clustering
+
+```{r}
+#load("cache/data_clustered.rda")
+# Summarize clusters
+cluster_summary <- data_clustered |>
+                      group_by(cluster) |>
+                      summarise(across(where(is.numeric), mean, na.rm = TRUE))
+# use ggplot to plot all pairwise numeric variables
+
+library(GGally)
+data_clustered |>
+  sample_n(1000) |>
+  ggpairs(columns=c(1,2,4,5,6)+1,
+          mapping = aes(color = as.factor(cluster), alpha = 0.8))+
+  theme_minimal()
+
+ggplot(data = cluster_summary, aes(x = cluster)) +
+  geom_line(aes(y = temp, color = "temp")) +
+  geom_line(aes(y = precip, color = "precip")) +
+  geom_line(aes(y = clay, color = "clay")) +
+  geom_line(aes(y = ocd, color = "ocd")) +
+  geom_line(aes(y = twi, color = "twi")) +
+  labs(x = "Cluster", y = "Value", color = "Variable")
+
+knitr::kable(cluster_summary |> round(0))
+
+```
+
+```{r}
+# Check stratification of clusters by categorical factors
+
+# cols should be character, factor
+crop_ids <- read_csv("data/crop_ids.csv",
+                     col_types = cols(
+                       crop_id = col_factor(),
+                       crop = col_character()))
+climregion_ids <- read_csv("data/climregion_ids.csv",
+                           col_types = cols(
+                             climregion_id = col_factor(),
+                             climregion_name = col_character()
+                           ))
+data_clustered2 <- data_clustered |>
+  left_join(crop_ids, by = "crop_id") |>
+  left_join(climregion_ids, by = "climregion_id")
+
+factor_stratification <- list(
+    crop_id = table(data_clustered2$cluster, data_clustered2$crop),
+    climregion_id = table(data_clustered2$cluster, data_clustered2$climregion_name))
+
+lapply(factor_stratification, knitr::kable)
+# Shut down parallel backend
+plan(sequential)
+```
+
+## Design Point Selection
+
+For phase 1b we need to supply design points for SIPNET runs. For development we will use 100 design points from the clustered dataset that are _not_ already anchor sites.
+
+For the final high resolution runs we expect to use approximately 10,000 design points.
+For woody croplands, we will start with a number proportional to the total number of sites with woody perennial pfts.
+
+```{r}
+# From the clustered data, remove anchor sites to avoid duplicates in design point selection.
+set.seed(19871023)
+design_points_ids <- data_clustered |>
+  filter(!id %in% woody_anchor_sites$id) |>
+  select(id)  |>
+  sample_n(100 - nrow(woody_anchor_sites))  |>
+  select(id)
+
+anchor_site_ids <- woody_anchor_sites |>
+   select(id)
+
+if(!exists("ca_fields")) {
+  ca_fields <- sf::st_read("data/ca_fields.gpkg")
+}
+
+final_design_points <- bind_rows(design_points_ids,
+   anchor_site_ids)  |>
+   left_join(ca_fields, by = "id")
+
+final_design_points |>
+   as_tibble()  |>
+   select(id, lat, lon) |>
+   write_csv("data/final_design_points.csv")
+
+```
+
+Now some analysis of how these design points are distributed
+
+```{r}
+# plot map of california and climregions
+load("data/ca_climregions.rda")
+final_design_points_clust <- final_design_points |>
+  left_join(data_clustered, by = "id") |>
+  select(lat, lon, cluster) |>
+  mutate(cluster = as.factor(cluster)) |>
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+ca_fields_pts <- ca_fields  |>
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+ggplot() +
+  geom_sf(data = ca_climregions, aes(fill = climregion_name), alpha = 0.5) +
+  labs(color = "Climregion") +
+  theme_minimal() +
+  geom_sf(data = final_design_points_clust, aes(shape = cluster)) +
+  geom_sf(data = ca_fields_pts, fill = 'black', color = "grey", alpha = 0.5)
+
+
+
+```
+
+## Woody Cropland Proportion
+
+Here we calculate percent of California croplands that are woody perennial crops, in order to estimate the number of design points that will be selected in the clustering step
+
+```{r}
+ca <- sf::st_read("data/ca_fields.gpkg") |>
+  dplyr::select(-lat, -lon) |>
+  dplyr::left_join(readr::read_csv("data/ca_field_attributes.csv"), by = "id")
+
+system.time(
+pft_area <- ca |>
+  dplyr::sample_n(200) |>
+  dplyr::select(id, pft, area_ha) |>
+  dtplyr::lazy_dt() |>
+  dplyr::mutate(woody_indicator = ifelse(pft == "woody perennial crop", 1L, 0L)) |>
+  dplyr::group_by(woody_indicator) |>
+  dplyr::summarize(pft_area = sum(area_ha))
+)
+# now calculate sum of pft_area and the proportion of woody perennial crops
+pft_area <- pft_area |>
+  dplyr::mutate(total_area = sum(pft_area)) |>
+  dplyr::mutate(area_pct = round(100 * pft_area / total_area)) |>
+  select(-total_area, -pft_area) |>
+  dplyr::rename("Woody Crops" = woody_indicator, "Area %" = area_pct) |>
+  kableExtra::kable()
+
+```
+
+Approximately `r pft_area|> filter(`Woody Crops` == 1) |> pull(`Area %`)` of California croplands are woody perennial crops.
