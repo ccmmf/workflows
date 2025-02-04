@@ -25,7 +25,7 @@ pecan_output_dir <- "./output"
 
 This part's easy. All validation data is lumped into one file -- we'll filter down as need for each step.
 ```{R val_data}
-val_data <- read.csv("validation_data.csv")
+val_data <- read.csv("data_raw/validation_data.csv")
 ```
 
 ## Read model output

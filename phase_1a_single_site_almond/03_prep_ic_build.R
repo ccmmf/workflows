@@ -17,7 +17,8 @@ site_info <- tibble::tribble(
 site_info$start_date <- "1999-01-01"
 
 
-outdir <- "."
+data_dir <- "data/IC_prep"
+ic_outdir <- "IC_files"
 
 # The LandTrendr data used here are distributed through an interactive portal,
 # with no obvious ability to automate download.
@@ -25,7 +26,7 @@ outdir <- "."
 # [e.g. paste0(conus_biomass_ARD_tile_", site_info$landsat_ARD_tile, ".tif)]
 # from https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
 # and specify the path to them here
-landtrendr_raw_data_dir <- file.path(outdir, "LandTrendr_AGB")
+landtrendr_raw_data_dir <- "data_raw/LandTrendr_AGB"
 
 ic_ensemble_size <- 100
 
@@ -44,31 +45,32 @@ set.seed(6824625)
 op <- options(parallelly.fork.enable = FALSE)
 on.exit(options(op))
 
+if (!dir.exists(data_dir)) dir.create(data_dir, recursive = TRUE)
 
 PEcAn.logger::logger.info("Getting estimated soil carbon from SoilGrids 250m")
 # NB this takes several minutes to run
 # csv filename is hardcoded by fn
-soilc_csv_path <- file.path(outdir, "soilgrids_soilC_data.csv")
+soilc_csv_path <- file.path(data_dir, "soilgrids_soilC_data.csv")
 if (file.exists(soilc_csv_path)) {
   PEcAn.logger::logger.info("using existing soil C file", soilc_csv_path)
   soil_carbon_est <- read.csv(soilc_csv_path, check.names = FALSE)
 } else {
   soil_carbon_est <- PEcAn.data.land::soilgrids_soilC_extract(
     site_info,
-    outdir = outdir
+    outdir = data_dir
   )
 }
 
 
 
 PEcAn.logger::logger.info("Soil moisture")
-sm_outdir <- file.path(outdir, "soil_moisture") |> normalizePath()
+sm_outdir <- file.path(data_dir, "soil_moisture") |> normalizePath()
 sm_csv_path <- file.path(sm_outdir, "sm.csv") # name is hardcorded by fn
 if (file.exists(sm_csv_path)) {
   PEcAn.logger::logger.info("using existing soil moisture file", sm_csv_path)
   soil_moisture_est <- read.csv(sm_csv_path)
 } else {
-  dir.create(sm_outdir)
+  if (!dir.exists(sm_outdir)) dir.create(sm_outdir)
   soil_moisture_est <- PEcAn.data.land::extract_SM_CDS(
     site_info = site_info,
     time.points = as.Date(site_info$start_date[[1]]),
@@ -84,7 +86,7 @@ if (file.exists(sm_csv_path)) {
 # lai_est <- PEcAn.data.remote::MODIS_LAI_prep(
 # 	site_info,
 # 	as.Date(site_info$start_date[[1]]),
-# 	outdir = outdir)
+# 	outdir = data_dir)
 
 
 
@@ -98,7 +100,7 @@ PEcAn.logger::logger.info("Aboveground biomass from LandTrendr")
 # Requires manual download of the relevant geotiffs from
 #   https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
 #   before running this script
-landtrendr_agb_outdir <- file.path(outdir, "LandTrendr_AGB")
+landtrendr_agb_outdir <- data_dir
 landtrendr_data_paths <- file.path(
   landtrendr_raw_data_dir,
   paste0("conus_biomass_ARD_tile_", site_info$landsat_ARD_tile, ".tif")
@@ -205,7 +207,11 @@ initial_condition_estimated <- dplyr::bind_rows(
                   upper_bound = Inf),
   .id = "variable"
 )
-write.csv(initial_condition_estimated, "IC_means.csv", row.names = FALSE)
+write.csv(
+  initial_condition_estimated,
+  file.path(data_dir, "IC_means.csv"),
+  row.names = FALSE
+)
 
 
 
@@ -233,8 +239,7 @@ ic_samples <- initial_condition_estimated |>
   # I'm assuming here leaf_carbon_content should be zero when LAI = 0;
   dplyr::mutate(wood_carbon_content = AbvGrndWood)
 
-ic_nc_dir <- file.path(outdir, "IC_files")
-file.path(ic_nc_dir, site_info$site_id) |>
+file.path(ic_outdir, site_info$site_id) |>
   unique() |>
   purrr::walk(dir.create, recursive = TRUE)
 
@@ -242,7 +247,7 @@ ic_samples |>
   dplyr::group_by(site_id, replicate) |>
   dplyr::group_walk(
     ~PEcAn.SIPNET::veg2model.SIPNET(
-       outfolder = file.path(ic_nc_dir, .y$site_id),
+       outfolder = file.path(ic_outdir, .y$site_id),
        poolinfo = list(dims = list(time = 1),
                        vals = .x),
        siteid = .y$site_id,
@@ -250,5 +255,5 @@ ic_samples |>
     )
   )
 
-PEcAn.logger::logger.info("IC files written to", ic_nc_dir)
+PEcAn.logger::logger.info("IC files written to", ic_outdir)
 PEcAn.logger::logger.info("Done")
