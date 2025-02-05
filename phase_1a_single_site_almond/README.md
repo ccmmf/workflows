@@ -3,7 +3,7 @@
 
  This workflow shows PEcAn running Sipnet hindcast simulations of an almond orchard in Kern County, CA. Starting from estimated initial conditions at orchard planting in 1999, we simulate 14 years of growth using PEcAn's existing Sipnet parameterization for a temperate deciduous forest, with no management activities included.
 
- The workflow has  the following components, run in this order:
+ The workflow has the following components, run in this order:
 
 * TKTK installation and system setup.
   - You will need at least a compiled Sipnet binary from https://github.com/PecanProject/sipnet, a working installation of the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries they depend on. Instructions for obtaining these are TK.
@@ -43,7 +43,7 @@ This should be a single flat folder containing ten `*.clim` files, one per ERA5 
 
 If you have raw ERA5 data in hand, you can generate these files with `01_prep_get_ERA5_met.R` -- See there for details. We provide them as artifacts because at this writing the official ERA5 data API is unstable in both availability and returned file format and has been that way for at least three months, so we decided a tarball of clim files would be more reproducible than a download script.
 
-Here we use `ERA5_losthills_SIPNET/*.clim`:
+Here we use `data/ERA5_losthills_SIPNET/*.clim`:
 ```
 MD5 (ERA5_losthills_SIPNET/ERA5.1.1999-01-01.2012-12-31.clim) = 9d7222037a3cac0283a3678de760fb31
 MD5 (ERA5_losthills_SIPNET/ERA5.10.1999-01-01.2012-12-31.clim) = 9fb9911aa3278cc30ed66d413e2a2d03
