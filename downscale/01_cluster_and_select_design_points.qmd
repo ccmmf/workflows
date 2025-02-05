@@ -1,5 +1,6 @@
 ---
 title: "Cluster and Select Design Points"
+author: "David LeBauer"
 ---
 
 # Overview
@@ -12,8 +13,7 @@ This workflow will:
 
 ## Setup
 
-```{r}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```{r setup}
 # general utilities
 library(tidyverse)
 
@@ -33,37 +33,71 @@ library(dplyr)
 no_cores <- parallel::detectCores(logical = FALSE)
 plan(multicore,  workers = no_cores - 2)
 options(future.globals.maxSize = benchmarkme::get_ram() * 0.9)
+
+# load climate regions for mapping
+load("data/ca_climregions.rda")
+# environmental covariates
+load("cache/data_for_clust_with_ids.rda")
+if('mean_temp' %in% names(data_for_clust_with_ids)){
+  data_for_clust_with_ids <- data_for_clust_with_ids |>
+    rename(temp = mean_temp)
+  PEcAn.logger::logger.warn("you should", 
+    "change mean_temp --> temp in data_for_clust_with_ids",
+    "when it is created in 00-prepare.qmd and then delete",
+    "this conditional chunk")
+}
+
+# set coordinate reference system
+ca_albers_crs <- 3310 # California Albers EPSG
+
 ```
 
 ## Load Site Environmental Data
 
 Environmental data was pre-processed in the previous workflow 00-prepare.qmd.
 
-```{r}
+Below is a sumary of the covariates dataset
 
-load("data/data_for_clust_with_ids.rda", verbose = TRUE)
-```
-
-Below are summary statistics of the dataset
-
-- id: Unique identifier for each LandIQ polygon
+- id: Unique identifier for each polygon
 - temp: Mean Annual Temperature from ERA5
 - precip: Mean Annual Precipitation from ERA5
+- srad: Solar Radiation
+- vapr: Vapor pressure deficit
 - clay: Clay content from SoilGrids
 - ocd: Organic Carbon content from SoilGrids
 - twi: Topographic Wetness Index
 - crop_id: identifier for crop type, see table in crop_ids.csv
 - climregion_id: Climate Regions as defined by CalAdapt identifier for climate region, see table in climregion_ids.csv
 
-```{r}
-skimr::skim(data_for_clust)
-```
 
 ## Anchor Site Selection
 
-```{r}
-## Get Anchor Sites from UC Davis, UC Riverside, and Ameriflux.
-woody_anchor_sites <- readr::read_csv("data/anchor_sites_ids.csv") |>
+Load Anchor Sites from UC Davis, UC Riverside, and Ameriflux.
+
+```{r anchor-sites-selection}
+anchor_sites <- readr::read_csv("data/anchor_sites.csv")
+ca_woody <- sf::st_read("data/ca_woody.gpkg") |> 
+  select(-pft) # duplicates pft column in anchor_sites
+
+anchor_sites_pts <- anchor_sites |>
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326) |> 
+  sf::st_join(ca_woody, join = sf::st_within) |> 
+  dplyr::select(id, lat, lon, location, site_name, crops, pft)
+
+# print a nice table of anchor sites
+knitr::kable(anchor_sites)
+# create map of anchor sites
+anchor_sites_pts |>
+  sf::st_transform(., crs = ca_albers_crs) |>
+  ggplot() +
+  geom_sf(data = ca_climregions, aes(fill = climregion_name), alpha = 0.25) +
+  labs(color = "Climate Region") +
+  geom_sf(aes(color = pft)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(color = "PFT") +
+  theme_minimal()
+
+woody_anchor_sites <-  anchor_sites_pts |>
   dplyr::filter(pft == "woody perennial crop")
 anchorsites_for_clust <-
   data_for_clust_with_ids |>
@@ -75,31 +109,38 @@ knitr::kable(woody_anchor_sites |> dplyr::left_join(anchorsites_for_clust, by = 
 
 ### Subset LandIQ fields for clustering
 
-K-means on the numeric columns (temp, precip, clay, possibly ignoring 'crop'
-or treat 'crop' as categorical by some encoding if needed).
+The following code does:
+- Read in a dataset of site environmental data
+- Removes anchor sites from the dataset that will be used for clustering
+- Subsample the dataset - 80GB RAM too small to cluster 100k rows
+- Bind anchor sites back to the dataset 
 
-```{r}
+```{r subset-for-clustering}
 set.seed(42)  # Set seed for random number generator for reproducibility
-
 # subsample for testing (full dataset exceeds available Resources)
 sample_size <- 20000
+
 data_for_clust <- data_for_clust_with_ids |>
                     # remove anchor sites
                     dplyr::filter(!id %in% anchorsites_for_clust$id) |>
                     sample_n(sample_size - nrow(anchorsites_for_clust)) |>
                     # row bind anchorsites_for_clust
                     bind_rows(anchorsites_for_clust) |>
-                    dplyr::mutate(crop_id = factor(crop_id),
+                    dplyr::mutate(crop = factor(crop),
                                   climregion_id = factor(climregion_id))
 assertthat::assert_that(nrow(data_for_clust) == sample_size)
-
+assertthat::assert_that('temp'%in% colnames(data_for_clust))
+skimr::skim(data_for_clust)
 ```
 
 ### K-means Clustering
 
-First, create a function to perform hierarchical k-means and find optimal clusters.
+First, create a function `perform_clustering` to perform hierarchical k-means and find optimal clusters.
 
-```{r}
+K-means on the numeric columns (temp, precip, clay, possibly ignoring 'crop'
+or treat 'crop' as categorical by some encoding if needed).
+
+```{r k-means-clustering-function}
 
 perform_clustering <- function(data) {
   # Select numeric variables for clustering
@@ -152,20 +193,30 @@ perform_clustering <- function(data) {
 }
 ```
 
-```{r}
-# Apply clustering function to the sampled dataset in parallel
+Apply clustering function to the sampled dataset.
+
+```{r clustering, eval=FALSE}
+
 data_clustered <- perform_clustering(data_for_clust)
 save(data_clustered, file = "cache/data_clustered.rda")
 ```
 
 ### Check Clustering
 
-```{r}
-#load("cache/data_clustered.rda")
+```{r check-clustering}
+load("cache/data_clustered.rda")
 # Summarize clusters
 cluster_summary <- data_clustered |>
                       group_by(cluster) |>
                       summarise(across(where(is.numeric), mean, na.rm = TRUE))
+if('mean_temp' %in% names(cluster_summary)){
+  cluster_summary <- cluster_summary |>
+    rename(temp = mean_temp)
+  PEcAn.logger::logger.warn("you should", 
+    "change mean_temp --> temp in cluster_summary",
+    "when it is created upstream and then delete this",
+    "conditional chunk")
+}
 # use ggplot to plot all pairwise numeric variables
 
 library(GGally)
@@ -187,7 +238,9 @@ knitr::kable(cluster_summary |> round(0))
 
 ```
 
-```{r}
+#### Stratification by Crops and Climate Regions
+
+```{r check-stratification}
 # Check stratification of clusters by categorical factors
 
 # cols should be character, factor
@@ -200,13 +253,10 @@ climregion_ids <- read_csv("data/climregion_ids.csv",
                              climregion_id = col_factor(),
                              climregion_name = col_character()
                            ))
-data_clustered2 <- data_clustered |>
-  left_join(crop_ids, by = "crop_id") |>
-  left_join(climregion_ids, by = "climregion_id")
 
 factor_stratification <- list(
-    crop_id = table(data_clustered2$cluster, data_clustered2$crop),
-    climregion_id = table(data_clustered2$cluster, data_clustered2$climregion_name))
+    crop_id = table(data_clustered$cluster, data_clustered$crop),
+    climregion_id = table(data_clustered$cluster, data_clustered$climregion_name))
 
 lapply(factor_stratification, knitr::kable)
 # Shut down parallel backend
@@ -220,9 +270,29 @@ For phase 1b we need to supply design points for SIPNET runs. For development we
 For the final high resolution runs we expect to use approximately 10,000 design points.
 For woody croplands, we will start with a number proportional to the total number of sites with woody perennial pfts.
 
-```{r}
+```{r design-point-selection}
 # From the clustered data, remove anchor sites to avoid duplicates in design point selection.
-set.seed(19871023)
+
+if(!exists("ca_fields")) {
+  ca_fields <- sf::st_read("data/ca_fields.gpkg")
+}
+
+missing_anchor_sites <- woody_anchor_sites|>
+               as_tibble()|>
+               left_join(ca_fields, by = 'id') |>
+               filter(is.na(id)) |> 
+               select(location, site_name, geometry)
+
+if(nrow(missing_anchor_sites) > 0){
+  woody_anchor_sites <- woody_anchor_sites |> 
+                          drop_na(lat, lon)
+  # there is an anchor site that doesn't match the ca_fields; 
+  # need to check on this. For now we will just remove it from the dataset.
+  PEcAn.logger::logger.warn("The following site(s) aren't within DWR crop fields:", 
+                             knitr::kable(missing_anchor_sites))
+}   
+
+set.seed(2222222)
 design_points_ids <- data_clustered |>
   filter(!id %in% woody_anchor_sites$id) |>
   select(id)  |>
@@ -231,10 +301,6 @@ design_points_ids <- data_clustered |>
 
 anchor_site_ids <- woody_anchor_sites |>
    select(id)
-
-if(!exists("ca_fields")) {
-  ca_fields <- sf::st_read("data/ca_fields.gpkg")
-}
 
 final_design_points <- bind_rows(design_points_ids,
    anchor_site_ids)  |>
@@ -247,14 +313,17 @@ final_design_points |>
 
 ```
 
+### Design Point Map
+
 Now some analysis of how these design points are distributed
 
-```{r}
+```{r design-point-map}
 # plot map of california and climregions
-load("data/ca_climregions.rda")
+
 final_design_points_clust <- final_design_points |>
   left_join(data_clustered, by = "id") |>
-  select(lat, lon, cluster) |>
+  select(id, lat, lon, cluster) |>
+  drop_na(lat, lon) |>
   mutate(cluster = as.factor(cluster)) |>
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
@@ -271,32 +340,34 @@ ggplot() +
 
 ```
 
+
 ## Woody Cropland Proportion
 
 Here we calculate percent of California croplands that are woody perennial crops, in order to estimate the number of design points that will be selected in the clustering step
 
-```{r}
-ca <- sf::st_read("data/ca_fields.gpkg") |>
+```{r woody-proportion}
+field_attributes <- read_csv("data/ca_field_attributes.csv")
+ca <- ca_fields |>
   dplyr::select(-lat, -lon) |>
-  dplyr::left_join(readr::read_csv("data/ca_field_attributes.csv"), by = "id")
+  dplyr::left_join(field_attributes, by = "id")
 
-system.time(
+set.seed(5050)
 pft_area <- ca |>
-  dplyr::sample_n(200) |>
+  dplyr::sample_n(2000) |>
   dplyr::select(id, pft, area_ha) |>
   dtplyr::lazy_dt() |>
   dplyr::mutate(woody_indicator = ifelse(pft == "woody perennial crop", 1L, 0L)) |>
   dplyr::group_by(woody_indicator) |>
   dplyr::summarize(pft_area = sum(area_ha))
-)
+
 # now calculate sum of pft_area and the proportion of woody perennial crops
 pft_area <- pft_area |>
   dplyr::mutate(total_area = sum(pft_area)) |>
   dplyr::mutate(area_pct = round(100 * pft_area / total_area)) |>
   select(-total_area, -pft_area) |>
-  dplyr::rename("Woody Crops" = woody_indicator, "Area %" = area_pct) |>
+  dplyr::rename("Woody Crops" = woody_indicator, "Area %" = area_pct) 
+  
+pft_area |>
   kableExtra::kable()
 
 ```
-
-Approximately `r pft_area|> filter(`Woody Crops` == 1) |> pull(`Area %`)` of California croplands are woody perennial crops.

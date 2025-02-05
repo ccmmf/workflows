@@ -1,9 +1,8 @@
 ---
 title: "Workflow Setup and Data Preparation"
-format: html
-author: David LeBauer
-date: sys.Date()
+author: "David LeBauer"
 ---
+
 
 # Overview
 
@@ -42,20 +41,19 @@ library(tidyverse)
 library(caladaptr)
 library(sf)
 library(terra)
-
 ## Required until PR 3423is merged https://github.com/PecanProject/pecan/pull/3423
 # check if PR is merged
-devtools::load_all("../pecan/modules/data.land")
+devtools::load_all(here::here("../pecan/modules/data.land"))
 
 ## Check available compute resources
 benchmarkme::get_ram()
-benchmarkme::get_cpu()
+ncpu <- benchmarkme::get_cpu()$no_of_cores
 no_cores <- parallel::detectCores(logical = FALSE)
 future_multi <- ifelse(future::supportsMulticore(),
        future::plan(future::multicore),
        future::plan(future::multisession))
 future::plan(future_multi,
-             workers = 16)
+             workers = ncpu - 2)
 
 
 
@@ -144,7 +142,7 @@ Phase 1 focuses on Woody Perennial Crop fields.
 Next, we will subset the LandIQ data to only include woody perennial crop fields.
 At the same time we will calculate the total percent of California Croplands that are woody perennial crop.
 
-```{r eval=FALSE}
+```{r}
 ca_fields <- sf::st_read("data/ca_fields.gpkg")
 ca_attributes <- readr::read_csv("data/ca_field_attributes.csv")
 
@@ -188,12 +186,12 @@ sf::st_write(ca_woody_subset,
         "data/ca_woody_subset.gpkg", delete_layer = TRUE)
 ```
 
-### Convert Points to Polygons.
+### Convert Polygons to Points.
 
 For Phase 1, we will use points to query raster data.
 In later phases we will evaluate the performance of polygons and how querying environmental data using polygons will affect the performance of clustering and downscaling algorithms.
 
-```{r}
+```{r polygons-to-points}
 woody_gpkg <- "data/ca_woody.gpkg" # use **ca_woody_subset.gpkg** for development and testing
 
 # load fields, convert polygons to points, and subset
@@ -206,7 +204,7 @@ ca_woody_pts <- sf::st_read(woody_gpkg) |>
 
 ## Anchor Sites
 
-```{r}
+```{r anchor-sites}
 # Anchor sites from UC Davis, UC Riverside, and Ameriflux.
 anchor_sites <- readr::read_csv("data/anchor_sites.csv")
 
@@ -234,7 +232,7 @@ sf::st_write(anchor_sites_with_ids |>
 
 Using already prepared SoilGrids layers
 
-```{r}
+```{r load-soilgrids}
 soilgrids_north_america_clay_tif <- '/projectnb/dietzelab/dongchen/anchorSites/NA_runs/soil_nc/soilgrids_250m/clay/clay_0-5cm_mean/clay/clay_0-5cm_mean.tif'
 soilgrids_north_america_ocd_tif <- '/projectnb/dietzelab/dongchen/anchorSites/NA_runs/soil_nc/soilgrids_250m/ocd/ocd_0-5cm_mean/ocd/ocd_0-5cm_mean.tif'
 ## if we want to clip to CA
@@ -250,13 +248,13 @@ soilgrids_north_america_ocd_rast <- terra::rast(soilgrids_north_america_ocd_tif)
 
 #### Extract clay from SoilGrids
 
-```{r}
+```{r sg-clay-ocd}
 
 clay <- (terra::extract(soilgrids_north_america_clay_rast, terra::vect(ca_woody_pts)) |>
   dplyr::select(-ID)) |>
   dplyr::pull()/ 10
 
-ocd <- terra::extract(soilgrids_north_america_ocd_rast, terra::vect(ca_woody_pts_clay)) |>
+ocd <- terra::extract(soilgrids_north_america_ocd_rast, terra::vect(ca_woody_pts)) |>
   dplyr::select(-ID) |>
   dplyr::pull()
 
@@ -273,7 +271,7 @@ assertthat::assert_that(
 
 ### Topographic Wetness Index
 
-```{r}
+```{r twi}
 twi_tiff <- '/projectnb/dietzelab/dongchen/anchorSites/downscale/TWI/TWI_resample.tiff'
 twi_rast <- terra::rast(twi_tiff)
 
@@ -287,7 +285,7 @@ ca_woody_pts_clay_ocd_twi <- cbind(ca_woody_pts_clay_ocd, twi = twi)
 
 ### Cal-Adapt Climate Regions
 
-```{r get_climregions}
+```{r caladapt_climregions}
 
 ca_albers_crs <- 3310 # use California Albers project (EPSG:3310) for speed,
                       # and so units are in meters
@@ -342,7 +340,7 @@ extract_clim <- function(raster, points_sf) {
     select(id, temp, prec, srad, vapr)
 }
 
-.tmp <-  list(rasters_list) |>
+.tmp <-  rasters_list |>
   furrr::future_map_dfr(
     ~ extract_clim(.x, ca_woody_pts),
       .id = "year",
@@ -355,7 +353,7 @@ clim_summaries <- .tmp |>
 ) |>
   dplyr::group_by(id) |>
   dplyr::summarise(
-    mean_temp = mean(temp),
+    temp = mean(temp),
     precip = mean(precip),
     srad = mean(srad),
     vapr = mean(vapr)
@@ -380,21 +378,20 @@ crop_ids <- ca_woody_pts |>
 
 assertthat::assert_that(nrow(.all) == nrow(clim_summaries) && nrow(.all) == nrow(ca_woody_pts_clay_ocd_twi_cr),
                         msg = "join was not 1:1 as expected")
-assertthat::assert_that(ncol(.all) == ncol(ca_woody_pts_clay_ocd_twi_cr) + ncol(clim_summaries) - 1,
-                        msg = "lost some columns in the join")
 
 glimpse(.all)
 skimr::skim(.all)
 
 data_for_clust_with_ids <- .all |>
-  dplyr::select(id, mean_temp, precip, crop_id, clay, ocd, twi, climregion_id)  |>
+  #dplyr::select(-c(climregion_name))  |>
   na.omit() |>
   mutate(across(where(is.numeric), ~ signif(., digits = 3)))
 
-save(data_for_clust_with_ids, file = "data/data_for_clust_with_ids.rda")
+save(data_for_clust_with_ids, file = "cache/data_for_clust_with_ids.rda")
 ```
 
-# Additional Code Unused
+<!--
+# [Draft] Unused Code
 
 ### Cal-Adapt Climate
 
@@ -404,7 +401,7 @@ See `ca_catalog_search('30yavg_ens32avg_historical')`
 
 ## make a paginated table
 
-```{r}
+```{r eval=FALSE}
 library(dplyr)
 ca_catalog_search('ens32avg') |>
   reactable::reactable(searchable = TRUE, filterable = TRUE, defaultPageSize = 20)
@@ -415,7 +412,6 @@ ca_catalog_search('ens32avg') |>
 LOCA (CMIP5-based)
 
 ```{r eval = FALSE}
-#source(here::here("../pecan/modules/data.land/R/download_caladapt.R"))
 
 #gcm = "ens32avg"
 gcm = "HadGEM2-ES"
@@ -472,7 +468,7 @@ climate_df <- furrr::future_map(
 
 ##### Cal-Adapt 3.0
 
-```{r}
+```{r eval=FALSE}
 my_data <- read_3km_hourly_climate_terra(
      data_dir = "local_folder",
      variable = "T2",
@@ -481,3 +477,5 @@ my_data <- read_3km_hourly_climate_terra(
      n_cores = 8
    )
 ```
+-->
+
