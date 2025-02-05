@@ -24,7 +24,7 @@ More details will go here about installation options.
 
 ## Artifacts needed before running the model
 
-We provide these as a single file named `00_cccmmf_phase_1a_artifacts.tgz` [TODO this name may change!]. Unpack it into the project directory (i.e. alongside this README) and it will place its files at the paths documented below.
+We provide these as a single file named `00_cccmmf_phase_1a_input_artifacts.tgz` [TODO this name may change!]. Unpack it into the project directory (`cd your/path/to/phase_1a_single_site_almond && xf 00_cccmmf_phase_1a_input_artifacts.tgz`) and it will place its files at the paths documented below.
 
 
 ### 1. Posterior files for PFT-specific model parameters
@@ -43,18 +43,18 @@ This should be a single flat folder containing ten `*.clim` files, one per ERA5 
 
 If you have raw ERA5 data in hand, you can generate these files with `01_prep_get_ERA5_met.R` -- See there for details. We provide them as artifacts because at this writing the official ERA5 data API is unstable in both availability and returned file format and has been that way for at least three months, so we decided a tarball of clim files would be more reproducible than a download script.
 
-Here we use `data/ERA5_losthills_SIPNET/*.clim`:
+Here we use `data/ERA5_losthills_dailyrain/*.clim`:
 ```
-MD5 (ERA5_losthills_SIPNET/ERA5.1.1999-01-01.2012-12-31.clim) = 9d7222037a3cac0283a3678de760fb31
-MD5 (ERA5_losthills_SIPNET/ERA5.10.1999-01-01.2012-12-31.clim) = 9fb9911aa3278cc30ed66d413e2a2d03
-MD5 (ERA5_losthills_SIPNET/ERA5.2.1999-01-01.2012-12-31.clim) = ed09f7d2e32fab5c155e5f530e4f26c5
-MD5 (ERA5_losthills_SIPNET/ERA5.3.1999-01-01.2012-12-31.clim) = a947ab953e576706e743856806f66b36
-MD5 (ERA5_losthills_SIPNET/ERA5.4.1999-01-01.2012-12-31.clim) = a9252528bc300c2bfdd6377c9a8b7372
-MD5 (ERA5_losthills_SIPNET/ERA5.5.1999-01-01.2012-12-31.clim) = f54262ffcb927225ac47375f574340f9
-MD5 (ERA5_losthills_SIPNET/ERA5.6.1999-01-01.2012-12-31.clim) = 6e06d46bd90e93c99b62c57b53eeb090
-MD5 (ERA5_losthills_SIPNET/ERA5.7.1999-01-01.2012-12-31.clim) = f90b17acced9270908c9e377edf18888
-MD5 (ERA5_losthills_SIPNET/ERA5.8.1999-01-01.2012-12-31.clim) = 3731fc19670653c0cf701c2e859412a4
-MD5 (ERA5_losthills_SIPNET/ERA5.9.1999-01-01.2012-12-31.clim) = 1dee5bc0b42207edeb535ca7fc3c3c3c
+MD5 (ERA5.1.1999-01-01.2012-12-31.clim) = e61481d71dfa39533932e0c1bcdb35fb
+MD5 (ERA5.10.1999-01-01.2012-12-31.clim) = 45e096d5ff23f59d5fedc653f6bef654
+MD5 (ERA5.2.1999-01-01.2012-12-31.clim) = 484b84269f5fc41f8808ad4321cf6188
+MD5 (ERA5.3.1999-01-01.2012-12-31.clim) = 1f1e3a53c98aff3f2f1fa0f3e234c5e5
+MD5 (ERA5.4.1999-01-01.2012-12-31.clim) = fc90db406522a94d47b66a20e16c9f5e
+MD5 (ERA5.5.1999-01-01.2012-12-31.clim) = 0b6ad1e96b1bd30d61800880fa0e37ef
+MD5 (ERA5.6.1999-01-01.2012-12-31.clim) = 1844ac3be2d3b9fea17b471c77908df1
+MD5 (ERA5.7.1999-01-01.2012-12-31.clim) = bee6b863d2e23d55211e9f5df4e70fa5
+MD5 (ERA5.8.1999-01-01.2012-12-31.clim) = 0be2f00cad34562bd5b6823a445034f3
+MD5 (ERA5.9.1999-01-01.2012-12-31.clim) = ac18e8d57a68e6aa5457cd7cf7e6892b
 ```
 
 To relocate these files or use different ones, edit the input path in `02_prep_add_precip_to_clim_files.sh`, or if not altering precip then edit the paths in `settings$inputs$met$path`.
@@ -99,6 +99,17 @@ MD5 (soil_moisture/surface_soil_moisture.1999-01-10.nc) = 2337043bee7e185a957cd8
 - compiled soil C stock data in `soilgrids_soilC_data.csv`, MD5 = cc03b81f5a636b9584ee1b03a7a9ed3e
 
 TODO these output paths are kind of scattered. Consider centralizing them -- maybe set outdir to `IC_files` instead of `.` in `03_prep_ic_build.R`?
+
+### tar command
+
+For the record, we packaged all of the above inputs using:
+
+```
+tar czf 00_cccmmf_phase_1a_input_artifacts.tgz \
+  pfts/temperate/ \
+  data/ERA5_losthills_dailyrain/ \
+  IC_files/losthills/
+```
 
 
 ## References
