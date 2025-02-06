@@ -284,7 +284,8 @@ model_out |>
 
 ```{R et}
 lh_et <- val_data |>
-  filter(param == "ETc")
+  filter(param == "ETc") |>
+  rename(year = date)
 
 # Sipnet reports ET in cm, then PEcAn converts to W/m2 on storage
 # We'll reverse the conversion via latent heat function  
