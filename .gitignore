@@ -1,0 +1,30 @@
+# R-specific files
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rproj
+
+# Quarto directories
+/.quarto/
+/_site/
+/_book/
+/docs/
+/_freeze/
+/_files/
+
+
+# VScode settings
+.vscode/
+
+# Knitr + R Markdown cache
+*_cache/
+/cache/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
