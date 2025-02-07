@@ -13,10 +13,6 @@
 /_freeze/
 /_files/
 
-# Quarto outputs
-*.html
-*.pdf
-*.docx
 
 # VScode settings
 .vscode/
