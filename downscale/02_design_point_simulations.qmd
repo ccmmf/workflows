@@ -5,60 +5,67 @@ author: "David LeBauer"
 
 # Overview
 
-This workflow will:
+In the future, this workflow will:
 
 - Use SIPNET to simulate SOC and biomass for each design point.
-- generate a dataframe with site_id, lat, lon, soil carbon, biomass
+- Generate a dataframe with site_id, lat, lon, soil carbon, biomass
+- (Maybe) use SIPNETWOPET to evaluate downscaling model skill?
+
+Curently, we will use a surrogate model, SIPNETWOPET, to simulate SOC and biomass for each design point.
 
 ## SIPNETWOPET [surrogate model] 
 
-Until SIPNET predictions are available, we will introduce a new model, SIPNETWOPET, the Simpler Photosynthesis and EvapoTranspiration model, WithOut Photosynthesis and EvapoTranspiration.
+
+
+## SIPNETWOPET Simulation of Design Points
+
+We introduce a new model, SIPNETWOPET, the "Simpler Photosynthesis and EvapoTranspiration model, WithOut Photosynthesis and EvapoTranspiration".
 
 ```{r}
 library(tidyverse)
+source("downscale/sipnetwopet.R")
 ```
 
+
+### Join Design Points with Covariates
 
 ```{r}
-# Define SIPNETWOPET function
+design_points <- read_csv('data/final_design_points.csv') 
+covariates <- load("data/data_for_clust_with_ids.rda") |> get()
 
-sipnetwopet <- function(
-  mean_temp, precip, clay, ocd, twi, seed = 8675.309
-) {
-  set.seed(seed)
-  # Manually scale inputs using predefined dataset statistics
-  # scaled = (x - mean(x)) / sd(x)
-  scaled_temp <- (mean_temp - 20) / 2
-  scaled_precip <- (precip - 5000) / 2000
-  scaled_clay <- (clay - 20) / 6
-  scaled_ocd <- (ocd - 300) / 60
-  scaled_twi <- (twi - 10) / 2
-  
-  # Add stochastic variation = 10% * sd
-  scaled_temp <- scaled_temp * rnorm(1, 1, 0.1)
-  scaled_precip <- scaled_precip * rnorm(1, 1, 0.1)
-  scaled_clay <- scaled_clay * rnorm(1, 1, 0.1)
-  scaled_ocd <- scaled_ocd * rnorm(1, 1, 0.1)
-  scaled_twi <- scaled_twi * rnorm(1, 1, 0.1)
-
-  # Simulate SOC with asymptotic bounds
-  .soc <- 80 + 15 * scaled_precip + 12 * scaled_temp + 50 * scaled_ocd + 15 * scaled_clay + 8 * scaled_twi +
-    rnorm(1, 0, 10)
-  soc <- 90 * (.soc / (100 + abs(.soc))) + rlnorm(1, meanlog = log(5), sdlog = 0.3)  # Asymptotic upper and soft lower bound
-
-  # Simulate AGB with soft lower bound constraint
-  .agb <- 120 + 25 * scaled_temp + 35 * scaled_precip + 10 * scaled_clay -
-    8 * scaled_twi + rnorm(1, 0, 15)
-  agb <- 450 * (.agb / (500 + abs(.agb))) + rlnorm(1, meanlog = log(20), sdlog = 0.4) # Asymptotic upper and soft lower bound
-
-  return(tibble::tibble(soc = soc, agb = agb))
-}
-
+design_point_covs <- design_points |> 
+  left_join(sf::st_drop_geometry(covariates), by = 'id')
 ```
 
-### SIPNETWOPET Demonstration
+### Run SIPNETWOPET
 
-```{r sipnetwopet-demo}
+```{r}
+set.seed(8675.309)
+design_point_results <- design_point_covs |> 
+  dplyr::rowwise() |> 
+  dplyr::mutate(result = list(sipnetwopet(temp, precip, clay, ocd, twi))) |> 
+  tidyr::unnest(result) |> 
+  dplyr::select(id, lat, lon, soc, agb, ensemble_id)
+
+
+ensemble_data <- design_point_results |>
+  dplyr::group_by(ensemble_id) |>
+  dplyr::summarize(
+    SOC = list(soc),
+    AGB = list(agb),
+    .groups = "drop"
+  )
+
+saveRDS(design_point_results, 'cache/design_point_results.rds')
+
+class(covariates)
+write_csv(design_point_results, 'cache/sipnetwopet_design_point_results.csv')
+```
+
+
+### SIPNETWOPET Example
+
+```{r sipnetwopet-demo, eval=FALSE}
 # Example dataset
 n <- 100
 set.seed(77.77)
@@ -78,16 +85,4 @@ example_results <- example_sites |>
 
 print(example_results)
 pairs(example_results)
-```
-
-### Design Point Covariates
-
-```{r}
-
-design_points <- read_csv('data/final_design_points.csv') 
-covariates <- read_csv("data/data_for_clust_with_ids.rda") |> get()
-
-design_point_covs <- design_points |> 
-  left_join(covariates, by = 'id')
-model_inputs <- covariates
 ```
