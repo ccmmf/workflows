@@ -282,7 +282,11 @@ model_out |>
 
 ## Evapotranspiration
 
-```{R et}
+Khalsa et al provide yearly and monthly totals of ETc for 2008-2012, and Falk et al 2014[4] report flux-tower based daily ET from the whole orchard for growing season 2008. I believe these were all derived from the same underlying flux data, but likely through different calculations.
+
+### Yearly
+
+```{R et_yr}
 lh_et <- val_data |>
   filter(param == "ETc") |>
   rename(year = date)
@@ -291,11 +295,13 @@ lh_et <- val_data |>
 # We'll reverse the conversion via latent heat function  
 model_et <- model_out |>
   filter(year %in% 2008:2012) |>
-  mutate(ET = Qle * model_timestep / PEcAn.data.atmosphere::get.lv()) |>
+  mutate(ET = Qle * model_timestep / PEcAn.data.atmosphere::get.lv())
+
+model_et_yearly <- model_et |>
   group_by(year, ens_num) |>
   summarize(ET = sum(ET))
 
-ggplot(model_et) +
+ggplot(model_et_yearly) +
   aes(
     x = ET,
     color = "model") +
@@ -314,6 +320,80 @@ ggplot(model_et) +
   xlab("ET, mm")
 ```
 
+### Monthly
+```{R et_month}
+lh_et_monthly <- val_data |>
+  filter(param == "ETc_monthly") |>
+  mutate(
+    date = as.Date(paste0(date, "-01")),
+    year = year(date),
+    month = month(date)) |>
+  select(date, year, month, ETobs = mean)
+
+et_monthly <- model_et |>
+  mutate(month = month(posix)) |>
+  group_by(year, month, ens_num) |>
+  summarize(ET = sum(ET)) |>
+  group_by(year, month) |>
+  summarize(
+    q5 = quantile(ET, 0.05),
+    q95 = quantile(ET, 0.95),
+    ET = mean(ET)) |>
+  right_join(lh_et_monthly, by = c("year", "month"))
+
+ggplot(et_monthly) +
+  aes(x = date, y = ET) +
+  geom_col(aes(y = ETobs, color = "data")) +
+  geom_pointrange(aes(ymin = q5, ymax = q95, color = "model")) +
+  xlab(NULL) +
+  ylab("ET, mm/month")
+
+ggplot(et_monthly) +
+  aes(x = ETobs, y = ET, ymin = q5, ymax = q95) +
+  geom_abline(lty = "dashed") +
+  geom_pointrange() +
+  geom_smooth(method = "lm") +
+  xlab("Observed ET, mm/month") +
+  ylab("Modeled ET, mm/month") +
+  ggtitle("Monthly data, 2008-2012")
+```
+
+### Daily
+```{R et_day}
+lh_et_daily <- val_data |>
+  filter(param == "ET_daily") |>
+  select(date, ETobs = mean) |>
+  mutate(date = as.Date(date))
+
+et_daily <- model_et |>
+  filter(year == 2008) |>
+  mutate(date = as.Date(posix)) |>
+  group_by(date, ens_num) |>
+  summarize(ET = sum(ET)) |>
+  group_by(date) |>
+  summarize(
+    q5 = quantile(ET, 0.05),
+    q95 = quantile(ET, 0.95),
+    ET = mean(ET)) |>
+  right_join(lh_et_daily, by = "date")
+
+ggplot(et_daily) +
+  aes(x = date, y = ET) +
+  geom_pointrange(aes(ymin = q5, ymax = q95, color = "model")) +
+  geom_point(aes(y = ETobs, color = "data")) +
+  xlab("2008") +
+  ylab("ET, mm")
+
+ggplot(et_daily) +
+  aes(x = ETobs, y = ET, ymin = q5, ymax = q95) +
+  geom_abline(lty = "dashed") +
+  geom_pointrange() +
+  geom_smooth(method = "lm") +
+  xlab("Observed ET, mm") +
+  ylab("Modeled ET, mm") +
+  ggtitle("Daily data, 2008 growing season")
+```
+
 ## References
 
 [1] Khalsa, Sat Darshan S., David R. Smart, Saiful Muhammad, Christine M. Armstrong, Blake L. Sanden, Benjamin Z. Houlton, and Patrick H. Brown. “Intensive Fertilizer Use Increases Orchard N Cycling and Lowers Net Global Warming Potential.” Science of the Total Environment 722 (June 2020): 137889. https://doi.org/10.1016/j.scitotenv.2020.137889.
@@ -321,3 +401,5 @@ ggplot(model_et) +
 [2] Muhammad, Saiful, Blake L. Sanden, Bruce D. Lampinen, Sebastian Saa, Muhammad I. Siddiqui, David R. Smart, Andres Olivos, Kenneth A. Shackel, Theodore DeJong, and Patrick H. Brown. “Seasonal Changes in Nutrient Content and Concentrations in a Mature Deciduous Tree Species: Studies in Almond (Prunus Dulcis (Mill.) D. A. Webb).” European Journal of Agronomy 65 (April 2015): 52–68. https://doi.org/10.1016/j.eja.2015.01.004.
 
 [3] Schellenberg, Daniel L., Maria M. Alsina, Saiful Muhammad, Christine M. Stockert, Michael W. Wolff, Blake L. Sanden, Patrick H. Brown, and David R. Smart. “Yield-Scaled Global Warming Potential from N2O Emissions and CH4 Oxidation for Almond (Prunus Dulcis) Irrigated with Nitrogen Fertilizers on Arid Land.” Agriculture, Ecosystems & Environment 155 (July 2012): 7–15. https://doi.org/10.1016/j.agee.2012.03.008.
+
+[4] Falk, Matthias, R. D. Pyles, S. L. Ustin, K. T. Paw U, L. Xu, M. L. Whiting, B. L. Sanden, and P. H. Brown. “Evaluated Crop Evapotranspiration over a Region of Irrigated Orchards with the Improved ACASA–WRF Model.” Journal of Hydrometeorology 15, no. 2 (April 1, 2014): 744–58. https://doi.org/10.1175/JHM-D-12-0183.1.
