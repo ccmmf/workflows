@@ -110,6 +110,38 @@ tar czf 00_cccmmf_phase_1a_input_artifacts.tgz \
   IC_files/losthills/
 ```
 
+## Directory layout
+
+The files for this project are arranged as follows. Note that some of these are created at runtime and will not be visible when looking at the project code on GitHub.
+
+- `data/`: Clean, processed datasets used for model input and validation. Files in this directory can be recreated with the appropriate prep script.
+- `data_raw/`: Datasets that were created by workflows external to this project, potentially including manual compilation. Files in this directory should be treated as artifacts that would be a lot of work to recreate.
+- `IC_files/`: Initial conditions for the site(s) to be modeled, stored as netCDF files. Each file contains a single starting value for each variable, drawn from the distributions estimated in the `ic_build` script. Each model invocation (ensemble member) then begins from the initial conditions in one file.
+- `output/`: Created by PEcAn at run time. Contains:
+  - `ensemble.analysis.<id>.<variable>.<years>.pdf`: histograms and boxplots of the time-averaged ensemble values of each variable.
+  - `ensemble.output.<id>.<variable>.<years>.Rdata`: The extracted datapoints used to make the matching PDFs.
+  - `ensemble.ts.<id>.<variable>.<years>.pdf`: Time series plots showing mean and 95% CI of each variable throughout the run.
+  - `ensemble.ts.<id>.<variable>.<years>.Rdata`: The extracted datapoints used to make the timeseries PDFs.
+  - `out/`: Model outputs, with subdirectories for each ensemble member containing:
+    * `<year>.nc`: One PEcAn-standard netCDF per year containing all requested output variables at the same timestep as the input weather data
+    * `<year>.nc.var`: One plain text file per year containing a list of the variables included in `<year>.nc`. In this case all years have the same variables, but PEcAn is capable of simulations where variables differ from year to year.
+    * `logfile.txt`: Console output from the model run. Note that Sipnet itself is not very chatty, so for successful runs this usually shows only the PEcAn output from the process of converting the output to netCDF.
+    * `README.txt`: Reports some metadata about the model run including site, input files, run dates, etc.
+    * `sipnet.out`: Raw Sipnet output, with all years and variables in one file
+  - `pecan.CONFIGS.xml`: Settings for the run, as recorded just after writing config files and before starting the Sipnet runs (In this workflow only one XML file is written; in other PEcAn applications the settings might be recorded at other stages of the run as well, giving e.g. `pecan.CHECKED.xml`, `pecan.TRAIT.xml`, `pecan.METPROCESS.xml`, and so on).
+  - `pft/`: Parameter sensitivity and variance decomposition plots from the sensitivity analysis, placed here because PEcAn's sensitivity analysis can be requested for many PFTs at once and is run separately for each one.
+  - `run/`: Working directories for the execution of each model, with subdirectories for each ensemble member containing:
+    * `job.sh`: A bash script that controls the execution of Sipnet and relocates outputs to the `out/` directory
+    * `README.txt`: Metadata about the model run; identical to the copy in `out/`
+    * `sipnet.clim`: a *link to* the weather data used for this model invocation.
+    * `sipnet.in`, `sipnet.param-spatial`: Configuration files used by Sipnet. These are identical for each run, copied into every run directory because Sipnet expects to find them there.
+    * `sipnet.param`: Values for Sipnet model parameters, set by starting from Sipnet's default parameter set and updating parameters set in the chosen PFT by taking draws from the PFT's parameter distributions.
+  - `samples.Rdata`: The draws from requested parameter distributions that were used to set the Sipnet parameterization of each model in the run.
+  - `sensitivity.output.<id>.<variable>.<years>.Rdata`: Results from the sensitivity analysis, processed and ready for visualization.
+  - `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
+  - `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
+  - `STATUS`: A plain text file containing start and end timestamps and statuses for each phase of the workflow.
+
 
 ## References
 
