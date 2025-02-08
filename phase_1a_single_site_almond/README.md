@@ -75,14 +75,14 @@ See `03_prep_ic_build.R` for details.
 
 Here we store:
 * Initial condition files in `IC_files/losthills/*.nc`, whose collective md5 hash (i.e. `md5 IC_files/losthills/*.nc | md5`) is da8efa69af2d5e22efcdc4541942ee64
-* Source data for aboveground biomass in `LandTrendr_AGB/`
+* Source data for aboveground biomass in `data_raw/LandTrendr_AGB/`
 ```
 MD5 (LandTrendr_AGB/aboveground_biomass_landtrendr.csv) = 60b264c272656af7149c00813f17f97c
 MD5 (LandTrendr_AGB/conus_biomass_ARD_tile_h02v08.tif) = 41aeada58b5224ccf450fa22536edd67
 MD5 (LandTrendr_AGB/conus_biomass_ARD_tile_h03v10.tif) = 716488ac4befc35be3b11973700da92a
 MD5 (LandTrendr_AGB/conus_biomass_ARD_tile_h03v11.tif) = 5afceed07c8836a82e3e8f25e7f3e76b
 ```
-- Source data for soil moisture in `soil_moisture/`
+* Source data for soil moisture in `data/IC_prep/soil_moisture/`
 ```
 MD5 (soil_moisture/sm.csv) = ea064b8eb8be77a4a1669f52062bf48c
 MD5 (soil_moisture/surface_soil_moisture.1999-01-01.nc) = 70fad74c167e1809fe6b35a0baa0b004
@@ -96,9 +96,8 @@ MD5 (soil_moisture/surface_soil_moisture.1999-01-08.nc) = ecd332b20d87d31a03a23d
 MD5 (soil_moisture/surface_soil_moisture.1999-01-09.nc) = 4870a69bd7594e41d9015888dd50d116
 MD5 (soil_moisture/surface_soil_moisture.1999-01-10.nc) = 2337043bee7e185a957cd8cb92062234
 ```
-- compiled soil C stock data in `soilgrids_soilC_data.csv`, MD5 = cc03b81f5a636b9584ee1b03a7a9ed3e
+* compiled soil C stock data in `data/IC_prep/soilgrids_soilC_data.csv`, MD5 = cc03b81f5a636b9584ee1b03a7a9ed3e
 
-TODO these output paths are kind of scattered. Consider centralizing them -- maybe set outdir to `IC_files` instead of `.` in `03_prep_ic_build.R`?
 
 ### tar command
 
