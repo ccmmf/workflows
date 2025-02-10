@@ -12,7 +12,7 @@ LINK_DEST=${2:-"./sipnet.git"}
 mkdir -p "$BIN_DIR"
 BIN_DIR=$(realpath "$BIN_DIR")
 
-git clone https://github.com:PecanProject/sipnet.git
+git clone https://github.com/PecanProject/sipnet.git
 cd sipnet
 GIT_REV=$(git rev-parse --short)
 make sipnet
