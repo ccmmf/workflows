@@ -2,9 +2,9 @@
 
 set -e
 
-SIPNET_DIR=${1:-"~/sipnet"}
-BIN_DIR=${2:-"~/sipnet_binaries"}
-LINK_DEST=${3:-"./sipnet.git"}
+SIPNET_DIR=${1:-~/sipnet}
+BIN_DIR=${2:-~/sipnet_binaries}
+LINK_DEST=${3:-./sipnet.git}
 
 # I think git and gcc are available by default here
 # If not true on other sytems, might need e.g `module load gcc`
