@@ -68,7 +68,7 @@
   <type>SIPNET</type>
   <revision>git</revision>
   <delete.raw>FALSE</delete.raw>
-  <binary>/usr/local/bin/sipnet.git</binary>
+  <binary>sipnet.git</binary>
  </model>
  <run>
   <site>
