@@ -24,7 +24,7 @@ More details will go here about installation options.
 
 ## Artifacts needed before running the model
 
-We provide these as a single file named `00_cccmmf_phase_1a_input_artifacts.tgz` [TODO this name may change!]. Unpack it into the project directory (`cd your/path/to/phase_1a_single_site_almond && xf 00_cccmmf_phase_1a_input_artifacts.tgz`) and it will place its files at the paths documented below.
+We provide these as a single file named `00_cccmmf_phase_1a_input_artifacts.tgz` [TODO this name may change!]. Unpack it into the project directory (`cd your/path/to/phase_1a_single_site_almond && tar xf 00_cccmmf_phase_1a_input_artifacts.tgz`) and it will place its files at the paths documented below.
 
 
 ### 1. Posterior files for PFT-specific model parameters
