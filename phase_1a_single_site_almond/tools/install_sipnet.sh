@@ -14,7 +14,7 @@ BIN_DIR=$(realpath "$BIN_DIR")
 
 git clone https://github.com/PecanProject/sipnet.git
 cd sipnet
-GIT_REV=$(git rev-parse --short)
+GIT_REV=$(git rev-parse --short HEAD)
 make sipnet
 mv sipnet "$BIN_DIR"/sipnet_"$GIT_REV"
 
