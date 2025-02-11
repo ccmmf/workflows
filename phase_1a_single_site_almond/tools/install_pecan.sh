@@ -15,9 +15,11 @@ Rscript -e 'dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE)'
 # Expect at least an hour of compilation
 # NB `ropensci` in repos list may be removable after pecan PR 3433 is merged
 srun --cpus-per-task=4 --mem-per-cpu=1G --time="12:00:00" Rscript -e \
-	'install.packages('\
-		'c("PEcAn.all", "PEcAn.SIPNET"),'\
-		'repos = c('\
-			'CRAN = "cloud.r-project.org",'\
-			'pecan = "pecanproject.r-universe.dev",'\
-			'ropensci = "ropensci.r-universe.dev"))'
+	'install.packages(
+		c("PEcAn.all", "PEcAn.SIPNET"),
+		repos = c(
+			CRAN = "cloud.r-project.org",
+			pecan = "pecanproject.r-universe.dev",
+			ropensci = "ropensci.r-universe.dev"
+		)
+	)'
