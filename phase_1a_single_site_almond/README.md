@@ -12,7 +12,8 @@
   - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the Sipnet clim files, crudely approximating irrigation.
   - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
 * Run Sipnet on the prepared inputs.
-  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also performs a one-at-a-time sensitivity analysis on the parameters and creates visualizations of the results. Run it as `./04_run_model.R --settings=single_site_almond.xml 2>&1 | tee pecan_workflow_runlog.txt`
+  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`). Run it as `./04_run_model.R --settings=single_site_almond.xml 2>&1 | tee pecan_workflow_runlog.txt`.
+
 * Analyze the results.
   - `05_validation.Rmd` shows validation comparisons between the model predictions and site-level measurements of SOC, biomass, NPP, and ET.
 
@@ -129,7 +130,6 @@ The files for this project are arranged as follows. Note that some of these are 
     * `README.txt`: Reports some metadata about the model run including site, input files, run dates, etc.
     * `sipnet.out`: Raw Sipnet output, with all years and variables in one file
   - `pecan.CONFIGS.xml`: Settings for the run, as recorded just after writing config files and before starting the Sipnet runs (In this workflow only one XML file is written; in other PEcAn applications the settings might be recorded at other stages of the run as well, giving e.g. `pecan.CHECKED.xml`, `pecan.TRAIT.xml`, `pecan.METPROCESS.xml`, and so on).
-  - `pft/`: Parameter sensitivity and variance decomposition plots from the sensitivity analysis, placed here because PEcAn's sensitivity analysis can be requested for many PFTs at once and is run separately for each one.
   - `run/`: Working directories for the execution of each model, with subdirectories for each ensemble member containing:
     * `job.sh`: A bash script that controls the execution of Sipnet and relocates outputs to the `out/` directory
     * `README.txt`: Metadata about the model run; identical to the copy in `out/`
@@ -137,9 +137,11 @@ The files for this project are arranged as follows. Note that some of these are 
     * `sipnet.in`, `sipnet.param-spatial`: Configuration files used by Sipnet. These are identical for each run, copied into every run directory because Sipnet expects to find them there.
     * `sipnet.param`: Values for Sipnet model parameters, set by starting from Sipnet's default parameter set and updating parameters set in the chosen PFT by taking draws from the PFT's parameter distributions.
   - `samples.Rdata`: The draws from requested parameter distributions that were used to set the Sipnet parameterization of each model in the run.
-  - `sensitivity.output.<id>.<variable>.<years>.Rdata`: Results from the sensitivity analysis, processed and ready for visualization.
-  - `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
-  - `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
+  - If a sensitivity analysis is requested (by uncommenting the `<sensitivity.analysis>` block in `single_site_almond.xml`), it will add these additional components:
+    - `pft/`: Parameter sensitivity and variance decomposition plots from the sensitivity analysis, placed here because PEcAn's sensitivity analysis can be requested for many PFTs at once and is run separately for each one.
+    - `sensitivity.output.<id>.<variable>.<years>.Rdata`: Results from the sensitivity analysis, processed and ready for visualization.
+    - `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
+    - `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
   - `STATUS`: A plain text file containing start and end timestamps and statuses for each phase of the workflow.
 
 

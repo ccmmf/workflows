@@ -18,7 +18,7 @@
    <posterior.files>pfts/temperate/post.distns.Rdata</posterior.files>
   </pft>
  </pfts>
- <sensitivity.analysis>
+ <!-- <sensitivity.analysis>
   <quantiles>
     <sigma>-3</sigma>
     <sigma>-2</sigma>
@@ -35,7 +35,7 @@
   <perpft>TRUE</perpft>
   <start.year>1999</start.year>
   <end.year>2012</end.year>
- </sensitivity.analysis>
+ </sensitivity.analysis> -->
  <meta.analysis>
   <iter>3000</iter>
   <random.effects>
