@@ -12,11 +12,11 @@
   - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the Sipnet clim files, crudely approximating irrigation.
   - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
 * Run Sipnet on the prepared inputs.
-  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`). Run it as `./04_run_model.R --settings=single_site_almond.xml 2>&1 | tee pecan_workflow_runlog.txt`.
-
+  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`). Run it as `./04_run_model.R --settings=single_site_almond.xml 2>&1 | tee pecan_workflow_run.log`.
 * Analyze the results.
   - `05_validation.Rmd` shows validation comparisons between the model predictions and site-level measurements of SOC, biomass, NPP, and ET.
-
+* Archive run outputs.
+  - `tools/compress_output.sh` creates a compressed tarball of the `outputs/` directory, the compiled validation notebook, and any log files.
 
 ## System setup TK
 
@@ -143,6 +143,7 @@ The files for this project are arranged as follows. Note that some of these are 
     - `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
     - `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
   - `STATUS`: A plain text file containing start and end timestamps and statuses for each phase of the workflow.
+- `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up Sipnet and PEcAn on an HPC cluster and for archiving run output; others may be added later.
 
 
 ## References
