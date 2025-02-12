@@ -23,7 +23,7 @@ if [[ -f 05_validation.html ]]; then
 	VAL_TS=$(date -r 05_validation.html "$TFMT")
 	cp -v 05_validation.html output/05_validation_"$VAL_TS".html
 fi
-for l in $(find . -name '*.log' -depth 1); do
+for l in $(find . -maxdepth 1 -name '*.log'); do
 	LOG_TS=$(date -r "$l" "$TFMT")
 	cp -v "$l" output/"${l//.}"_"$LOG_TS".log 
 done
