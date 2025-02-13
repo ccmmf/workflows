@@ -37,7 +37,8 @@ Now read in the existing PEcAn output. Running the model is described in README.
 model_out <- pecan_output_dir |>
   list.files(pattern = "*.nc$", full.names = TRUE, recursive = TRUE) |>
   grep(pattern = "ENS", value = TRUE) |>
-  data.frame(file = _) |>
+  # data.frame(file = _) |> # Needs R 4.2. Until then, use...
+  (\(x)data.frame(file = x))() |> # Ugly but works with R 4.1
   mutate(
     ens_num = as.numeric(str_extract(file, "ENS-(\\d+)", group = 1))
   ) |>
