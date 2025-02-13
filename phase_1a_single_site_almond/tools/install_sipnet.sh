@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#SBATCH -n1
+#SBATCH --time=00:10:00
+
 set -e
 
 SIPNET_DIR=${1:-~/sipnet}
@@ -14,7 +17,7 @@ BIN_DIR=$(realpath "$BIN_DIR")
 git clone https://github.com/PecanProject/sipnet.git "$SIPNET_DIR"
 cd "$SIPNET_DIR" \
 	&& GIT_REV=$(git rev-parse --short HEAD) \
-	&& srun -n1 make sipnet \
+	&& make sipnet \
 	&& mv sipnet "$BIN_DIR"/sipnet_"$GIT_REV" \
 	&& cd -
 

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=1G
+#SBATCH --time="12:00:00"
+
 set -e
 
 module load r/4.4.0
@@ -15,7 +19,7 @@ Rscript -e 'dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE)'
 # In my test this took about 2 hours using 4 cores.
 # NB `tidyverse` not technically needed by PEcAn, but installing it here
 #	for downstream analyses
-srun --cpus-per-task=4 --mem-per-cpu=1G --time="12:00:00" Rscript -e \
+Rscript -e \
 	'install.packages(
 		c("PEcAn.all", "PEcAn.SIPNET", "tidyverse"),
 		repos = c(
