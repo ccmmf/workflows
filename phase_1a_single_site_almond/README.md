@@ -5,28 +5,59 @@
 
  The workflow has the following components, run in this order:
 
-* TKTK installation and system setup.
-  - You will need at least a compiled Sipnet binary from https://github.com/PecanProject/sipnet, a working installation of the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries they depend on. Instructions for obtaining these are TK.
+* Installation and system setup.
+  - You will need at least a compiled Sipnet binary from https://github.com/PecanProject/sipnet, a working installation of R and the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries these depend on.
+  - See below for more instructions.
 * Input prep steps, for which we provide output files in `00_ccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
   - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it in Sipnet's clim format.
   - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the Sipnet clim files, crudely approximating irrigation.
   - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
 * Run Sipnet on the prepared inputs.
-  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`). Run it as `./04_run_model.R --settings=single_site_almond.xml 2>&1 | tee pecan_workflow_run.log`.
+  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`).
 * Analyze the results.
   - `05_validation.Rmd` shows validation comparisons between the model predictions and site-level measurements of SOC, biomass, NPP, and ET.
 * Archive run outputs.
   - `tools/compress_output.sh` creates a compressed tarball of the `outputs/` directory, the compiled validation notebook, and any log files.
 
-## System setup TK
 
-More details will go here about installation options.
+## System setup
 
+This workflow has been tested on a laptop running MacOS 14.7 and a Linux cluster running Rocky Linux 8.10, both using PEcAn revision f184978397 and Sipnet revision 592700c, which were the most recent commits in both `develop` branches on 2025-02-10.
 
-## Artifacts needed before running the model
+Please report any trouble you encounter during installation so that we can help fix it. This is true for the whole workflow, but we emphasize it here in recognition that too many open-source projects treat installation as the user's problem.
 
-We provide these as a single file named `00_cccmmf_phase_1a_input_artifacts.tgz` [TODO this name may change!]. Unpack it into the project directory (`cd your/path/to/phase_1a_single_site_almond && tar xf 00_cccmmf_phase_1a_input_artifacts.tgz`) and it will place its files at the paths documented below.
+### Steps common to both installation methods
 
+* Starting in the directory of your choice, clone this repository onto your machine.
+  - `git clone https://github.com/ccmmf/workflows`
+  - The repository is private until CARB gives approval for public release, so GitHub will prompt for authentication. Contact us for login instructions.
+* All remaining steps use the phase a1 directory as their workdir:
+  - `cd workflows/phase_a1_single_site_almond/`
+* Download and unpack input files into the working directory:
+  - `curl -o 00_cccmmf_phase_1a_input_artifacts.tgz https://drive.google.com/file/d/1sDOp_d3OIdSnTj1S4a4LWFLHXWlQO7Zm/view?usp=share_link`
+  - `tar xf 00_cccmmf_phase_1a_input_artifacts.tgz`
+
+### Direct installation
+
+* Install Sipnet (fast; seconds): `srun ./tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
+  - The 3 arguments are: path into which to clone the Sipnet repo, dir in which to store compiled binaries, and path for a symlink to the binary.
+  - If you change the last argument, update the `<binary>sipnet.git</binary>` line of `single_site_almond.xml` to match.
+* Install PEcAn (slow; hours): `sbatch -o install_pecan.out ./tools/install_pecan.sh`
+  - Installs more than 300 R packages! On our test system this took about 2 hours
+  - Defaults to using 4 CPUs to compile packages in parallel. If you have more cores, adjust `sbatch`'s `--cpus-per-task` parameter.
+
+### Container-based installation
+
+```{sh}
+module load apptainer
+apptainer pull docker://pecan/model-sipnet-git:develop`
+```
+
+This will compile an image file named `model-sipnet-git_develop.sif`. Typical usage will look like `apptainer run <options> model-sipnet-git_develop.sif <pecan_command>`.
+
+## Guide to the input files
+
+As described above, the inputs to this workflow were generated by the three `prep` scripts and can be regenerated with them, but these rely on several upstream artifacts that are very large and/or inconvenient to download (raw ERA5 data, LandTrendr tiles). Future phases of the project will streamline these steps, but for simplicity today we provide the prepared files as a single archive named `00_cccmmf_phase_1a_input_artifacts.tgz`. Unpack it into the project directory (`cd your/path/to/phase_1a_single_site_almond && tar xf 00_cccmmf_phase_1a_input_artifacts.tgz`) and it will place its files at the paths documented below.
 
 ### 1. Posterior files for PFT-specific model parameters
 
@@ -110,6 +141,79 @@ tar czf 00_cccmmf_phase_1a_input_artifacts.tgz \
   data/ERA5_losthills_dailyrain/ \
   IC_files/losthills/
 ```
+
+## Run workflow
+
+Choose the method that matches your installation. Note that for the prototype we show a single-threaded run (`sbatch -n1 --cpus-per-task=1`); in future phases we will distribute model execution across the available cores.
+
+
+### Directly installed
+
+```{sh}
+module load r/4.4.0
+
+# If running prep scripts directly, run them here.
+# Wait for each step to complete before starting the next.
+# (Skip these if you unpacked 00_cccmmf_phase_1a_input_artifacts.tgz during installation)
+#   sbatch ... 01_prep_get_ERA5_met.R
+#   sbatch ... 02_prep_add_precip_to_clim_files.sh
+#   sbatch ... 03_prep_ic_build.R
+
+sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
+  --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
+  ./04_run_model.R --settings=single_site_almond.xml`
+
+sbatch -n1 --mem-per-cpu=1G Rscript -e 'rmarkdown::render("05_validation.Rmd")'
+
+sbatch ./tools/compress_output.sh
+
+# [copy ccmmf_output_<date>_<time>.tgz to your archive]
+```
+
+### Containerized
+
+The apptainer workflow is _almost_ a matter of inserting `apptainer run model-sipnet-git_develop.sif` into each command shown above, with two complications discussed below.
+
+
+```{sh}
+# If running prep scripts directly, run them here.
+# Wait for each step to complete before starting the next.
+# (Skip these if you unpacked 00_cccmmf_phase_1a_input_artifacts.tgz during installation)
+#   sbatch ... apptainer run model-sipnet-git_develop.sif 01_prep_get_ERA5_met.R
+#   sbatch ... 02_prep_add_precip_to_clim_files.sh
+#   sbatch ... apptainer run model-sipnet-git_develop.sif 03_prep_ic_build.R
+```
+
+Complication one: The `model-sipnet-git` container has its own copy of Sipnet stored at a different path than the one `single_site_almond.xml` is expecting. You can edit the XML directly, or do as shown here and create a `sipnet.git` symlink in the run directory, pointing to a path that (probably) doesn't exist on your host system but that does work when apptainer is active.
+This will overwrite any existing link created by `tools/install_sipnet.sh`.
+
+```{sh}
+APPTAINER_SIPNET_PATH=$(apptainer run model-sipnet-git_develop.sif which sipnet.git)
+ln -sf "$APPTAINER_SIPNET_PATH" sipnet.git
+
+sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
+  --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
+  apptainer run model-sipnet-git_develop.sif \
+    ./04_run_model.R --settings=single_site_almond.xml
+```
+
+Complication two: When passing R commands as a string to the validation rendering call, we need some extra quote-escaping.
+
+```{sh}
+sbatch -n1 --mem-per-cpu=4G \
+  --output=pecan_validation_"$(date +%Y%m%d%H%M%S)_%j.log" \
+  apptainer run model-sipnet-git_develop.sif \
+    Rscript -e 'rmarkdown::render(\"05_validation.Rmd\")'
+```
+
+```{sh}
+sbatch ./tools/compress_output.sh
+
+# [copy ccmmf_output_<date>_<time>.tgz to your archive]
+```
+
+It would be fine to run the shell script steps using apptainer as well, but it isn't necesary because they use only standard portable unix tools.
+
 
 ## Directory layout
 
