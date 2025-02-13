@@ -64,11 +64,11 @@ model_timestep <-
   select(ens_num, posix) |>
   arrange(ens_num, posix) |>
   group_by(ens_num) |>
-  summarize(ts = posix |> diff(units = "secs") |> mean() |> as.numeric()) |>
+  summarize(ts = posix |> diff() |> mean() |> as.numeric(units = "secs")) |>
   pull(ts) |>
   unique()
 stopifnot(length(model_timestep) == 1)
-
+print(model_timestep)
 ```
 
 For many variables it's useful to visualize against the modeled confidence interval. I'll define a helper function to generate these:
