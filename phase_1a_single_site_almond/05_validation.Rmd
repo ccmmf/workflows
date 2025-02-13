@@ -14,6 +14,7 @@ We consider here the 224 ("reduced N") and 309 ("intensive N") treatments, simul
 
 ```{R setup}
 library(tidyverse)
+library(lubridate)
 
 set.seed(455384)
 theme_set(theme_bw())
