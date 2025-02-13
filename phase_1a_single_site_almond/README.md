@@ -34,7 +34,7 @@ Please report any trouble you encounter during installation so that we can help 
 * All remaining steps use the phase a1 directory as their workdir:
   - `cd workflows/phase_a1_single_site_almond/`
 * Download and unpack input files into the working directory:
-  - `curl -o 00_cccmmf_phase_1a_input_artifacts.tgz https://drive.google.com/file/d/1sDOp_d3OIdSnTj1S4a4LWFLHXWlQO7Zm/view?usp=share_link`
+  - `curl -L -o 00_cccmmf_phase_1a_input_artifacts.tgz 'https://drive.usercontent.google.com/download?id=1sDOp_d3OIdSnTj1S4a4LWFLHXWlQO7Zm&export=download&confirm=t'`
   - `tar xf 00_cccmmf_phase_1a_input_artifacts.tgz`
 
 ### Direct installation
@@ -50,7 +50,7 @@ Please report any trouble you encounter during installation so that we can help 
 
 ```{sh}
 module load apptainer
-apptainer pull docker://pecan/model-sipnet-git:develop`
+apptainer pull docker://pecan/model-sipnet-git:develop
 ```
 
 This will compile an image file named `model-sipnet-git_develop.sif`. Typical usage will look like `apptainer run <options> model-sipnet-git_develop.sif <pecan_command>`.
