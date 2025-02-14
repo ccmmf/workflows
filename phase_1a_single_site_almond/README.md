@@ -1,48 +1,48 @@
 # CCMMF phase 1a: Single-site almond MVP
 
+This workflow shows PEcAn running SIPNET hindcast simulations of an almond orchard in Kern County, CA[2]. Starting from estimated initial conditions at orchard planting in 1999, we simulate 14 years of growth using PEcAn's existing SIPNET parameterization for a temperate deciduous forest, with no management activities included.
 
- This workflow shows PEcAn running Sipnet hindcast simulations of an almond orchard in Kern County, CA. Starting from estimated initial conditions at orchard planting in 1999, we simulate 14 years of growth using PEcAn's existing Sipnet parameterization for a temperate deciduous forest, with no management activities included.
+The workflow has the following components, run in this order:
 
- The workflow has the following components, run in this order:
-
-* Installation and system setup.
-  - You will need at least a compiled Sipnet binary from https://github.com/PecanProject/sipnet, a working installation of R and the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries these depend on.
+- Installation and system setup.
+  - You will need at least a compiled SIPNET binary from https://github.com/PecanProject/sipnet, a working installation of R and the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries these depend on.
   - See below for more instructions.
-* Input prep steps, for which we provide output files in `00_ccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
-  - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it in Sipnet's clim format.
-  - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the Sipnet clim files, crudely approximating irrigation.
-  - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
-* Run Sipnet on the prepared inputs.
-  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`).
-* Analyze the results.
+- Input prep steps, for which we provide output files in `00_ccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
+  - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it in SIPNET's clim format.
+  - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the SIPNet `.clim` files, crudely approximating irrigation.
+  - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map <!--add citation-->, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
+- Run SIPNET on the prepared inputs.
+  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 SIPNET simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`).
+- Analyze the results.
   - `05_validation.Rmd` shows validation comparisons between the model predictions and site-level measurements of SOC, biomass, NPP, and ET.
-* Archive run outputs.
+- Archive run outputs.
   - `tools/compress_output.sh` creates a compressed tarball of the `outputs/` directory, the compiled validation notebook, and any log files.
-
 
 ## System setup
 
-This workflow has been tested on a laptop running MacOS 14.7 and a Linux cluster running Rocky Linux 8.10, both using PEcAn revision f184978397 and Sipnet revision 592700c, which were the most recent commits in both `develop` branches on 2025-02-10.
+There are two methods of installation: **direct installation** on your local machine or cluster, or **container-based** using apptainer. Direct installation is more flexible and allows you to use your own R and PEcAn installations; container based installation is easier to use because it provides a pre-configured computing environment that works on Mac, Windows, or Linux.
+
+This workflow has been tested on a laptop running MacOS 14.7 and a Linux cluster running Rocky Linux 8.10, both using PEcAn revision f184978397 and SIPNET revision 592700c, which were the most recent commits in both `develop` branches on 2025-02-10.
 
 Please report any trouble you encounter during installation so that we can help fix it. This is true for the whole workflow, but we emphasize it here in recognition that too many open-source projects treat installation as the user's problem.
 
 ### Steps common to both installation methods
 
-* Starting in the directory of your choice, clone this repository onto your machine.
+- Starting in the directory of your choice, clone this repository onto your machine.
   - `git clone https://github.com/ccmmf/workflows`
   - The repository is private until CARB gives approval for public release, so GitHub will prompt for authentication. Contact us for login instructions.
-* All remaining steps use the phase a1 directory as their workdir:
+- All remaining steps use the phase a1 directory as their workdir:
   - `cd workflows/phase_a1_single_site_almond/`
-* Download and unpack input files into the working directory:
+- Download and unpack input files into the working directory:
   - `curl -L -o 00_cccmmf_phase_1a_input_artifacts.tgz 'https://drive.usercontent.google.com/download?id=1sDOp_d3OIdSnTj1S4a4LWFLHXWlQO7Zm&export=download&confirm=t'`
   - `tar xf 00_cccmmf_phase_1a_input_artifacts.tgz`
 
 ### Direct installation
 
-* Install Sipnet (fast; seconds): `srun ./tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
-  - The 3 arguments are: path into which to clone the Sipnet repo, dir in which to store compiled binaries, and path for a symlink to the binary.
+- Install SIPNET (fast; seconds): `srun ./tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
+  - The 3 arguments are: path into which to clone the SIPNET repo, dir in which to store compiled binaries, and path for a symlink to the binary.
   - If you change the last argument, update the `<binary>sipnet.git</binary>` line of `single_site_almond.xml` to match.
-* Install PEcAn (slow; hours): `sbatch -o install_pecan.out ./tools/install_pecan.sh`
+- Install PEcAn (slow; hours): `sbatch -o install_pecan.out ./tools/install_pecan.sh`
   - Installs more than 300 R packages! On our test system this took about 2 hours
   - Defaults to using 4 CPUs to compile packages in parallel. If you have more cores, adjust `sbatch`'s `--cpus-per-task` parameter.
 
@@ -68,14 +68,14 @@ These were generated by PEcAn, but we treat them as prerequisites here because r
 
 To relocate these paths or use a different posterior file, edit `settings$pfts$pft$posterior.files`.
 
-
 ### 2. Site-specific climate driver files for SIPNET
 
-This should be a single flat folder containing ten `*.clim` files, one per ERA5 ensemble member; PEcAn will sample from these to choose the met input for each Sipnet ensemble member.
+This should be a single flat folder containing ten `*.clim` files, one per ERA5 ensemble member; PEcAn will sample from these to choose the met input for each SIPNET ensemble member.
 
 If you have raw ERA5 data in hand, you can generate these files with `01_prep_get_ERA5_met.R` -- See there for details. We provide them as artifacts because at this writing the official ERA5 data API is unstable in both availability and returned file format and has been that way for at least three months, so we decided a tarball of clim files would be more reproducible than a download script.
 
 Here we use `data/ERA5_losthills_dailyrain/*.clim`:
+
 ```
 MD5 (ERA5.1.1999-01-01.2012-12-31.clim) = e61481d71dfa39533932e0c1bcdb35fb
 MD5 (ERA5.10.1999-01-01.2012-12-31.clim) = 45e096d5ff23f59d5fedc653f6bef654
@@ -91,12 +91,12 @@ MD5 (ERA5.9.1999-01-01.2012-12-31.clim) = ac18e8d57a68e6aa5457cd7cf7e6892b
 
 To relocate these files or use different ones, edit the input path in `02_prep_add_precip_to_clim_files.sh`, or if not altering precip then edit the paths in `settings$inputs$met$path`.
 
-
 ### 3. Site-specific initial condition files
 
 Create as many as you need to capture the variability in known/assumed site conditions at the start of the run.
 The number of IC files need not be the same as the ensemble size; each ensemble member samples with replacement to select initial conditions.
 Generate these with `03_prep_ic_build.R`, which sets
+
   - Aboveground biomass from LandTrendr
     (You must first download raw LandTrendr tiles and specify the path to them)
   - Soil moisture from Copernicus 0.25 degree gridded multi-satellite data
@@ -106,8 +106,10 @@ Generate these with `03_prep_ic_build.R`, which sets
 See `03_prep_ic_build.R` for details.
 
 Here we store:
+
 * Initial condition files in `IC_files/losthills/*.nc`, whose collective md5 hash (i.e. `md5 IC_files/losthills/*.nc | md5`) is da8efa69af2d5e22efcdc4541942ee64
 * Source data for aboveground biomass in `data_raw/LandTrendr_AGB/`
+
 ```
 MD5 (LandTrendr_AGB/aboveground_biomass_landtrendr.csv) = 60b264c272656af7149c00813f17f97c
 MD5 (LandTrendr_AGB/conus_biomass_ARD_tile_h02v08.tif) = 41aeada58b5224ccf450fa22536edd67
@@ -128,8 +130,8 @@ MD5 (soil_moisture/surface_soil_moisture.1999-01-08.nc) = ecd332b20d87d31a03a23d
 MD5 (soil_moisture/surface_soil_moisture.1999-01-09.nc) = 4870a69bd7594e41d9015888dd50d116
 MD5 (soil_moisture/surface_soil_moisture.1999-01-10.nc) = 2337043bee7e185a957cd8cb92062234
 ```
-* compiled soil C stock data in `data/IC_prep/soilgrids_soilC_data.csv`, MD5 = cc03b81f5a636b9584ee1b03a7a9ed3e
 
+* compiled soil C stock data in `data/IC_prep/soilgrids_soilC_data.csv`, MD5 = cc03b81f5a636b9584ee1b03a7a9ed3e
 
 ### tar command
 
@@ -145,7 +147,6 @@ tar czf 00_cccmmf_phase_1a_input_artifacts.tgz \
 ## Run workflow
 
 Choose the method that matches your installation. Note that for the prototype we show a single-threaded run (`sbatch -n1 --cpus-per-task=1`); in future phases we will distribute model execution across the available cores.
-
 
 ### Directly installed
 
@@ -174,7 +175,6 @@ sbatch ./tools/compress_output.sh
 
 The apptainer workflow is _almost_ a matter of inserting `apptainer run model-sipnet-git_develop.sif` into each command shown above, with two complications discussed below.
 
-
 ```{sh}
 # If running prep scripts directly, run them here.
 # Wait for each step to complete before starting the next.
@@ -184,7 +184,7 @@ The apptainer workflow is _almost_ a matter of inserting `apptainer run model-si
 #   sbatch ... apptainer run model-sipnet-git_develop.sif 03_prep_ic_build.R
 ```
 
-Complication one: The `model-sipnet-git` container has its own copy of Sipnet stored at a different path than the one `single_site_almond.xml` is expecting. You can edit the XML directly, or do as shown here and create a `sipnet.git` symlink in the run directory, pointing to a path that (probably) doesn't exist on your host system but that does work when apptainer is active.
+Complication one: The `model-sipnet-git` container has its own copy of SIPNET stored at a different path than the one `single_site_almond.xml` is expecting. You can edit the XML directly, or do as shown here and create a `sipnet.git` symlink in the run directory, pointing to a path that (probably) doesn't exist on your host system but that does work when apptainer is active.
 This will overwrite any existing link created by `tools/install_sipnet.sh`.
 
 ```{sh}
@@ -213,7 +213,6 @@ sbatch ./tools/compress_output.sh
 ```
 
 It would be fine to run the shell script steps using apptainer as well, but it isn't necesary because they use only standard portable unix tools.
-
 
 ## Directory layout
 
@@ -247,9 +246,10 @@ The files for this project are arranged as follows. Note that some of these are 
     - `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
     - `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
   - `STATUS`: A plain text file containing start and end timestamps and statuses for each phase of the workflow.
-- `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up Sipnet and PEcAn on an HPC cluster and for archiving run output; others may be added later.
-
+- `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up SIPNET and PEcAn on an HPC cluster and for archiving run output; others may be added later.
 
 ## References
 
 [1] Fer I, R Kelly, P Moorcroft, AD Richardson, E Cowdery, MC Dietze. 2018. Linking big models to big data: efficient ecosystem model calibration through Bayesian model emulation. Biogeosciences 15, 5801–5830, 2018 https://doi.org/10.5194/bg-15-5801-2018
+
+[2] Nichols, Patrick K., Sharon Dabach, Majdi Abu-Najm, Patrick Brown, Rebekah Camarillo, David Smart, and Kerri L. Steenwerth. 2024. “Alternative Fertilization Practices Lead to Improvements in Yield-Scaled Global Warming Potential in Almond Orchards.” Agriculture Ecosystems and Environment 362 (March):108857. https://doi.org/10.1016/j.agee.2023.108857.
