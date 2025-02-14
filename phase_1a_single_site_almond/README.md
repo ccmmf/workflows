@@ -9,7 +9,7 @@
   - You will need at least a compiled Sipnet binary from https://github.com/PecanProject/sipnet, a working installation of R and the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries these depend on.
   - See below for more instructions.
 * Input prep steps, for which we provide output files in `00_ccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
-  - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it in Sipnet's clim format.
+  - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it to new files in SIPNET's `clim` input format.
   - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the Sipnet clim files, crudely approximating irrigation.
   - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
 * Run Sipnet on the prepared inputs.
@@ -22,9 +22,9 @@
 
 ## System setup
 
-This workflow has been tested on a laptop running MacOS 14.7 and a Linux cluster running Rocky Linux 8.10, both using PEcAn revision f184978397 and Sipnet revision 592700c, which were the most recent commits in both `develop` branches on 2025-02-10.
+This workflow has been tested on a laptop running MacOS 14.7 and a Linux cluster running Rocky Linux 8.10, both using PEcAn revision f184978397 and SIPNET revision 592700c, which were the most recent commits in the PEcAn `develop` branch and SIPNET `master` branch on 2025-02-10.
 
-Please report any trouble you encounter during installation so that we can help fix it. This is true for the whole workflow, but we emphasize it here in recognition that too many open-source projects treat installation as the user's problem.
+Please report any trouble you encounter during installation or execution so that we can help fix it.
 
 ### Steps common to both installation methods
 
