@@ -9,7 +9,7 @@ The workflow has the following components, run in this order:
   - See below for more instructions.
 - Input prep steps, for which we provide output files in `00_ccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
   - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it in SIPNET's clim format.
-  - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the SIPNet `.clim` files, crudely approximating irrigation.
+  - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the SIPNET `.clim` files, crudely approximating irrigation.
   - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map <!--add citation-->, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
 - Run SIPNET on the prepared inputs.
   - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 SIPNET simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`).
