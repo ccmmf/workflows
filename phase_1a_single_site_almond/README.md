@@ -37,6 +37,8 @@ Please report any trouble you encounter during installation or execution so that
   - `curl -L -o 00_cccmmf_phase_1a_input_artifacts.tgz 'https://drive.usercontent.google.com/download?id=1sDOp_d3OIdSnTj1S4a4LWFLHXWlQO7Zm&export=download&confirm=t'`
   - `tar xf 00_cccmmf_phase_1a_input_artifacts.tgz`
 
+Now choose _either_ Direct or Container based installation instructions below. 
+
 ### Direct installation
 
 * Install Sipnet (fast; seconds): `srun ./tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
