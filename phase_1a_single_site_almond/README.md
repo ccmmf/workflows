@@ -146,7 +146,11 @@ tar czf 00_cccmmf_phase_1a_input_artifacts.tgz \
 
 ## Run workflow
 
-Choose the method that matches your installation. Note that for the prototype we show a single-threaded run (`sbatch -n1 --cpus-per-task=1`); in future phases we will distribute model execution across the available cores.
+Choose the method that matches your installation: Directly installed or containerized.
+
+Known limitations of this prototype:
+  - We show a single-threaded run (`sbatch -n1 --cpus-per-task=1`); in future phases we will distribute model execution across the available cores.
+  - Does not rerun cleanly. If an `output/` directory exists from a previous run, move it aside before invoking `04_run_models.R` to avoid cryptic errors about "duplicate 'row.names' are not allowed".
 
 
 ### Directly installed
