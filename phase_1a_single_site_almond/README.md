@@ -24,6 +24,10 @@
 
 This workflow has been tested on a laptop running MacOS 14.7 and a Linux cluster running Rocky Linux 8.10, both using PEcAn revision f184978397 and SIPNET revision 592700c, which were the most recent commits in the PEcAn `develop` branch and SIPNET `master` branch on 2025-02-10.
 
+We show here two options for installation onto an HPC cluster: **direct installation** or **container-based** using apptainer. Direct installation is more flexible and allows you to use your own R and PEcAn installations; container based provides a preconfigured computing environment that is more deeply tested (PEcAn's CI system uses the same containers) but version options are limited to those provided by the PEcAn team.
+
+The installation process on other machine types should be similar to what is shown here, but may need modification; for example if installing on a laptop you may not have/want modules (so skip `module load...` steps) or a job queue (so type `cmd [cmd-options]` where these instructions say `sbatch [slurm-options] cmd [cmd-options]`).
+
 Please report any trouble you encounter during installation or execution so that we can help fix it.
 
 ### Steps common to both direct and container-based installation methods
@@ -169,7 +173,9 @@ sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
   --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
   ./04_run_model.R --settings=single_site_almond.xml
 
-srun -n1 --mem-per-cpu=1G Rscript -e 'rmarkdown::render("05_validation.Rmd")'
+srun -n1 --mem-per-cpu=4G \
+  --output=pecan_validation_"$(date +%Y%m%d%H%M%S)_%j.log" \
+  Rscript -e 'rmarkdown::render("05_validation.Rmd")'
 
 sbatch ./tools/compress_output.sh
 
@@ -191,7 +197,7 @@ The apptainer workflow is _almost_ a matter of inserting `apptainer run model-si
 ```
 
 Complication one: The `model-sipnet-git` container has its own copy of Sipnet stored at a different path than the one `single_site_almond.xml` is expecting. You can edit the XML directly, or do as shown here and create a `sipnet.git` symlink in the run directory, pointing to a path that (probably) doesn't exist on your host system but that does work when apptainer is active.
-This will overwrite any existing link created by `tools/install_sipnet.sh`.
+**Note:** This will overwrite any existing link created by `tools/install_sipnet.sh`, so beware if switching back and forth between native and container runs in the same directory.
 
 ```{sh}
 APPTAINER_SIPNET_PATH=$(apptainer run model-sipnet-git_develop.sif which sipnet.git)
@@ -206,7 +212,7 @@ sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
 Complication two: When passing R commands as a string to the validation rendering call, we need some extra quote-escaping.
 
 ```{sh}
-sbatch -n1 --mem-per-cpu=4G \
+srun -n1 --mem-per-cpu=4G \
   --output=pecan_validation_"$(date +%Y%m%d%H%M%S)_%j.log" \
   apptainer run model-sipnet-git_develop.sif \
     Rscript -e 'rmarkdown::render(\"05_validation.Rmd\")'
