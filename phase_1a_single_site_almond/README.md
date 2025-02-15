@@ -225,10 +225,10 @@ It would be fine to run the shell script steps using apptainer as well, but it i
 
 The files for this project are arranged as follows. Note that some of these are created at runtime and will not be visible when looking at the project code on GitHub.
 
-- `data/`: Clean, processed datasets used for model input and validation. Files in this directory can be recreated with the appropriate prep script.
-- `data_raw/`: Datasets that were created by workflows external to this project, potentially including manual compilation. Files in this directory should be treated as artifacts that would be a lot of work to recreate.
-- `IC_files/`: Initial conditions for the site(s) to be modeled, stored as netCDF files. Each file contains a single starting value for each variable, drawn from the distributions estimated in the `ic_build` script. Each model invocation (ensemble member) then begins from the initial conditions in one file.
-- `output/`: Created by PEcAn at run time. Contains:
+* `data/`: Clean, processed datasets used for model input and validation. Files in this directory can be recreated with the appropriate prep script.
+* `data_raw/`: Datasets that were created by workflows external to this project, potentially including manual compilation. Files in this directory should be treated as artifacts that would be a lot of work to recreate.
+* `IC_files/`: Initial conditions for the site(s) to be modeled, stored as netCDF files. Each file contains a single starting value for each variable, drawn from the distributions estimated in the `ic_build` script. Each model invocation (ensemble member) then begins from the initial conditions in one file.
+* `output/`: Created by PEcAn at run time. Contains:
   - `ensemble.analysis.<id>.<variable>.<years>.pdf`: histograms and boxplots of the time-averaged ensemble values of each variable.
   - `ensemble.output.<id>.<variable>.<years>.Rdata`: The extracted datapoints used to make the matching PDFs.
   - `ensemble.ts.<id>.<variable>.<years>.pdf`: Time series plots showing mean and 95% CI of each variable throughout the run.
@@ -247,13 +247,13 @@ The files for this project are arranged as follows. Note that some of these are 
     * `sipnet.in`, `sipnet.param-spatial`: Configuration files used by Sipnet. These are identical for each run, copied into every run directory because Sipnet expects to find them there.
     * `sipnet.param`: Values for Sipnet model parameters, set by starting from Sipnet's default parameter set and updating parameters set in the chosen PFT by taking draws from the PFT's parameter distributions.
   - `samples.Rdata`: The draws from requested parameter distributions that were used to set the Sipnet parameterization of each model in the run.
-  - If a sensitivity analysis is requested (by uncommenting the `<sensitivity.analysis>` block in `single_site_almond.xml`), it will add these additional components:
-    - `pft/`: Parameter sensitivity and variance decomposition plots from the sensitivity analysis, placed here because PEcAn's sensitivity analysis can be requested for many PFTs at once and is run separately for each one.
-    - `sensitivity.output.<id>.<variable>.<years>.Rdata`: Results from the sensitivity analysis, processed and ready for visualization.
-    - `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
-    - `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
   - `STATUS`: A plain text file containing start and end timestamps and statuses for each phase of the workflow.
-- `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up Sipnet and PEcAn on an HPC cluster and for archiving run output; others may be added later.
+  - If a sensitivity analysis is requested (by uncommenting the `<sensitivity.analysis>` block in `single_site_almond.xml`), it will add these additional components:
+    * `pft/`: Parameter sensitivity and variance decomposition plots from the sensitivity analysis, placed here because PEcAn's sensitivity analysis can be requested for many PFTs at once and is run separately for each one.
+    * `sensitivity.output.<id>.<variable>.<years>.Rdata`: Results from the sensitivity analysis, processed and ready for visualization.
+    * `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
+    * `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
+* `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up Sipnet and PEcAn on an HPC cluster and for archiving run output; others may be added later.
 
 
 ## References
