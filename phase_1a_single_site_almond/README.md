@@ -26,7 +26,7 @@ This workflow has been tested on a laptop running MacOS 14.7 and a Linux cluster
 
 Please report any trouble you encounter during installation or execution so that we can help fix it.
 
-### Steps common to both installation methods
+### Steps common to both direct and container-based installation methods
 
 * Starting in the directory of your choice, clone this repository onto your machine.
   - `git clone https://github.com/ccmmf/workflows`
