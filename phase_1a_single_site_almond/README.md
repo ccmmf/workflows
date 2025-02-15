@@ -163,7 +163,7 @@ sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
   --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
   ./04_run_model.R --settings=single_site_almond.xml`
 
-sbatch -n1 --mem-per-cpu=1G Rscript -e 'rmarkdown::render("05_validation.Rmd")'
+srun -n1 --mem-per-cpu=1G Rscript -e 'rmarkdown::render("05_validation.Rmd")'
 
 sbatch ./tools/compress_output.sh
 
