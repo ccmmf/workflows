@@ -1,19 +1,19 @@
 # CCMMF phase 1a: Single-site almond MVP
 
 
- This workflow shows PEcAn running Sipnet hindcast simulations of an almond orchard in Kern County, CA. Starting from estimated initial conditions at orchard planting in 1999, we simulate 14 years of growth using PEcAn's existing Sipnet parameterization for a temperate deciduous forest, with no management activities included.
+ This workflow shows PEcAn running Sipnet hindcast simulations of an almond orchard in Kern County, CA. Starting from estimated initial conditions at orchard planting in 1999, we simulate 14 years of growth using PEcAn's existing SIPNET parameterization for a temperate deciduous forest, with no management activities included.
 
  The workflow has the following components, run in this order:
 
 * Installation and system setup.
-  - You will need at least a compiled Sipnet binary from https://github.com/PecanProject/sipnet, a working installation of R and the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries these depend on.
+  - You will need at least a compiled SIPNET binary from https://github.com/PecanProject/sipnet, a working installation of R and the PEcAn R packages from https://github.com/PecanProject/pecan or from https://pecanproject.r-universe.org, and some system libraries these depend on.
   - See below for more instructions.
 * Input prep steps, for which we provide output files in `00_ccmmf_phase_1a_artifacts.tgz` that can be recreated or altered using these scripts plus the prerequisite files documented [below](#artifacts-needed-before-running-the-model).
   - `01_prep_get_ERA5_met.R` extracts site met data from a locally downloaded copy of the ERA5 ensemble and writes it to new files in SIPNET's `clim` input format.
-  - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the Sipnet clim files, crudely approximating irrigation.
+  - `02_prep_add_precip_to_clim_files.sh` artificially adds precipitation to the SIPNET clim files, crudely approximating irrigation.
   - `03_prep_ic_build.R` extracts initial aboveground carbon from a locally downloaded LandTrendr biomass map, retrieves initial soil moisture anbd soil organic carbon, and samples from all of these to create initial condition files.
-* Run Sipnet on the prepared inputs.
-  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 Sipnet simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`).
+* Run SIPNET on the prepared inputs.
+  - `04_run_model.R` and its input file `single_site_almond.xml` runs an ensemble of 100 SIPNET simulations sampling from the uncertainty in weather, initial biomass and soil conditions, and parameter values. It also creates visualizations of the results, and can perform a one-at-a-time sensitivity analysis on the parameters (but this is turned off by default for speed. To enable it, uncomment the `sensitivity.analysis` section of `single_site.almond.xml`).
 * Analyze the results.
   - `05_validation.Rmd` shows validation comparisons between the model predictions and site-level measurements of SOC, biomass, NPP, and ET.
 * Archive run outputs.
@@ -41,8 +41,8 @@ Now choose _either_ Direct or Container based installation instructions below.
 
 ### Direct installation
 
-* Install Sipnet (fast; seconds): `srun ./tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
-  - The 3 arguments are: path into which to clone the Sipnet repo, dir in which to store compiled binaries, and path for a symlink to the binary.
+* Install SIPNET (fast; seconds): `srun ./tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
+  - The 3 arguments are: path into which to clone the SIPNET repo, dir in which to store compiled binaries, and path for a symlink to the binary.
   - If you change the last argument, update the `<binary>sipnet.git</binary>` line of `single_site_almond.xml` to match.
 * Install PEcAn (slow; hours): `sbatch -o install_pecan.out ./tools/install_pecan.sh`
   - Installs more than 300 R packages! On our test system this took about 2 hours
@@ -73,7 +73,7 @@ To relocate these paths or use a different posterior file, edit `settings$pfts$p
 
 ### 2. Site-specific climate driver files for SIPNET
 
-This should be a single flat folder containing ten `*.clim` files, one per ERA5 ensemble member; PEcAn will sample from these to choose the met input for each Sipnet ensemble member.
+This should be a single flat folder containing ten `*.clim` files, one per ERA5 ensemble member; PEcAn will sample from these to choose the met input for each SIPNET ensemble member.
 
 If you have raw ERA5 data in hand, you can generate these files with `01_prep_get_ERA5_met.R` -- See there for details. We provide them as artifacts because at this writing the official ERA5 data API is unstable in both availability and returned file format and has been that way for at least three months, so we decided a tarball of clim files would be more reproducible than a download script.
 
@@ -236,24 +236,24 @@ The files for this project are arranged as follows. Note that some of these are 
   - `out/`: Model outputs, with subdirectories for each ensemble member containing:
     * `<year>.nc`: One PEcAn-standard netCDF per year containing all requested output variables at the same timestep as the input weather data
     * `<year>.nc.var`: One plain text file per year containing a list of the variables included in `<year>.nc`. In this case all years have the same variables, but PEcAn is capable of simulations where variables differ from year to year.
-    * `logfile.txt`: Console output from the model run. Note that Sipnet itself is not very chatty, so for successful runs this usually shows only the PEcAn output from the process of converting the output to netCDF.
+    * `logfile.txt`: Console output from the model run. Note that SIPNET itself is not very chatty, so for successful runs this usually shows only the PEcAn output from the process of converting the output to netCDF.
     * `README.txt`: Reports some metadata about the model run including site, input files, run dates, etc.
-    * `sipnet.out`: Raw Sipnet output, with all years and variables in one file
-  - `pecan.CONFIGS.xml`: Settings for the run, as recorded just after writing config files and before starting the Sipnet runs (In this workflow only one XML file is written; in other PEcAn applications the settings might be recorded at other stages of the run as well, giving e.g. `pecan.CHECKED.xml`, `pecan.TRAIT.xml`, `pecan.METPROCESS.xml`, and so on).
+    * `sipnet.out`: Raw SIPNET output, with all years and variables in one file
+  - `pecan.CONFIGS.xml`: Settings for the run, as recorded just after writing config files and before starting the SIPNET runs (In this workflow only one XML file is written; in other PEcAn applications the settings might be recorded at other stages of the run as well, giving e.g. `pecan.CHECKED.xml`, `pecan.TRAIT.xml`, `pecan.METPROCESS.xml`, and so on).
   - `run/`: Working directories for the execution of each model, with subdirectories for each ensemble member containing:
-    * `job.sh`: A bash script that controls the execution of Sipnet and relocates outputs to the `out/` directory
+    * `job.sh`: A bash script that controls the execution of SIPNET and relocates outputs to the `out/` directory
     * `README.txt`: Metadata about the model run; identical to the copy in `out/`
     * `sipnet.clim`: a *link to* the weather data used for this model invocation.
-    * `sipnet.in`, `sipnet.param-spatial`: Configuration files used by Sipnet. These are identical for each run, copied into every run directory because Sipnet expects to find them there.
-    * `sipnet.param`: Values for Sipnet model parameters, set by starting from Sipnet's default parameter set and updating parameters set in the chosen PFT by taking draws from the PFT's parameter distributions.
-  - `samples.Rdata`: The draws from requested parameter distributions that were used to set the Sipnet parameterization of each model in the run.
+    * `sipnet.in`, `sipnet.param-spatial`: Configuration files used by SIPNET. These are identical for each run, copied into every run directory because SIPNET expects to find them there.
+    * `sipnet.param`: Values for SIPNET model parameters, set by starting from SIPNET's default parameter set and updating parameters set in the chosen PFT by taking draws from the PFT's parameter distributions.
+  - `samples.Rdata`: The draws from requested parameter distributions that were used to set the SIPNET parameterization of each model in the run.
   - `STATUS`: A plain text file containing start and end timestamps and statuses for each phase of the workflow.
   - If a sensitivity analysis is requested (by uncommenting the `<sensitivity.analysis>` block in `single_site_almond.xml`), it will add these additional components:
     * `pft/`: Parameter sensitivity and variance decomposition plots from the sensitivity analysis, placed here because PEcAn's sensitivity analysis can be requested for many PFTs at once and is run separately for each one.
     * `sensitivity.output.<id>.<variable>.<years>.Rdata`: Results from the sensitivity analysis, processed and ready for visualization.
     * `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
     * `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
-* `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up Sipnet and PEcAn on an HPC cluster and for archiving run output; others may be added later.
+* `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up SIPNET and PEcAn on an HPC cluster and for archiving run output; others may be added later.
 
 
 ## References
