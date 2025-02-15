@@ -161,7 +161,7 @@ module load r/4.4.0
 
 sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
   --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
-  ./04_run_model.R --settings=single_site_almond.xml`
+  ./04_run_model.R --settings=single_site_almond.xml
 
 srun -n1 --mem-per-cpu=1G Rscript -e 'rmarkdown::render("05_validation.Rmd")'
 
