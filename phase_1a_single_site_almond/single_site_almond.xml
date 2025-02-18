@@ -82,7 +82,7 @@
   </site>
   <inputs>
    <met>
-    <source>CRUNCEP</source>
+    <source>ERA5</source>
     <output>SIPNET</output>
     <id></id>
     <path>

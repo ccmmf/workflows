@@ -1,5 +1,5 @@
 ---
-title: "Sipnet validation for Lost Hills almonds"
+title: "SIPNET validation for Lost Hills almonds"
 output: html_document
 ---
 
@@ -24,7 +24,7 @@ pecan_output_dir <- "./output"
 
 ## Read validation
 
-This part's easy. All validation data is lumped into one file -- we'll filter down as need for each step.
+This part's easy. All validation data is in a single file that we'll filter down as needed for each step.
 ```{R val_data}
 val_data <- read.csv("data_raw/validation_data.csv")
 ```
