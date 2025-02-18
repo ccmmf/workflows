@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<pecan>
+ <info>
+  <notes></notes>
+  <userid>-1</userid>
+  <username></username>
+ </info>
+ <outdir>output</outdir>
+ <modeloutdir>output/out</modeloutdir>
+ <rundir>output/run</rundir>
+ <pfts>
+  <pft>
+   <name>temperate.deciduous</name>
+   <posterior.files>pfts/temperate/post.distns.Rdata</posterior.files>
+  </pft>
+ </pfts>
+ <!-- <meta.analysis>
+  <iter>3000</iter>
+  <random.effects>
+   <on>FALSE</on>
+   <use_ghs>TRUE</use_ghs>
+  </random.effects>
+  <threshold>1.1</threshold>
+  <update>AUTO</update>
+ </meta.analysis> -->
+ <ensemble>
+  <size>100</size>
+  <variable>NPP</variable>
+  <variable>TotSoilCarb</variable>
+  <variable>AbvGrndWood</variable>
+  <variable>Qle</variable>
+  <variable>SoilMoistFrac</variable>
+  <samplingspace>
+   <parameters>
+    <method>uniform</method>
+   </parameters>
+   <met>
+    <method>sampling</method>
+   </met>
+  </samplingspace>
+  <start.year>2008</start.year>
+  <end.year>2012</end.year>
+ </ensemble>
+ <model>
+  <id>99000000003</id>
+  <type>SIPNET</type>
+  <revision>git</revision>
+  <delete.raw>FALSE</delete.raw>
+  <binary>sipnet.git</binary>
+ </model>
+ <run>
+  <site><!-- inserted at config time --></site>
+  <inputs>
+   <met>
+    <source>CRUNCEP</source>
+    <output>SIPNET</output>
+    <id></id>
+    <path><!-- inserted at config time --></path>
+   </met>
+   <poolinitcond>
+     <source>RS_veg</source>
+     <output>poolinitcond</output>
+     <ensemble>100</ensemble>
+     <path><!-- inserted at config time --></path>
+   </poolinitcond>
+  </inputs>
+  <start.date>1999/01/01</start.date>
+  <end.date>2012/12/31</end.date>
+ </run>
+ <host>
+  <name>localhost</name>
+  <outdir>output/out</outdir>
+  <rundir>output/run</rundir>
+ </host>
+</pecan>
