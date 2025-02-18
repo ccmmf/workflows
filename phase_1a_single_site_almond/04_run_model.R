@@ -22,7 +22,7 @@ library("PEcAn.all")
 #
 # Simpler approaches that may work as well:
 # - If you only plan to run this with one settings file, hard-code it here
-#     as args$settings <- "/path/to/single_site_almond.xml"
+#     as args <- list(settings = "/path/to/single_site_almond.xml", continue = FALSE)
 # - To accept the settings file as an argument but with less typing,
 #   edit this to args$settings <- commandArgs(trailingOnly = TRUE)[[1]]
 args <- get_args()
