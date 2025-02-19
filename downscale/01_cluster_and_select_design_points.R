@@ -370,4 +370,6 @@ pft_area <- pft_area |>
 pft_area |>
   kableExtra::kable()
 
+cluster_output  # final output from clustering and design point selection
+
 
