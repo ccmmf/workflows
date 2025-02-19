@@ -65,3 +65,5 @@ design_point_wide <- design_point_results |>
 ensemble_data <- list("2020-01-01" = design_point_wide)
 
 saveRDS(ensemble_data, "cache/ensemble_data.rds")
+
+design_point_wide  # final simulated design point output

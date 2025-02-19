@@ -389,6 +389,12 @@ data_for_clust_with_ids <- .all |>
 
 save(data_for_clust_with_ids, file = "cache/data_for_clust_with_ids.rda")
 
+# Final output for targets; if not in targets, suppress return
+if (exists("IN_TARGETS") && IN_TARGETS) {
+  data_for_clust_with_ids
+} else {
+  invisible(data_for_clust_with_ids)
+}
 #' 
 #' <!--
 #' # [Draft] Unused Code
@@ -478,4 +484,4 @@ save(data_for_clust_with_ids, file = "cache/data_for_clust_with_ids.rda")
 #    )
 
 #' -->
-#' 
+#'

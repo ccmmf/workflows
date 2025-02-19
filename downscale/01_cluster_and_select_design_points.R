@@ -47,10 +47,6 @@ if('mean_temp' %in% names(data_for_clust_with_ids)){
     "this conditional chunk")
 }
 
-# set coordinate reference system
-ca_albers_crs <- 3310 # California Albers EPSG
-
-
 #' 
 #' ## Load Site Environmental Data
 #' 
@@ -75,19 +71,41 @@ ca_albers_crs <- 3310 # California Albers EPSG
 #' Load Anchor Sites from UC Davis, UC Riverside, and Ameriflux.
 #' 
 ## ----anchor-sites-selection---------------------------------------------------
-anchor_sites <- readr::read_csv("data/anchor_sites.csv")
-ca_woody <- sf::st_read("data/ca_woody.gpkg") |> 
-  select(-pft) # duplicates pft column in anchor_sites
 
-anchor_sites_pts <- anchor_sites |>
-  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326) |> 
-  sf::st_join(ca_woody, join = sf::st_within) |> 
-  dplyr::select(id, lat, lon, location, site_name, crops, pft)
+# set coordinate reference system, local and in meters for faster joins
+ca_albers_crs <- 3310 # California Albers EPSG
 
-# print a nice table of anchor sites
-knitr::kable(anchor_sites)
+anchor_sites_pts <- readr::read_csv("data/anchor_sites.csv") |>
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326) |>
+  sf::st_transform(crs = ca_albers_crs) |>
+  dplyr::mutate(pt_geometry = geometry) |> 
+  rename(anchor_site_pft = pft)
+
+# ca_woody <- sf::st_read("data/ca_woody.gpkg")
+
+ca_fields <- sf::st_read("data/ca_fields.gpkg") |>
+  # must use st_crs(anchor_sites_pts) b/c  !identical(ca_albers_crs, st_crs(ca_albers_crs))
+  sf::st_transform(crs = st_crs(anchor_sites_pts))  |> 
+  rename(landiq_pft = pft)
+
+# Get the index of the nearest polygon for each point
+nearest_idx <- st_nearest_feature(anchor_sites_pts, ca_fields)
+site_field_distances <- diag(st_distance(anchor_sites_pts, ca_fields |> slice(nearest_idx)))
+ca_field_ids  <- ca_fields |> 
+  dplyr::slice(nearest_idx) |>
+  dplyr::select(id, lat, lon)
+
+anchor_sites_ids <- dplyr::bind_cols(
+  anchor_sites_pts,
+  ca_field_ids,
+  distance = site_field_distances
+) |>
+  dplyr::select(id, lat, lon, location, site_name, distance) #,anchor_site_pft, landiq_pft)
+  
+anchor_sites_ids |>
+  readr::write_csv("data/anchor_sites_ids.csv")
 # create map of anchor sites
-anchor_sites_pts |>
+anchor_sites_ids |>
   sf::st_transform(., crs = ca_albers_crs) |>
   ggplot() +
   geom_sf(data = ca_climregions, aes(fill = climregion_name), alpha = 0.25) +
@@ -309,7 +327,7 @@ final_design_points <- bind_rows(design_points_ids,
 final_design_points |>
    as_tibble()  |>
    select(id, lat, lon) |>
-   write_csv("data/final_design_points.csv")
+   write_csv("data/design_points.csv")
 
 
 #' 
@@ -369,5 +387,7 @@ pft_area <- pft_area |>
   
 pft_area |>
   kableExtra::kable()
+
+cluster_output  # final output from clustering and design point selection
 
 

@@ -53,6 +53,9 @@ covariates_sf <- covariates_points |>
   sf::st_as_sf(coords = c("lon", "lat"), crs = "EPSG:4326")
 
 # Preprocess using renamed objects and updated ensemble data with date
+
+####################### Start Here ############################
+# Find example inputs: `find "/projectnb/dietzelab/jploshay/" -name "*.rds"`
 preprocessed <- SDA_downscale_preprocess(
   ensemble_data = ensemble_data,
   site_coords   = site_coords,
@@ -60,7 +63,7 @@ preprocessed <- SDA_downscale_preprocess(
   carbon_pool   = "SOC"
 )
 
-####################### Start Here ############################
+
 ## Next steps
 debugonce(SDA_downscale)
 ## Stop at randomForest and see what is expected vs what is provided
@@ -81,6 +84,7 @@ downscale_output <- SDA_downscale(
 
 metrics <- SDA_downscale_metrics(downscale_output, carbon_pool = "SOC")
 print(metrics)
+
 
 #'
 #'
