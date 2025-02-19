@@ -4,11 +4,7 @@
 # Inputs: Update these for your site(s)
 
 # Names and locations for sites of interest
-site_info <- tibble::tribble(
-  ~site_id, ~site_name, ~lat, ~lon, ~landsat_ARD_tile,
-  "losthills", "losthills", 35.5103, -119.6675, "h03v11",
-  "wolfskill", "wolfskill", 38.5032, -121.9808, "h02v08"
-)
+site_info <- read.csv("site_info.csv")
 
 # For now, start date must be same for all sites,
 # and some download/extraction functions rely on this.
