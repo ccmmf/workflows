@@ -34,7 +34,6 @@ Please report any trouble you encounter during installation or execution so that
 
 * Starting in the directory of your choice, clone this repository onto your machine.
   - `git clone https://github.com/ccmmf/workflows`
-  - The repository is private until CARB gives approval for public release, so GitHub will prompt for authentication. Contact us for login instructions.
 * All remaining steps use the phase a1 directory as their workdir:
   - `cd workflows/phase_a1_single_site_almond/`
 * Download and unpack input files into the working directory:
