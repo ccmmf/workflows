@@ -35,4 +35,4 @@ settings <- read.settings("template.xml") |>
     path_template = "IC_files/{id}/IC_site_{n}.nc"
   )
 
-write.settings(settings, outputfile = "pecan_with_sites.xml", outputdir = ".")
+write.settings(settings, outputfile = "run_settings.xml", outputdir = ".")
