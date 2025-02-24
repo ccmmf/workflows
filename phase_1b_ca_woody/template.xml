@@ -52,8 +52,6 @@
   <site><!-- inserted at config time --></site>
   <inputs>
    <met>
-    <source>CRUNCEP</source>
-    <output>SIPNET</output>
     <id></id>
     <path><!-- inserted at config time --></path>
    </met>
