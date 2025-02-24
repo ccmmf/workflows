@@ -22,7 +22,11 @@ ic_outdir <- "IC_files"
 # [e.g. paste0(conus_biomass_ARD_tile_", site_info$landsat_ARD_tile, ".tif)]
 # from https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
 # and specify the path to them here
-landtrendr_raw_data_dir <- "data_raw/LandTrendr_AGB"
+# Code below expects exactly one "*median.tif" and one "*stdv.tif".
+landtrendr_raw_files <- file.path(
+  "data_raw/LandTrendr_AGB",
+  paste0("ca_biomassfiaald_2016", c("median", "stdv"), ".tif")
+)
 
 ic_ensemble_size <- 100
 
@@ -87,63 +91,20 @@ if (file.exists(sm_csv_path)) {
 
 
 PEcAn.logger::logger.info("Aboveground biomass from LandTrendr")
-#
-# The approach used here takes a simple SD of the spatial variability of the
-# LandTrendr pixel estimates, ignoring covariance and model uncertainty
-# TODO: Get/create uncertainty layer (may need to run landtrendr for ourselves?
-#   then revisit this using existing functions in PEcAn.data.remote
-#
-# Requires manual download of the relevant geotiffs from
+
+# Requires manual download of the relevant geotiffs from Kennedy group at
+# Oregon State. Medians are available by anonymous FTP from
+#   islay.ceoas.oregonstate.edu
+# and by web (but possibly this is a different version?) from
 #   https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
-#   before running this script
+# The uncertainty layer was formerly distributed by FTP but does not appear
+# to be available at the moment.
+# TODO find out whether this is available from a supported source.
+#
+# Here I am using a subset (just year 2016 clipped to the CA state boundaries)
+# of the 30-m CONUS median and stdev maps that are stored on the Dietze lab
+# server.
 landtrendr_agb_outdir <- data_dir
-landtrendr_data_paths <- file.path(
-  landtrendr_raw_data_dir,
-  paste0("conus_biomass_ARD_tile_", site_info$landsat_ARD_tile, ".tif")
-)
-stopifnot(all(file.exists(landtrendr_data_paths)))
-
-naive_landtrendr_AGB <- function(site_info, geotiff_paths, buffer = 400) {
-  ## get coordinates and provide spatial info
-  site_coords <- data.frame(site_info$lon, site_info$lat)
-  names(site_coords) <- c("Longitude", "Latitude")
-  coords_latlong <- sp::SpatialPoints(site_coords)
-  sp::proj4string(coords_latlong) <- sp::CRS("+init=epsg:4326")
-
-  # load gridded AGB data
-  # Bands 1-28 are years 1990-2017
-  yr <- lubridate::year(as.Date(site_info$start_date))
-  stopifnot(all(yr >= 1990 & yr <= 2017)) # landtrendr data range
-  raster_data <- mapply(FUN = raster::raster,
-                        x = geotiff_paths,
-                        band = yr - 1989) |>
-    Reduce(f = raster::merge)
-
-  ## reproject Lat/Long site coords to AGB Albers Equal-Area
-  coords_AEA <- sp::spTransform(coords_latlong,
-                                raster::crs(raster_data))
-  ## extract
-  agb_pixel <- raster::extract(
-    x = raster_data,
-    y = coords_AEA,
-    buffer = buffer,
-    df = FALSE
-  ) |> setNames(site_info$site_id)
-
-  agb_pixel |>
-    purrr::map_dfr(getpx_naive, .id = "site_id")
-}
-
-# Here's the naive part!
-# This version of the landtrendr data doesn't come with an uncertainty layer.
-# For a horrifying approximation, we take the SD of all pixels in the buffer.
-# This ignores correlation, conflates spatial heterogeneity with model
-# uncertainty, and is generally a bad idea.
-# TODO: Replace this.
-getpx_naive <- function(pixel) {
-  px <- pixel[pixel >= 0] # missing data are -9999
-  data.frame(AGB_Mg_ha = mean(px), SD_AGB = sd(px))
-}
 
 landtrendr_csv_path <- file.path(landtrendr_agb_outdir,
                                  "aboveground_biomass_landtrendr.csv")
@@ -152,11 +113,32 @@ if (file.exists(landtrendr_csv_path)) {
                             landtrendr_csv_path)
   agb_est <- read.csv(landtrendr_csv_path)
 } else {
-  agb_est <- naive_landtrendr_AGB(
-    site_info,
-    geotiff_paths = landtrendr_data_paths
+
+  lt_med_path <- grep("_median.tif$", landtrendr_raw_files, value = TRUE)
+  lt_sd_path <- grep("_stdv.tif$", landtrendr_raw_files, value = TRUE)
+  stopifnot(
+    all(file.exists(landtrendr_raw_files)),
+    length(lt_med_path) == 1,
+    length(lt_sd_path) == 1
   )
-  write.csv(agb_est, landtrendr_csv_path, row.names = FALSE)
+  lt_med <- terra::rast(lt_med_path)
+  lt_sd <- terra::rast(lt_sd_path)
+
+  lt_points <- site_info |>
+    terra::vect(crs = "epsg:4326") |>
+    terra::project(lt_med) |>
+    # TODO: is 200m radius a reasonable default?
+    terra::buffer(width = 200)
+
+  terra::extract(x = lt_med, y = lt_points, fun = mean, bind = TRUE) |>
+    terra::extract(x = lt_sd, y = _, fun = mean, bind = TRUE) |>
+    as.data.frame() |>
+    select(
+      siteid = id,
+      AGB_median = ends_with("median"),
+      AGB_sd = ends_with("stdv")
+    ) |>
+    write.csv(landtrendr_csv_path, row.names = FALSE)
 }
 
 
