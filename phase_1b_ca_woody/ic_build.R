@@ -10,7 +10,7 @@ site_info <- read.csv("site_info.csv")
 # and some download/extraction functions rely on this.
 # TODO add support for diff start dates per site
 # Workaround: Call this script separately for sites whose dates differ
-site_info$start_date <- "1999-01-01"
+site_info$start_date <- "2016-01-01"
 
 
 data_dir <- "data/IC_prep"
