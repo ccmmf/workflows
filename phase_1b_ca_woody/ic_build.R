@@ -73,7 +73,7 @@ if (file.exists(soilc_csv_path)) {
 
 PEcAn.logger::logger.info("Soil moisture")
 sm_outdir <- file.path(data_dir, "soil_moisture") |> normalizePath()
-sm_csv_path <- file.path(sm_outdir, "sm.csv") # name is hardcorded by fn
+sm_csv_path <- file.path(data_dir, "sm.csv") # name is hardcorded by fn
 if (file.exists(sm_csv_path)) {
   PEcAn.logger::logger.info("using existing soil moisture file", sm_csv_path)
   soil_moisture_est <- read.csv(sm_csv_path)
@@ -83,7 +83,7 @@ if (file.exists(sm_csv_path)) {
     site_info = site_info,
     time.points = as.Date(site_info$start_date[[1]]),
     in.path = sm_outdir,
-    out.path = sm_outdir, # file name is hardcoded to "sm.csv"
+    out.path = dirname(sm_csv_path),
     allow.download = TRUE
   )
 }
