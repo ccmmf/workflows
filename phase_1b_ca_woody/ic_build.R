@@ -64,7 +64,7 @@ if (file.exists(soilc_csv_path)) {
   soil_carbon_est <- read.csv(soilc_csv_path, check.names = FALSE)
 } else {
   soil_carbon_est <- PEcAn.data.land::soilgrids_soilC_extract(
-    site_info,
+    site_info |> select(site_id = id, site_name = name, lat, lon),
     outdir = data_dir
   )
 }
