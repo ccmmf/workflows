@@ -16,16 +16,23 @@ site_info$start_date <- "2016-01-01"
 data_dir <- "data/IC_prep"
 ic_outdir <- "IC_files"
 
-# The LandTrendr data used here are distributed through an interactive portal,
-# with no obvious ability to automate download.
-# Manually download the geotiffs that contain your sites
-# [e.g. paste0(conus_biomass_ARD_tile_", site_info$landsat_ARD_tile, ".tif)]
-# from https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
-# and specify the path to them here
+# Using Landtrandr biomass requires manual download of the relevant geotiffs
+# from Kennedy group at Oregon State. Medians are available by anonymous FTP at
+#   islay.ceoas.oregonstate.edu
+# and by web (but possibly this is a different version?) from
+#   https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
+# The uncertainty layer was formerly distributed by FTP but I cannot find it
+# on the ceoas server at the moment.
+# TODO find out whether this is available from a supported source.
+#
+# Here I am using a subset (just year 2016 clipped to the CA state boundaries)
+# of the 30-m CONUS median and stdev maps that are stored on the Dietze lab
+# server.
+#
 # Code below expects exactly one "*median.tif" and one "*stdv.tif".
 landtrendr_raw_files <- file.path(
-  "data_raw/LandTrendr_AGB",
-  paste0("ca_biomassfiaald_2016", c("median", "stdv"), ".tif")
+  "data_raw/",
+  paste0("ca_biomassfiaald_2016_", c("median", "stdv"), ".tif")
 )
 
 ic_ensemble_size <- 100
@@ -38,6 +45,7 @@ ic_ensemble_size <- 100
 # for any CA location(s) in site_info
 
 set.seed(6824625)
+library(tidyverse)
 
 # Do parallel processing in separate R processes instead of via forking
 # (without this the {furrr} calls inside soilgrids_soilC_extract
@@ -92,18 +100,6 @@ if (file.exists(sm_csv_path)) {
 
 PEcAn.logger::logger.info("Aboveground biomass from LandTrendr")
 
-# Requires manual download of the relevant geotiffs from Kennedy group at
-# Oregon State. Medians are available by anonymous FTP from
-#   islay.ceoas.oregonstate.edu
-# and by web (but possibly this is a different version?) from
-#   https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
-# The uncertainty layer was formerly distributed by FTP but does not appear
-# to be available at the moment.
-# TODO find out whether this is available from a supported source.
-#
-# Here I am using a subset (just year 2016 clipped to the CA state boundaries)
-# of the 30-m CONUS median and stdev maps that are stored on the Dietze lab
-# server.
 landtrendr_agb_outdir <- data_dir
 
 landtrendr_csv_path <- file.path(landtrendr_agb_outdir,
