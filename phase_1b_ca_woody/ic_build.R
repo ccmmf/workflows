@@ -91,7 +91,7 @@ if (file.exists(sm_csv_path)) {
 } else {
   if (!dir.exists(sm_outdir)) dir.create(sm_outdir)
   soil_moisture_est <- PEcAn.data.land::extract_SM_CDS(
-    site_info = site_info,
+    site_info = site_info |> dplyr::select(site_id = id, lat, lon),
     time.points = as.Date(site_info$start_date[[1]]),
     in.path = sm_outdir,
     out.path = dirname(sm_csv_path),
@@ -149,15 +149,15 @@ if (file.exists(landtrendr_csv_path)) {
     # TODO: is 200m radius a reasonable default?
     terra::buffer(width = 200)
 
-  terra::extract(x = lt_med, y = lt_points, fun = mean, bind = TRUE) |>
+  agb_est <- terra::extract(x = lt_med, y = lt_points, fun = mean, bind = TRUE) |>
     terra::extract(x = lt_sd, y = _, fun = mean, bind = TRUE) |>
     as.data.frame() |>
-    select(
-      siteid = id,
-      AGB_median = ends_with("median"),
+    dplyr::select(
+      site_id = id,
+      AGB_median_Mg_ha = ends_with("median"),
       AGB_sd = ends_with("stdv")
-    ) |>
-    write.csv(landtrendr_csv_path, row.names = FALSE)
+    )
+  write.csv(agb_est, landtrendr_csv_path, row.names = FALSE)
 }
 
 
@@ -198,8 +198,8 @@ initial_condition_estimated <- dplyr::bind_rows(
                   upper_bound = Inf),
   AbvGrndWood = agb_est |> # NB this assumes AGB ~= AGB woody
     dplyr::select(site_id = site_id,
-                  mean = AGB_Mg_ha,
-                  sd = SD_AGB) |>
+                  mean = AGB_median_Mg_ha,
+                  sd = AGB_sd) |>
     dplyr::mutate(across(
       c("mean", "sd"),
       ~PEcAn.utils::ud_convert(.x * 0.48, # approximate biomass to C conversion
@@ -263,7 +263,17 @@ ic_samples <- initial_condition_estimated |>
     wood_carbon_content = AbvGrndWood - leaf_carbon_content
   )
 
-file.path(ic_outdir, site_info$site_id) |>
+ic_names <- colnames(ic_samples)
+std_names <- c("site_id", "replicate", PEcAn.utils::standard_vars$Variable.Name)
+nonstd_names <- ic_names[!ic_names %in% std_names]
+if (length(nonstd_names) > 0) {
+  PEcAn.logger::logger.debug(
+    "Not writing these nonstandard variables to the IC files:", nonstd_names
+  )
+  ic_samples <- ic_samples |> dplyr::select(-any_of(nonstd_names))
+}
+
+file.path(ic_outdir, site_info$id) |>
   unique() |>
   purrr::walk(dir.create, recursive = TRUE)
 
