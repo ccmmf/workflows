@@ -11,6 +11,7 @@ site_info <- read.csv("site_info.csv")
 # TODO add support for diff start dates per site
 # Workaround: Call this script separately for sites whose dates differ
 site_info$start_date <- "2016-01-01"
+site_info$LAI_date <- "2016-07-01"
 
 
 data_dir <- "data/IC_prep"
@@ -37,7 +38,17 @@ landtrendr_raw_files <- file.path(
 
 ic_ensemble_size <- 100
 
-
+# PFT-specific parameters used to convert LAI to leaf carbon estimates.
+# Future versions will want to read these directly from an appropriate PFT file,
+# but keeping as an input for MVP.
+#
+# These value are from the `temperate.deciduous` PFT,
+# so should be representative for deciduous tree crops like almond
+specific_leaf_area <- list(mean = 15.18, sd = 0.97) # units m2/kg
+leaf_carbon_fraction <- list(mean = 0.466, sd = 0.00088) #units g/g
+# OK, this one's not in the PFT -- just my estimate!
+# TODO update from a citeable source
+wood_carbon_fraction <- list(mean = 0.48, sd = 0.005)
 
 
 ## ---------------------------------------------------------
@@ -88,14 +99,26 @@ if (file.exists(sm_csv_path)) {
   )
 }
 
-# PEcAn.logger::logger.info("LAI")
-# Skipping this for now -- the MODIS source data don't start until March 2000,
-# plus this is a deciduous system and will start the year at zero.
-# lai_est <- PEcAn.data.remote::MODIS_LAI_prep(
-# 	site_info,
-# 	as.Date(site_info$start_date[[1]]),
-# 	outdir = data_dir)
-
+PEcAn.logger::logger.info("LAI")
+# Note that this currently creates *two* CSVs:
+# - "LAI.csv", with values from each available day inside the search window
+#   (filename is hardcoded inside MODIS_LAI_PREP())
+# - this path, aggregated to one row per site
+# TODO consider cleaning this up -- eg reprocess from LAI.csv on the fly?
+lai_csv_path <- file.path(data_dir, "LAI_bysite.csv")
+if (file.exists(lai_csv_path)) {
+  PEcAn.logger::logger.info("using existing LAI file", lai_csv_path)
+  lai_est <- read.csv(lai_csv_path)
+} else {
+  lai_res <- PEcAn.data.remote::MODIS_LAI_prep(
+    site_info = site_info |> dplyr::select(site_id = id, lat, lon),
+    time_points = as.Date(site_info$LAI_date[[1]]),
+    outdir = data_dir,
+    export_csv = TRUE
+  )
+  lai_est <- lai_res$LAI_Output
+  write.csv(lai_est, lai_csv_path, row.names = FALSE)
+}
 
 
 PEcAn.logger::logger.info("Aboveground biomass from LandTrendr")
@@ -167,6 +190,12 @@ initial_condition_estimated <- dplyr::bind_rows(
     #   to not convert when 0 > SoilMoistFrac > 1
     dplyr::mutate(lower_bound = 0,
                   upper_bound = 100),
+  LAI = lai_est |>
+    dplyr::select(site_id = site_id,
+                  mean = ends_with("LAI"),
+                  sd = ends_with("SD")) |>
+    dplyr::mutate(lower_bound = 0,
+                  upper_bound = Inf),
   AbvGrndWood = agb_est |> # NB this assumes AGB ~= AGB woody
     dplyr::select(site_id = site_id,
                   mean = AGB_Mg_ha,
@@ -179,6 +208,28 @@ initial_condition_estimated <- dplyr::bind_rows(
     )) |>
     dplyr::mutate(lower_bound = 0,
                   upper_bound = Inf),
+  # variables passed through from script inputs, not site-specific
+  SLA = tibble::tibble(
+    site_id = site_info$id,
+    mean = specific_leaf_area$mean,
+    sd = specific_leaf_area$sd,
+    lower_bound = 0,
+    upper_bound = Inf
+  ),
+  leaf_carbon_fraction = tibble::tibble(
+    site_id = site_info$id,
+    mean = leaf_carbon_fraction$mean,
+    sd = leaf_carbon_fraction$sd,
+    lower_bound = 0,
+    upper_bound = 1
+  ),
+  wood_carbon_fraction = tibble::tibble(
+    site_id = site_info$id,
+    mean = wood_carbon_fraction$mean,
+    sd = wood_carbon_fraction$sd,
+    lower_bound = 0,
+    upper_bound = 1
+  ),
   .id = "variable"
 )
 write.csv(
@@ -207,11 +258,10 @@ ic_samples <- initial_condition_estimated |>
   dplyr::group_by(site_id, variable) |>
   dplyr::group_modify(ic_sample_draws, n = ic_ensemble_size) |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
-  # Hack: Passing AGB to both AbvGrndWood and wood_carbon_content.
-  # in Dongchen's IC files AbvGrndWood appears to be sum of
-  # wood_carbon_content and leaf_carbon_content;
-  # I'm assuming here leaf_carbon_content should be zero when LAI = 0;
-  dplyr::mutate(wood_carbon_content = AbvGrndWood)
+  dplyr::mutate(
+    leaf_carbon_content = LAI / SLA * leaf_carbon_fraction,
+    wood_carbon_content = AbvGrndWood - leaf_carbon_content
+  )
 
 file.path(ic_outdir, site_info$site_id) |>
   unique() |>
