@@ -45,7 +45,7 @@ ic_ensemble_size <- 100
 # These value are from the `temperate.deciduous` PFT,
 # so should be representative for deciduous tree crops like almond
 specific_leaf_area <- list(mean = 15.18, sd = 0.97) # units m2/kg
-leaf_carbon_fraction <- list(mean = 0.466, sd = 0.00088) #units g/g
+leaf_carbon_fraction <- list(mean = 0.466, sd = 0.00088) # units g/g
 # OK, this one's not in the PFT -- just my estimate!
 # TODO update from a citeable source
 wood_carbon_fraction <- list(mean = 0.48, sd = 0.005)
@@ -125,14 +125,17 @@ PEcAn.logger::logger.info("Aboveground biomass from LandTrendr")
 
 landtrendr_agb_outdir <- data_dir
 
-landtrendr_csv_path <- file.path(landtrendr_agb_outdir,
-                                 "aboveground_biomass_landtrendr.csv")
+landtrendr_csv_path <- file.path(
+  landtrendr_agb_outdir,
+  "aboveground_biomass_landtrendr.csv"
+)
 if (file.exists(landtrendr_csv_path)) {
-  PEcAn.logger::logger.info("using existing LandTrendr AGB file",
-                            landtrendr_csv_path)
+  PEcAn.logger::logger.info(
+    "using existing LandTrendr AGB file",
+    landtrendr_csv_path
+  )
   agb_est <- read.csv(landtrendr_csv_path)
 } else {
-
   lt_med_path <- grep("_median.tif$", landtrendr_raw_files, value = TRUE)
   lt_sd_path <- grep("_stdv.tif$", landtrendr_raw_files, value = TRUE)
   stopifnot(
@@ -175,39 +178,57 @@ PEcAn.logger::logger.info("Building IC files")
 
 initial_condition_estimated <- dplyr::bind_rows(
   soil_organic_carbon_content = soil_carbon_est |>
-    dplyr::select(site_id = Site_ID,
-                  mean = `Total_soilC_0-30cm`,
-                  sd = `Std_soilC_0-30cm`) |>
-    dplyr::mutate(lower_bound = 0,
-                  upper_bound = Inf),
+    dplyr::select(
+      site_id = Site_ID,
+      mean = `Total_soilC_0-30cm`,
+      sd = `Std_soilC_0-30cm`
+    ) |>
+    dplyr::mutate(
+      lower_bound = 0,
+      upper_bound = Inf
+    ),
   SoilMoistFrac = soil_moisture_est |>
-    dplyr::select(site_id = site.id,
-                  mean = sm.mean,
-                  sd = sm.uncertainty) |>
+    dplyr::select(
+      site_id = site.id,
+      mean = sm.mean,
+      sd = sm.uncertainty
+    ) |>
     # Note that we pass this as a percent -- yes, Sipnet wants a fraction,
     # but write.configs.SIPNET hardcodes a division by 100.
     # TODO consider modifying write.configs.SIPNET
     #   to not convert when 0 > SoilMoistFrac > 1
-    dplyr::mutate(lower_bound = 0,
-                  upper_bound = 100),
+    dplyr::mutate(
+      lower_bound = 0,
+      upper_bound = 100
+    ),
   LAI = lai_est |>
-    dplyr::select(site_id = site_id,
-                  mean = ends_with("LAI"),
-                  sd = ends_with("SD")) |>
-    dplyr::mutate(lower_bound = 0,
-                  upper_bound = Inf),
+    dplyr::select(
+      site_id = site_id,
+      mean = ends_with("LAI"),
+      sd = ends_with("SD")
+    ) |>
+    dplyr::mutate(
+      lower_bound = 0,
+      upper_bound = Inf
+    ),
   AbvGrndWood = agb_est |> # NB this assumes AGB ~= AGB woody
-    dplyr::select(site_id = site_id,
-                  mean = AGB_median_Mg_ha,
-                  sd = AGB_sd) |>
+    dplyr::select(
+      site_id = site_id,
+      mean = AGB_median_Mg_ha,
+      sd = AGB_sd
+    ) |>
     dplyr::mutate(across(
       c("mean", "sd"),
-      ~PEcAn.utils::ud_convert(.x * 0.48, # approximate biomass to C conversion
-                               "Mg ha-1",
-                               "kg m-2")
+      ~ PEcAn.utils::ud_convert(
+        .x * 0.48, # approximate biomass to C conversion
+        "Mg ha-1",
+        "kg m-2"
+      )
     )) |>
-    dplyr::mutate(lower_bound = 0,
-                  upper_bound = Inf),
+    dplyr::mutate(
+      lower_bound = 0,
+      upper_bound = Inf
+    ),
   # variables passed through from script inputs, not site-specific
   SLA = tibble::tibble(
     site_id = site_info$id,
@@ -246,11 +267,13 @@ ic_sample_draws <- function(df, n = 100, ...) {
 
   data.frame(
     replicate = seq_len(n),
-    sample = truncnorm::rtruncnorm(n = n,
-                                   a = df$lower_bound,
-                                   b = df$upper_bound,
-                                   mean = df$mean,
-                                   sd = df$sd)
+    sample = truncnorm::rtruncnorm(
+      n = n,
+      a = df$lower_bound,
+      b = df$upper_bound,
+      mean = df$mean,
+      sd = df$sd
+    )
   )
 }
 
@@ -280,12 +303,14 @@ file.path(ic_outdir, site_info$id) |>
 ic_samples |>
   dplyr::group_by(site_id, replicate) |>
   dplyr::group_walk(
-    ~PEcAn.SIPNET::veg2model.SIPNET(
-       outfolder = file.path(ic_outdir, .y$site_id),
-       poolinfo = list(dims = list(time = 1),
-                       vals = .x),
-       siteid = .y$site_id,
-       ens = .y$replicate
+    ~ PEcAn.SIPNET::veg2model.SIPNET(
+      outfolder = file.path(ic_outdir, .y$site_id),
+      poolinfo = list(
+        dims = list(time = 1),
+        vals = .x
+      ),
+      siteid = .y$site_id,
+      ens = .y$replicate
     )
   )
 
