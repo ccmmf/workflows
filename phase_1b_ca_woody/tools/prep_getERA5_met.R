@@ -14,7 +14,7 @@
 # time to update the code.
 # Meanwhile, consider manually downloading locations/years of interest via web:
 # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
-raw_era5_path <- "/projectnb/dietzelab/hamzed/ERA5/Data/Ensemble"
+raw_era5_path <- "/projectnb/dietzelab/dongchen/anchorSites/ERA5"
 
 
 # Path to save intermediate format:
@@ -30,8 +30,24 @@ site_sipnet_met_path <- "/projectnb/dietzelab/chrisb/ERA5_SIPNET"
 # location and time to extract
 site_info <- read.csv("site_info.csv")
 site_info$start_date <- "2016-01-01"
-site_info$end_date <- "2021-12-31"
+site_info$end_date <- "2024-12-31"
 
+
+# Usage notes:
+# I'm hoping this is a one-off, so I ran it interactively via `qrsh`
+# on the BU cluster.
+# The files I want are scattered across several branches today --
+# sure hope that juggling is one-time even if we keep using ERA5 data.
+#   cd /projectnb/dietzelab/<myname>/ccmmf
+#   git clone https://github.com/ccmmf/workflows && cd workflows
+#   git checkout 1b && cp data/design_points.csv design_points.csv
+#   git checkout era5-for-1b && cd phase_1b_ca_woody
+#   mv ../design_points.csv data/design_points.csv
+#   qrsh
+#   cd /projectnb/dietzelab/chrisb/ccmmf/workflows/phase_1b_ca_woody/
+#   module load R
+#   Rscript tools/make_site_info_csv.R
+#   time Rscript tools/prep_getERA5_met.R
 
 
 # ----------- end system-specific ---------------------------------
@@ -45,9 +61,9 @@ options(
   )
 )
 
-if (!requireNamespace("PEcAn.all", quietly = TRUE)) {
-  print("installing PEcAn.all")
-  install.packages("PEcAn.all")
+if (!requireNamespace("PEcAn.data.atmosphere", quietly = TRUE)) {
+  print("installing PEcAn.data.atmosphere")
+  install.packages("PEcAn.data.atmosphere")
 }
 
 if (!requireNamespace("PEcAn.SIPNET", quietly = TRUE)) {
