@@ -34,20 +34,34 @@ site_info$end_date <- "2024-12-31"
 
 
 # Usage notes:
-# I'm hoping this is a one-off, so I ran it interactively via `qrsh`
-# on the BU cluster.
+# I'm hoping this is a one-off, so I ran it on the BU cluster
+# (because that's where the raw files are) without trying to
+# generalize to Slurm.
+#
+# 0. setup:
 # The files I want are scattered across several branches today --
-# sure hope that juggling is one-time even if we keep using ERA5 data.
+# I sure hope this branch-juggling is one-time even if we keep using ERA5 data.
 #   cd /projectnb/dietzelab/<myname>/ccmmf
 #   git clone https://github.com/ccmmf/workflows && cd workflows
 #   git checkout 1b && cp data/design_points.csv design_points.csv
 #   git checkout era5-for-1b && cd phase_1b_ca_woody
 #   mv ../design_points.csv data/design_points.csv
+#
+# 1. initial interactive run:
 #   qrsh
 #   cd /projectnb/dietzelab/chrisb/ccmmf/workflows/phase_1b_ca_woody/
 #   module load R
 #   Rscript tools/make_site_info_csv.R
 #   time Rscript tools/prep_getERA5_met.R
+# I should have called `screen` first to protect against connection timeouts.
+# It ran for about 4 hours, apparently extracting about one site per hour,
+# then terminated when my session dropped.
+#
+# 2. Batch job
+# I modified the script below to run in parallel if there are cores available,
+# then put module commands and SGE directives into a quick bash script:
+# qsub tools/run_getERA5.sh
+
 
 future::plan("multisession", workers = as.numeric(Sys.getenv("NSLOTS")))
 
