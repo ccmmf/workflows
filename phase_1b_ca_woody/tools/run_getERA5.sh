@@ -9,5 +9,5 @@
 module load R
 
 echo "starting at" $(date)
-time ./prep_getERA5_met.R
+time Rscript tools/prep_getERA5_met.R
 echo "done at" $(date)
