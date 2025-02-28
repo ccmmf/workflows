@@ -49,6 +49,8 @@ site_info$end_date <- "2024-12-31"
 #   Rscript tools/make_site_info_csv.R
 #   time Rscript tools/prep_getERA5_met.R
 
+future::plan("multisession", workers = as.numeric(Sys.getenv("NSLOTS")))
+
 
 # ----------- end system-specific ---------------------------------
 
@@ -72,7 +74,7 @@ if (!requireNamespace("PEcAn.SIPNET", quietly = TRUE)) {
 }
 
 
-purrr::pwalk(
+furrr::future_pwalk(
   site_info,
   function(id, lat, lon, start_date, end_date, ...) {
     PEcAn.data.atmosphere::extract.nc.ERA5(
@@ -94,7 +96,7 @@ file_info <- site_info |>
   dplyr::rename(site_id = id) |>
   dplyr::cross_join(data.frame(ens_id = 1:10))
 
-purrr::pwalk(
+furrr::future_pwalk(
   file_info,
   function(site_id, start_date, end_date, ens_id, ...) {
     PEcAn.SIPNET::met2model.SIPNET(
