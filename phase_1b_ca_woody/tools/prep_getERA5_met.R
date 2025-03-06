@@ -63,7 +63,7 @@ site_info$end_date <- "2024-12-31"
 # qsub tools/run_getERA5.sh
 
 
-future::plan("multisession", workers = as.numeric(Sys.getenv("NSLOTS")))
+future::plan("multisession", workers = as.numeric(Sys.getenv("NSLOTS")) - 1)
 
 
 # ----------- end system-specific ---------------------------------
@@ -110,6 +110,9 @@ file_info <- site_info |>
   dplyr::rename(site_id = id) |>
   dplyr::cross_join(data.frame(ens_id = 1:10))
 
+if (!dir.exists(site_sipnet_met_path)) {
+  dir.create(site_sipnet_met_path, recursive = TRUE)
+}
 furrr::future_pwalk(
   file_info,
   function(site_id, start_date, end_date, ens_id, ...) {
