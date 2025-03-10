@@ -51,4 +51,4 @@ settings <- settings |>
     path_template = "IC_files/{id}/IC_site_{id}_{n}.nc"
   )
 
-write.settings(settings, outputfile = "run_settings.xml", outputdir = ".")
+write.settings(settings, outputfile = "settings.xml", outputdir = ".")
