@@ -61,11 +61,13 @@
   <outdir>output/out</outdir>
   <rundir>output/run</rundir>
   <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub>
-  <qsub.jobid>Submitted batch job ([0-9]+) .*</qsub.jobid>
+  <qsub.jobid>.*job ([0-9]+).*</qsub.jobid>
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>
   <modellauncher>
     <binary>tools/slurm_array_submit.sh</binary>
-    <qsub.extra>-a 1-@NJOBS@</qsub.extra>
+    <!-- TODO PEcAn function docs seem to imply this should be `qsub.extra`,
+      but reading code shows `qsub` is the name actually looked for. -->
+    <qsub>-a 1-@NJOBS@</qsub>
   </modellauncher>
  </host>
 </pecan>
