@@ -60,10 +60,12 @@
   <name>localhost</name>
   <outdir>output/out</outdir>
   <rundir>output/run</rundir>
+  <qsub>echo sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ -S /bin/bash</qsub>
+  <qsub.jobid>Submitted batch job ([0-9]+) .*</qsub.jobid>
+  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
   <modellauncher>
-    <!-- @NJOBS@ gets filled in by xml_build.R -->
-    <mpirun>echo sbatch -t @NJOBS@</mpirun>
     <binary>./slurm_array_submit.sh</binary>
+    <qsub.extra>-a 0-@NJOBS@</qsub.extra>
   </modellauncher>
  </host>
 </pecan>
