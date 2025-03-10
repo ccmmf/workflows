@@ -64,7 +64,7 @@
   <qsub.jobid>Submitted batch job ([0-9]+) .*</qsub.jobid>
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>
   <modellauncher>
-    <binary>./slurm_array_submit.sh</binary>
+    <binary>tools/slurm_array_submit.sh</binary>
     <qsub.extra>-a 0-@NJOBS@</qsub.extra>
   </modellauncher>
  </host>
