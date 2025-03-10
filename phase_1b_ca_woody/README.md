@@ -7,10 +7,13 @@ tar xz cccmmf_phase_1b_input_artifacts.tgz
 ```
 
 And run
+(Adjust all slurm flags to your machine, of course)
 ```{sh}
 module load r
-sbatch -n1 --cpus-per-task=8 ./tools/ERA5_nc_to_clim.R
-./xml_build.R
-./ic_build.R
-./run_models.R -s settings.xml
+sbatch -n1 --cpus-per-task=4 ./tools/ERA5_nc_to_clim.R
+srun ./xml_build.R
+srun ./ic_build.R
+sbatch --mem-per-cpu=1G --time=01:00:00 \
+  --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
+  ./run_model.R -s settings.xml
 ```
