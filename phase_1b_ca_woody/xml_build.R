@@ -30,7 +30,7 @@ settings$run$inputs$poolinitcond$ensemble <- n_ens
 settings$host$modellauncher$qsub.extra <- sub(
   pattern = "@NJOBS@",
   replacement = nrow(site_info) * n_ens,
-  x = settings$host$modellauncher$mpirun,
+  x = settings$host$modellauncher$qsub,
   fixed = TRUE
 )
 
