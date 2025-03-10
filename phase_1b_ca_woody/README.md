@@ -9,7 +9,7 @@ tar xz cccmmf_phase_1b_input_artifacts.tgz
 And run
 ```{sh}
 module load r
-sbatch -n1 --cpus-per-task=8 ./tools/ERA5_met_to_clim.R
+sbatch -n1 --cpus-per-task=8 ./tools/ERA5_nc_to_clim.R
 ./xml_build.R
 ./ic_build.R
 ./run_models.R -s settings.xml

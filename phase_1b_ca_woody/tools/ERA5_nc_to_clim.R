@@ -5,7 +5,7 @@
 # Path to your existing ERA5 data in PEcAn CF format:
 # Single site, single-year netcdfs, in subdirectories per ensemble member.
 # Files named '<site_era5_path>/ERA5_<siteid>_<ensid>/ERA5.<ensid>.<year>.nc'
-site_era5_path <- "data_raw/ERA5_1b_20250228/ERA5_nc"
+site_era5_path <- "data_raw/ERA5_nc"
 
 # Output path:
 # single-site, multi-year Sipnet clim files, one per ensemble member.
@@ -18,7 +18,7 @@ site_info$start_date <- "2016-01-01"
 site_info$end_date <- "2023-12-31"
 
 
-future::plan("multisession", workers = 7)
+future::plan("multisession", workers = 4)
 
 
 # ----------- end system-specific ---------------------------------
