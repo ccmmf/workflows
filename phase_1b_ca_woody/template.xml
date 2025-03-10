@@ -60,7 +60,7 @@
   <name>localhost</name>
   <outdir>output/out</outdir>
   <rundir>output/run</rundir>
-  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ -S /bin/bash</qsub>
+  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub>
   <qsub.jobid>Submitted batch job ([0-9]+) .*</qsub.jobid>
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>
   <modellauncher>
