@@ -65,9 +65,7 @@
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>
   <modellauncher>
     <binary>tools/slurm_array_submit.sh</binary>
-    <!-- TODO PEcAn function docs seem to imply this should be `qsub.extra`,
-      but reading code shows `qsub` is the name actually looked for. -->
-    <qsub>-a 1-@NJOBS@</qsub>
+    <qsub.extra>-a 1-@NJOBS@</qsub.extra>
   </modellauncher>
  </host>
 </pecan>

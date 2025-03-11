@@ -10,7 +10,7 @@ ic_dir <- "IC_files"
 met_dir <- "data/ERA5_SIPNET" # TODO switch to caladapt
 
 
-n_ens <- 3 # TODO low for testing
+n_ens <- 20
 n_met <- 10
 
 
@@ -26,13 +26,6 @@ settings <- read.settings("template.xml") |>
 
 settings$ensemble$size <- n_ens
 settings$run$inputs$poolinitcond$ensemble <- n_ens
-# TODO have PEcAn.remote::start_qsub handle this replacement?
-settings$host$modellauncher$qsub <- sub(
-  pattern = "@NJOBS@",
-  replacement = nrow(site_info) * n_ens,
-  x = settings$host$modellauncher$qsub,
-  fixed = TRUE
-)
 
 settings <- settings |>
   createMultiSiteSettings(site_info) |>
