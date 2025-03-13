@@ -12,7 +12,7 @@ fi
 # joblist.txt has job script name on line 1, invocation dirs on lines 2-n
 # => add 1 to each task ID to get its line number
 task_line=$((SLURM_ARRAY_TASK_ID + 1))
-if [[ "$task_line" > $(wc -l < "$joblistfile") ]]; then
+if [[ "$task_line" -gt "$(wc -l < "$joblistfile")" ]]; then
 	# TODO do we want to warn here? For now assuming no,
 	# to allow arrays with empty slots
 	exit 0

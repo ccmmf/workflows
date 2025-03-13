@@ -26,8 +26,7 @@ tar up outputs + run log + selected inputs for archiving / analysis
 ```
 # assumes the log I care about is the one that sorts last...
 runlog=$(ls -1 pecan_workflow_runlog* | tail -n1)
-runid=${runlog/pecan_workflow_runlog/ccmmf_phase_1b}
-tarname=${runid/log/tgz}
+tarname=${runlog/log/tgz}
 srun --mem-per-cpu=5G --time=5:00:00 \
 	tar czf "$tarname" \
 	"$runlog" settings.xml site_info.csv \
