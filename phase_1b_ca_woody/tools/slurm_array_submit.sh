@@ -25,5 +25,6 @@ taskdir=$(tail -n+"$task_line" "$joblistfile" | head -n1)
 
 if [[ "$?" != "0" ]]; then
 	echo "ERROR IN MODEL RUN" >> "$logfile"
+	echo "Errored with: task ID $SLURM_ARRAY_TASK_ID, in dir $taskdir" >> "$logfile"
 	exit 1
 fi
