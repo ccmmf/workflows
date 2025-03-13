@@ -211,7 +211,7 @@ initial_condition_estimated <- dplyr::bind_rows(
       lower_bound = 0,
       upper_bound = Inf
     ),
-  AbvGrndWood = agb_est |> # NB this assumes AGB ~= AGB woody
+  AbvGrndBiomass = agb_est |> # NB this assumes AGB ~= AGB woody
     dplyr::select(
       site_id = site_id,
       mean = AGB_median_Mg_ha,
@@ -219,11 +219,7 @@ initial_condition_estimated <- dplyr::bind_rows(
     ) |>
     dplyr::mutate(across(
       c("mean", "sd"),
-      ~ PEcAn.utils::ud_convert(
-        .x * 0.48, # approximate biomass to C conversion
-        "Mg ha-1",
-        "kg m-2"
-      )
+      ~ PEcAn.utils::ud_convert(.x, "Mg ha-1", "kg m-2")
     )) |>
     dplyr::mutate(
       lower_bound = 0,
@@ -282,8 +278,9 @@ ic_samples <- initial_condition_estimated |>
   dplyr::group_modify(ic_sample_draws, n = ic_ensemble_size) |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
   dplyr::mutate(
+    AbvGrndWood = AbvGrndBiomass * wood_carbon_fraction,
     leaf_carbon_content = LAI / SLA * leaf_carbon_fraction,
-    wood_carbon_content = AbvGrndWood - leaf_carbon_content
+    wood_carbon_content = pmax(AbvGrndWood - leaf_carbon_content, 0)
   )
 
 ic_names <- colnames(ic_samples)
