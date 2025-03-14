@@ -2,7 +2,7 @@
 Put inputs where they're expected:
 ```{sh}
 # curl -o cccmmf_phase_1b_input_artifacts.tgz [url TK] 
-tar xz cccmmf_phase_1b_input_artifacts.tgz
+tar xzf cccmmf_phase_1b_input_artifacts.tgz
 # ln -s $(which sipnet.git) sipnet.git
 ```
 
@@ -24,11 +24,11 @@ tar up outputs + run log + selected inputs for archiving / analysis
 (Note this doesn't currently include the weather files)
 
 ```
-# assumes the log I care about is the one that sorts last...
-runlog=$(ls -1 pecan_workflow_runlog* | tail -n1)
+# assumes the log I care about is the newest one as sorted by -t...
+runlog=$(ls -1t ccmmf_phase_1b*.log | head -n1)
 tarname=${runlog/log/tgz}
 srun --mem-per-cpu=5G --time=5:00:00 \
 	tar czf "$tarname" \
 	"$runlog" settings.xml site_info.csv \
-	output IC_files data/IC_prep pfts
+	output IC_files data/IC_prep
 ```

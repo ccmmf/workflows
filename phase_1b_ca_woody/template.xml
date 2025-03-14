@@ -38,6 +38,7 @@
   <revision>git</revision>
   <delete.raw>FALSE</delete.raw>
   <binary>sipnet.git</binary>
+  <prerun>cp data/sipnet.event @RUNDIR@</prerun>
  </model>
  <run>
   <site><!-- inserted at config time --></site>

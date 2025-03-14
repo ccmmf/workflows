@@ -12,4 +12,5 @@ tar czf cccmmf_phase_1b_input_artifacts.tgz \
   pfts/temperate/ \
   data_raw/ERA5_nc \
   data/IC_prep/*.csv \
+  data/sipnet.event \
   site_info.csv
