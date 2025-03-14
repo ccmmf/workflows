@@ -19,7 +19,7 @@ pattern <- "^pecan_workflow_runlog_([0-9]{14})_([0-9]+-[0-9]+)\\.log$"
 matches <- stringr::str_match(logfile, pattern)
 forecast_time_string <- matches[2]
 forecast_iteration_id <- matches[3]
-forecast_time <- as.POSIXct(forecast_time_string, format = "%Y%m%d%H%M%S")
+forecast_time <- lubridate::as_datetime(as.POSIXct(forecast_time_string, format = "%Y%m%d%H%M%S"))
 obs_flag <- 0
 
 # Read settings file and extract run information
@@ -191,16 +191,15 @@ cf_time <- PEcAn.utils::datetime2cf(time_char, unit = time_units)
 #       Otherwise this returns an invalid dimension 
 # time_dim <- PEcAn.utils::to_ncdim("time", cf_time)
 time_dim <- ncdf4::ncdim_def(
-    name = "datetime",
-    longname = "time",
+    name = "ntime",
+    longname = "Time middle averaging period",
     units = time_units,
     vals = cf_time,
     calendar = "standard",
-    unlim = TRUE
+    unlim = FALSE
 )
-# For ensemble, we use the available ens_ids; for site, we use the indices of site_ids.
-ensemble_dim <- ncdim_def("ensemble", "", vals = ens_ids, longname = "ensemble member", unlim = FALSE)
 site_dim <- ncdim_def("site", "", vals = seq_along(site_ids), longname = "Site ID", unlim = FALSE)
+ensemble_dim <- ncdim_def("ensemble", "", vals = ens_ids, longname = "ensemble member", unlim = FALSE)
 
 # Use dims in reversed order so that the unlimited (time) dimension ends up as the record dimension:
 dims <- list(time_dim, site_dim, ensemble_dim)
@@ -218,6 +217,25 @@ soc_ncvar <- ncvar_def(
     dim = dims,
     longname = "Total Soil Carbon"
 )
+time_var <- ncvar_def(
+    name = "time",
+    units = "days since 1970-01-01 00:00:00",
+    dim = time_dim,
+    longname = "Time dimension"
+)
+lat_var <- ncvar_def(
+    name = "lat",
+    units = "degrees_north",
+    dim = site_dim,
+    longname = "Latitude"
+)
+
+lon_var <- ncvar_def(
+    name = "lon",
+    units = "degrees_east",
+    dim = site_dim,
+    longname = "Longitude"
+)
 
 nc_vars <- list(
     time = time_var,
@@ -231,7 +249,6 @@ nc_file <- file.path(outdir, "efi_forecast.nc")
 
 if (file.exists(nc_file)) {    
     file.remove(nc_file)
-
 }
 
 nc_out <- ncdf4::nc_create(nc_file, nc_vars)
@@ -251,10 +268,10 @@ ncvar_put(nc_out, soc_ncvar, ens_arrays[["TotSoilCarb"]])
 # Add global attributes per EFI standards.
 ncatt_put(nc_out, 0, "model_name", "SIPNET")
 ncatt_put(nc_out, 0, "model_version", "v1.3")
-ncatt_put(nc_out, 0, "iteration_id", "forecast_iteration_id")
-ncatt_put(nc_out, 0, "forecast_time", forecast_time)
+ncatt_put(nc_out, 0, "iteration_id", forecast_iteration_id)
+ncatt_put(nc_out, 0, "forecast_time", format(forecast_time, "%Y-%m-%d %H:%M:%S"))
 ncatt_put(nc_out, 0, "obs_flag", 0)
-ncatt_put(nc_out, 0, "creation_date", Sys.time())
+ncatt_put(nc_out, 0, "creation_date", format(Sys.time(), "%Y-%m-%d"))
 # Close the netCDF file.
 nc_close(nc_out)
 
