@@ -9,7 +9,9 @@
 #' 
 #' - Read in a dataset of site environmental data
 #' - Perform K-means clustering to identify clusters
-#' - Select anchor sites for each cluster
+#' - Select design points for each cluster
+#' - create design_points.csv and anchor_sites.csv
+#' 
 #' 
 #' ## Setup
 #' 
@@ -265,7 +267,8 @@ knitr::kable(cluster_summary |> round(0))
 crop_ids <- read_csv("data/crop_ids.csv",
                      col_types = cols(
                        crop_id = col_factor(),
-                       crop = col_character()))
+                       crop = col_character())
+                       )
 climregion_ids <- read_csv("data/climregion_ids.csv",
                            col_types = cols(
                              climregion_id = col_factor(),
@@ -283,7 +286,8 @@ plan(sequential)
 #' 
 #' ## Design Point Selection
 #' 
-#' For phase 1b we need to supply design points for SIPNET runs. For development we will use 100 design points from the clustered dataset that are _not_ already anchor sites.
+#' For phase 1b we need to supply design points for SIPNET runs. 
+#' For development we will use 100 design points from the clustered dataset that are _not_ already anchor sites.
 #' 
 #' For the final high resolution runs we expect to use approximately 10,000 design points.
 #' For woody croplands, we will start with a number proportional to the total number of sites with woody perennial pfts.
@@ -304,10 +308,15 @@ missing_anchor_sites <- woody_anchor_sites|>
 if(nrow(missing_anchor_sites) > 0){
   woody_anchor_sites <- woody_anchor_sites |> 
                           drop_na(lat, lon)
-  # there is an anchor site that doesn't match the ca_fields; 
+  # there is an anchor site that doesn't match the ca_fields;
   # need to check on this. For now we will just remove it from the dataset.
-  PEcAn.logger::logger.warn("The following site(s) aren't within DWR crop fields:", 
-                             knitr::kable(missing_anchor_sites))
+  PEcAn.logger::logger.warn(
+    "The following site(s) aren't within DWR crop fields:",
+    knitr::kable(missing_anchor_sites)
+  )
+  PEcAn.logger::logger.info(
+    "Check the sf::st_nearest_feature join at the beginning of this script"
+  )
 }   
 
 set.seed(2222222)
@@ -355,10 +364,7 @@ ggplot() +
   geom_sf(data = ca_fields_pts, fill = 'black', color = "grey", alpha = 0.5)
 
 
-
-
-#' 
-#' 
+#'
 #' ## Woody Cropland Proportion
 #' 
 #' Here we calculate percent of California croplands that are woody perennial crops, in order to estimate the number of design points that will be selected in the clustering step
@@ -384,10 +390,16 @@ pft_area <- pft_area |>
   dplyr::mutate(area_pct = round(100 * pft_area / total_area)) |>
   select(-total_area, -pft_area) |>
   dplyr::rename("Woody Crops" = woody_indicator, "Area %" = area_pct) 
-  
-pft_area |>
-  kableExtra::kable()
 
-cluster_output  # final output from clustering and design point selection
+PEcAn.logger::logger.info(
+  "Total area and proportion of fields that are woody perennial",
+  "crops in California croplands:",
+  pft_area |> kableExtra::kable()
+)
+
+PEcAn.logger::logger.info(
+  "final output from clustering and design point selection:",
+  cluster_summary |> knitr::kable()
+) #
 
 
