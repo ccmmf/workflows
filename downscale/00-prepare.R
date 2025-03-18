@@ -128,13 +128,12 @@ yolo_county_polygon <- sf::st_read("data/yolo_county_polygon_simplified.geojson"
 #' The landiq2std function will be added to the PEcAn.data.land package, and has been implemented in a Pull Request https://github.com/PecanProject/pecan/pull/3423. The function is a work in progress. Two key work to be done. First `landiq2std` does not currently perform all steps to get from the original LandIQ format to the standard format - some steps related to harmonizing LandIQ across years have been completed manually. Second, the PEcAn 'standard' for such data is under development as we migrate from a Postgres database to a more portable GeoPackage + CSV format.
 #' 
 ## ----eval=FALSE---------------------------------------------------------------
-# input_file = 'data/i15_Crop_Mapping_2016_SHP/i15_Crop_Mapping_2016.shp'
-# output_gpkg = 'data/ca_fields.gpkg'
-# output_csv = 'data/ca_field_attributes.csv'
-# 
-# landiq2std(input_file, output_gpkg, output_csv)
+input_file = 'data/i15_Crop_Mapping_2016_SHP/i15_Crop_Mapping_2016.shp'
+output_gpkg = 'data/ca_fields.gpkg'
+output_csv = 'data/ca_field_attributes.csv'
 
-#' 
+landiq2std(input_file, output_gpkg, output_csv)
+
 #' ##### Subset Woody Perennial Crop Fields
 #' 
 #' Phase 1 focuses on Woody Perennial Crop fields.
@@ -295,7 +294,7 @@ ca_climregions <- caladaptr::ca_aoipreset_geom("climregions") |>
     sf::st_transform(crs = ca_albers_crs) |>
     dplyr::rename(climregion_id = id,
            climregion_name = name)
-save(ca_climregions, file = "data/ca_climregions.rda")
+saveRDS(ca_climregions, file = "data/ca_climregions.rds")
 
 #' 
 ## ----join_climregions---------------------------------------------------------
@@ -304,7 +303,7 @@ ca_woody_pts_clay_ocd_twi_cr <- ca_woody_pts_clay_ocd_twi |>
   sf::st_join(ca_climregions, join = st_intersects, left = TRUE)
 
 # convenience cache.
-save(ca_woody_pts_clay_ocd_twi_cr, file = "ca_woody_pts_clay_ocd_twi_cr.rda")
+saveRDS(ca_woody_pts_clay_ocd_twi_cr, file = "cache/ca_woody_pts_clay_ocd_twi_cr.rda")
 
 #' 
 #' ### GridMet
@@ -387,7 +386,7 @@ data_for_clust_with_ids <- .all |>
   na.omit() |>
   mutate(across(where(is.numeric), ~ signif(., digits = 3)))
 
-save(data_for_clust_with_ids, file = "cache/data_for_clust_with_ids.rda")
+saveRDS(data_for_clust_with_ids, "data/data_for_clust_with_ids.rds")
 
 # Final output for targets; if not in targets, suppress return
 if (exists("IN_TARGETS") && IN_TARGETS) {

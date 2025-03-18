@@ -155,7 +155,7 @@ for (var in variables) {
     ens_arrays[[var]] <- arr
 }
 
-save(ens_arrays, file = file.path(outdir, "efi_ens_arrays.RData"))
+saveRDS(ens_arrays, file = file.path(outdir, "efi_ens_arrays.rds"))
     
 efi_long <- ens_results |>
     rename(datetime = time) |>

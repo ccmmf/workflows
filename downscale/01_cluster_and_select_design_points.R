@@ -37,9 +37,10 @@ plan(multicore,  workers = no_cores - 2)
 options(future.globals.maxSize = benchmarkme::get_ram() * 0.9)
 
 # load climate regions for mapping
-load("data/ca_climregions.rda")
+ca_climregions <- readRDS("data/ca_climregions.rds")
 # environmental covariates
-load("cache/data_for_clust_with_ids.rda")
+data_for_clust_with_ids <- readRDS("data/data_for_clust_with_ids.rds")
+
 if('mean_temp' %in% names(data_for_clust_with_ids)){
   data_for_clust_with_ids <- data_for_clust_with_ids |>
     rename(temp = mean_temp)
