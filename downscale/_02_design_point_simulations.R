@@ -30,7 +30,7 @@ source("downscale/sipnetwopet.R")
 #' ### Join Design Points with Covariates
 #'
 ## -----------------------------------------------------------------------------
-design_points <- read_csv("data/final_design_points.csv")
+design_points <- read_csv("data/design_points.csv") |> distinct()
 covariates <- load("data/data_for_clust_with_ids.rda") |> get()
 
 # Remove duplicate entries using 'id'
@@ -51,19 +51,30 @@ design_point_results <- design_point_covs |>
   tidyr::unnest(result) |>
   dplyr::select(id, ensemble_id, SOC = soc, AGB = agb)
 
-# Transform long to wide format, unwrapping SOC list to numeric value
-design_point_wide <- design_point_results |>
-  tidyr::pivot_wider(
-    id_cols = id,
-    names_from = ensemble_id,
-    values_from = SOC,
-    names_prefix = "ensemble"
-  ) |>
-  dplyr::mutate(across(starts_with("ensemble"), ~ unlist(.)))
+# Convert design_point_results into arrays using pivot_wider and as.array
+arr_soc_matrix <- design_point_results |>
+  select(id, ensemble_id, SOC) |>
+  pivot_wider(names_from = ensemble_id, values_from = SOC) |>
+  column_to_rownames("id") |>
+  as.matrix()
 
-# Save ensemble_data as a list with date naming, matching the expected shape
-ensemble_data <- list("2020-01-01" = design_point_wide)
+arr_soc <- as.array(arr_soc_matrix)
+dim(arr_soc) <- c(1, nrow(arr_soc_matrix), ncol(arr_soc_matrix))
+dimnames(arr_soc) <- list(datetime = "2020-01-01",
+                          site = rownames(arr_soc_matrix),
+                          ensemble = colnames(arr_soc_matrix))
 
-saveRDS(ensemble_data, "cache/ensemble_data.rds")
+arr_agb_matrix <- design_point_results |>
+  select(id, ensemble_id, AGB) |>
+  pivot_wider(names_from = ensemble_id, values_from = AGB) |>
+  column_to_rownames("id") |>
+  as.matrix()
 
-design_point_wide  # final simulated design point output
+arr_agb <- as.array(arr_agb_matrix)
+dim(arr_agb) <- c(1, nrow(arr_agb_matrix), ncol(arr_agb_matrix))
+dimnames(arr_agb) <- list(datetime = "2020-01-01",
+                          site = rownames(arr_agb_matrix),
+                          ensemble = colnames(arr_agb_matrix))
+
+ensemble_arrays <- list(SOC = arr_soc, AGB = arr_agb)
+saveRDS(ensemble_arrays, "cache/efi_ensemble_arrays.rds")
