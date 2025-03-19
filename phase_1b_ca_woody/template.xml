@@ -28,6 +28,10 @@
    <met>
     <method>sampling</method>
    </met>
+   <poolinitcond>
+    <method>sampling</method>
+   </poolinitcond>
+   <!-- TODO soil init cond here when ready -->
   </samplingspace>
   <start.year><!-- inserted at config time --></start.year>
   <end.year><!-- inserted at config time --></end.year>
