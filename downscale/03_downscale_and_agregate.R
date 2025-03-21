@@ -35,9 +35,6 @@ settings <- PEcAn.settings::read.settings(file.path(basedir, "settings.xml"))
 outdir <- file.path(basedir, settings$modeloutdir)
 options(readr.show_col_types = FALSE)
 
-library(furrr)
-no_cores <- parallel::detectCores(logical = FALSE)
-plan(multicore, workers = no_cores - 1)
 
 #' ## Get Site Level Outputs
 ensemble_file <- file.path(outdir, "efi_ens_long.csv")
@@ -49,16 +46,14 @@ design_pt_csv <- "https://raw.githubusercontent.com/ccmmf/workflows/46a61d58a7b0
 design_points <- read_csv(design_pt_csv) |> #read_csv(here::here("data/design_points.csv")) |>
   dplyr::distinct()
 
-covariates <- read_csv(here::here("data/site_covariates.csv")) |>
+covariates_csv <- file.path(datadir, "site_covariates.csv")
+covariates <- read_csv(covariates_csv) |>
   select(
     site_id, where(is.numeric),
     -climregion_id
   )
 
-## TODO
-# separate fitting and predicting functions
-# calculate variable importance (randomForest::importance)
-d <- function(date, carbon_pool) {
+downscale_carbon_pool <- function(date, carbon_pool) {
   filtered_ens_data <- subset_ensemble(
     ensemble_data = ensemble_data,
     site_coords   = design_points,
@@ -80,16 +75,32 @@ cpools <- c("TotSoilCarb", "AGB")
 
 downscale_output_list <- purrr::map( # not using furrr b/c it is used inside downscale
   cpools,
-  ~ d(date = "2018-12-31", carbon_pool = .x)
+  ~ downscale_carbon_pool(date = "2018-12-31", carbon_pool = .x)
 ) |>
   purrr::set_names(cpools)
 
+## Check variable importance
 
 ## Save to make it easier to restart
 # saveRDS(downscale_output, file = here::here("cache/downscale_output.rds"))
 
 metrics <- lapply(downscale_output_list, downscale_metrics)
 print(metrics)
+
+median_metrics <- purrr::map(metrics, function(m) {
+  m |>
+    select(-ensemble) |>
+    summarise(#do equivalent of colmeans but for medians)
+      across(
+        everything(),
+        list(median = ~ median(.x)),
+        .names = "{col}"
+      )
+    )
+})
+
+bind_rows(median_metrics, .id = "carbon_pool") |>
+  knitr::kable()
 
 #'
 #'
@@ -104,19 +115,19 @@ print(metrics)
 ca_fields_full <- sf::read_sf(file.path(datadir, "ca_fields.gpkg"))
 
 ca_fields <- ca_fields_full |>
-dplyr::select(site_id, county, area_ha)  
+  dplyr::select(site_id, county, area_ha)  
 
 # Convert list to table with predictions and site identifier
-get_downscale_preds <- function(downscale_output) {
+get_downscale_preds <- function(downscale_output_list) {
   purrr::map(
-    downscale_output$predictions,
+    downscale_output_list$predictions,
     ~ tibble(site_id = covariates$site_id, prediction = .x)
   ) |>
     bind_rows(.id = "ensemble") |>
     left_join(ca_fields, by = "site_id") 
 }
 
-downscale_preds <- purrr::map(downscale_output, get_downscale_preds) |>
+downscale_preds <- purrr::map(downscale_output_list, get_downscale_preds) |>
   dplyr::bind_rows(.id = "carbon_pool") |>
   # Convert kg / ha to tonne (Mg) / field level totals
   # first convert scale
@@ -146,6 +157,11 @@ county_summaries <- ens_county_preds |>
       mean_c_density = mean(c_density),
       sd_c_density = sd(c_density)
     )
+
+readr::write_csv(
+  county_summaries,
+  file.path(outdir, "county_summaries.csv")
+)
   
 # Lets plot the results!
 
@@ -187,27 +203,54 @@ p <- purrr::map(cpools, function(pool) {
 return(.p)
 })
 
+## Variable Importance
 
-# Load CA county boundaries
-# # These are provided by Cal-Adapt as 'Areas of Interest'
-# 
+# importance_summary <- map_dfr(cpools, function(cp) {
+#   # Extract the importance for each ensemble model in the carbon pool
+#   importances <- map(1:20, function(i) {
+#     model <- downscale_output_list[[cp]][["model"]][[i]]
+#     randomForest::importance(model)[, "%IncMSE"]
+#   })
 
-# # check if attributes has county name
-# # Append county name to predicted table
-# grid_with_counties <- st_join(ca_grid, county_boundaries, join = st_intersects)
+#   # Turn the list of importance vectors into a data frame
+#   importance_df <- map_dfr(importances, ~ tibble(importance = .x), .id = "ensemble") |>
+#     group_by(ensemble) |>
+#     mutate(predictor = names(importances[[1]])) |>
+#     ungroup()
 
-# # Calculate county-level mean, median, and standard deviation.
-# county_aggregates <- grid_with_counties |>
-#   st_drop_geometry() |> # drop geometry for faster summarization
-#   group_by(county_name) |> # replace with your actual county identifier
-#   summarize(
-#     mean_biomass   = mean(predicted_biomass, na.rm = TRUE),
-#     median_biomass = median(predicted_biomass, na.rm = TRUE),
-#     sd_biomass     = sd(predicted_biomass, na.rm = TRUE)
-#   )
+#   # Now summarize median and IQR for each predictor across ensembles
+#   summary_df <- importance_df |>
+#     group_by(predictor) |>
+#     summarize(
+#       median_importance = median(importance, na.rm = TRUE),
+#       sd_importance = sd(importance, na.rm = TRUE)
+#     ) |>
+#     mutate(carbon_pool = cp)
 
-# print(county_aggregates)
+#   summary_df
+# })
 
-# For state-level, do the same but don't group_by county
+# library(ggplot2)
+# library(dplyr)
 
-#' ````
+# # Create the popsicle (lollipop) plot
+# p <- ggplot(importance_summary, aes(x = reorder(predictor, median_importance), y = median_importance)) +
+#   geom_errorbar(aes(ymin = median_importance - sd_importance, ymax = median_importance + sd_importance),
+#     width = 0.2, color = "gray50"
+#   ) +
+#   geom_point(size = 4, color = "steelblue") +
+#   coord_flip() +
+#   facet_wrap(~carbon_pool, scales = "free_y") +
+#   labs(
+#     title = "Popsicle Plot of Variable Importance",
+#     x = "Predictor",
+#     y = "Median %IncMSE (<U+00B1> SD)"
+#   ) +
+#   theme_minimal()
+
+# ggsave(p, filename = here::here("downscale/figures", "importance_summary.png"),
+#   width = 10, height = 5,
+#   bg = "white"
+# )
+
+# print(p)

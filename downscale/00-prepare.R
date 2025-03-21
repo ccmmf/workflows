@@ -77,7 +77,8 @@ if(!file.exists(ca_fields_gpkg) & !file.exists(ca_attributes_csv)) {
 
 ca_fields <- sf::st_read(ca_fields_gpkg) |>
   sf::st_transform(crs = ca_albers_crs)
-  
+ca_attributes <- readr::read_csv(ca_attributes_csv)
+
 #' ##### Subset Woody Perennial Crop Fields
 #'
 #' Phase 1 focuses on Woody Perennial Crop fields.
@@ -87,13 +88,12 @@ ca_fields <- sf::st_read(ca_fields_gpkg) |>
 #'
 ## -----------------------------------------------------------------------------
 ca_fields |>
-  filter(pft = = "woody perennial crop") |>
+  left_join(ca_attributes |> select(site_id, pft), by = c("site_id")) |>
+  filter(pft == "woody perennial crop") |>
   sf::st_transform(crs = ca_albers_crs) |>
-  dplyr::select(site_id, crop, pft, geom) |>
+  dplyr::select(site_id, geom) |>
   sf::st_write(file.path(data_dir, 'ca_woody.gpkg'), 
     delete_dsn = TRUE)
-
-ca_attributes <- readr::read_csv(ca_attributes_csv)
 
 #'
 #' ### Convert Polygons to Points.
@@ -289,7 +289,8 @@ if (exists("IN_TARGETS") && IN_TARGETS) {
 #'
 ## ----anchor-sites-------------------------------------------------------------
 # Anchor sites from UC Davis, UC Riverside, and Ameriflux.
-anchor_sites_pts <- readr::read_csv("data_raw/anchor_sites.csv") |>
+anchor_sites <- readr::read_csv("data_raw/anchor_sites.csv")
+anchor_sites_pts <- anchor_sites |>
   sf::st_as_sf(coords = c("lon", "lat"), crs = 4326) |>
   sf::st_transform(crs = ca_albers_crs)
 
@@ -353,12 +354,8 @@ if (any(is.na(anchor_sites_with_ids |> select(site_id, lat, lon)))) {
   )
 }
 
-# Save processed anchor sites
-anchor_sites_with_ids |>
-  dplyr::select(site_id, external_site_id, site_name, lat, lon, crops, pft) |>
-  readr::write_csv(file.path(data_dir, "anchor_sites_ids.csv"))
-
-if(anchor_sites_with_ids |>
+# Check that all anchor sites have covariates
+if (anchor_sites_with_ids |>
   left_join(site_covariates, by = "site_id") |>
   dplyr::select(
     site_id, lat, lon,
@@ -367,8 +364,16 @@ if(anchor_sites_with_ids |>
   filter(if_any(
     everything(),
     ~ is.na(.x)
-  ))  |> nrow() > 0) {
+  )) |> nrow() > 0) {
   PEcAn.logger::logger.warn(
     "Some anchor sites have missing environmental covariates!"
   )
 }
+
+
+# Save processed anchor sites
+anchor_sites_with_ids |>
+  sf::st_drop_geometry() |>
+  dplyr::select(site_id, lat, lon, external_site_id, site_name, crops, pft) |>
+  readr::write_csv(file.path(data_dir, "anchor_sites_ids.csv"))
+
