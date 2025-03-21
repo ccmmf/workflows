@@ -16,14 +16,23 @@
 #' - Aggregate County-level biomass and SOC inventories
 #'
 ## ----setup--------------------------------------------------------------------
-# remotes::install_github("dlebauer/pecan@ensemble_downscaling", subdir = "modules/assim.sequential", ref = "da96331")
 library(tidyverse)
 library(sf)
 library(terra)
-devtools::load_all(here::here("../pecan/modules/assim.sequential/"))
-# library(PEcAnAssimSequential)
-basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_98sites_20reps_20250312"
-outdir <- file.path(basedir, "out")
+library(furrr)
+
+no_cores <- parallel::detectCores(logical = FALSE)
+plan(multicore, workers = no_cores - 1)
+
+# while developing PEcAn:
+# devtools::load_all(here::here("../pecan/modules/assim.sequential/"))
+# remotes::install_git("dlebauer/pecan@ensemble_downscaling", subdir = "modules/assim.sequential")
+remotes::install_git("../pecan@ensemble_downscaling", subdir = "modules/assim.sequential", upgrade = FALSE)
+library(PEcAnAssimSequential)
+datadir <- "/projectnb/dietzelab/ccmmf/data"
+basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859"
+settings <- PEcAn.settings::read.settings(file.path(basedir, "settings.xml"))
+outdir <- file.path(basedir, settings$modeloutdir)
 options(readr.show_col_types = FALSE)
 
 library(furrr)
@@ -31,21 +40,24 @@ no_cores <- parallel::detectCores(logical = FALSE)
 plan(multicore, workers = no_cores - 1)
 
 #' ## Get Site Level Outputs
-ensemble_file <- file.path(outdir, "efi_ens_long.csv.gz")
+ensemble_file <- file.path(outdir, "efi_ens_long.csv")
 ensemble_data <- readr::read_csv(ensemble_file) 
 
 #' ### Random Forest using PEcAn downscale workflow
 ## -----------------------------------------------------------------------------
-design_points <- read_csv(here::here("data/design_points.csv")) |>
+design_pt_csv <- "https://raw.githubusercontent.com/ccmmf/workflows/46a61d58a7b0e43ba4f851b7ba0d427d112be362/data/design_points.csv"
+design_points <- read_csv(design_pt_csv) |> #read_csv(here::here("data/design_points.csv")) |>
   dplyr::distinct()
 
-covariates <- readRDS(here::here("data/data_for_clust_with_ids.rds")) |>
-  rename(site = id) |>
+covariates <- read_csv(here::here("data/site_covariates.csv")) |>
   select(
-    site, where(is.numeric),
-    -ends_with("id") # drop crop_id, climregion_id columns
+    site_id, where(is.numeric),
+    -climregion_id
   )
 
+## TODO
+# separate fitting and predicting functions
+# calculate variable importance (randomForest::importance)
 d <- function(date, carbon_pool) {
   filtered_ens_data <- subset_ensemble(
     ensemble_data = ensemble_data,
@@ -55,21 +67,18 @@ d <- function(date, carbon_pool) {
   )
 
   # Downscale the data
-  downscale_output <- downscale(
+  downscale_output <- ensemble_downscale(
     ensemble_data = filtered_ens_data,
     site_coords   = design_points,
     covariates    = covariates,
-    model_type    = "rf",
     seed          = 123
   )
   return(downscale_output)
 }
 
 cpools <- c("TotSoilCarb", "AGB")
-library(furrr)
-plan(multisession)
 
-downscale_output <- purrr::map( # not using furrr b/c it is used inside downscale
+downscale_output_list <- purrr::map( # not using furrr b/c it is used inside downscale
   cpools,
   ~ d(date = "2018-12-31", carbon_pool = .x)
 ) |>
@@ -77,11 +86,9 @@ downscale_output <- purrr::map( # not using furrr b/c it is used inside downscal
 
 
 ## Save to make it easier to restart
-save(downscale_output, file = here::here("cache/downscale_output.rda"))
+# saveRDS(downscale_output, file = here::here("cache/downscale_output.rds"))
 
-
-metrics <- downscale_metrics(downscale_output)
-# could compute stats here e.g. mean, CI for ea. metric
+metrics <- lapply(downscale_output_list, downscale_metrics)
 print(metrics)
 
 #'
@@ -89,27 +96,24 @@ print(metrics)
 #' ## Aggregate to County Level
 #'
 ## -----------------------------------------------------------------------------
-library(sf)
-library(dplyr)
-
 
 # ca_fields <- readr::read_csv(here::here("data/ca_field_attributes.csv")) |>
 #   dplyr::select(id, lat, lon) |>
 #   rename(site = id)
 
-ca_fields_full <- sf::read_sf(here::here("data/ca_fields.gpkg"))
+ca_fields_full <- sf::read_sf(file.path(datadir, "ca_fields.gpkg"))
 
 ca_fields <- ca_fields_full |>
-  select(site = id, county, area_ha)  
+dplyr::select(site_id, county, area_ha)  
 
 # Convert list to table with predictions and site identifier
 get_downscale_preds <- function(downscale_output) {
   purrr::map(
     downscale_output$predictions,
-    ~ tibble(site = covariates$site, prediction = .x)
+    ~ tibble(site_id = covariates$site_id, prediction = .x)
   ) |>
     bind_rows(.id = "ensemble") |>
-    left_join(ca_fields, by = "site") 
+    left_join(ca_fields, by = "site_id") 
 }
 
 downscale_preds <- purrr::map(downscale_output, get_downscale_preds) |>
@@ -123,7 +127,12 @@ ens_county_preds <- downscale_preds |>
   # Now aggregate to get county level totals for each pool x ensemble
   group_by(carbon_pool, county, ensemble) |>
   summarize(
-    total_c = sum(total_c)
+    total_c = sum(total_c),
+    total_ha = sum(area_ha)
+  ) |>
+  ungroup() |>
+  mutate(
+    c_density = PEcAn.utils::ud_convert(total_c / total_ha, "Tg/ha", "kg/m2")
   ) |>
   arrange(carbon_pool, county, ensemble)
 
@@ -132,8 +141,10 @@ county_summaries <- ens_county_preds |>
     summarize(
       n = n(),
       mean_total_c = mean(total_c),
-      median_total_c = median(total_c),
-      sd_total_c = sd(total_c)
+      #median_total_c = median(total_c),
+      sd_total_c = sd(total_c),
+      mean_c_density = mean(c_density),
+      sd_c_density = sd(c_density)
     )
   
 # Lets plot the results!
@@ -146,7 +157,7 @@ co_preds_to_plot <- county_summaries |>
   right_join(county_boundaries, by = c("county" = "name")) |>
   arrange(county, carbon_pool) |>
   pivot_longer(
-    cols = c(mean_total_c, median_total_c, sd_total_c),
+    cols = c(mean_total_c, sd_total_c, mean_c_density, sd_c_density),
     names_to = "stat",
     values_to = "value"
   )
@@ -169,7 +180,7 @@ p <- purrr::map(cpools, function(pool) {
 
   ggsave(
     plot = .p,
-    filename = here::here(paste0("county_total_", pool, ".png")),
+    filename = here::here("downscale/figures",paste0("county_total_", pool, ".png")),
     width = 10, height = 5,
     bg = "white"
   )

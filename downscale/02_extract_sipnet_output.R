@@ -9,21 +9,11 @@ no_cores <- parallel::detectCores(logical = FALSE)
 plan(multicore, workers = no_cores - 1)
 
 # Define base directory for ensemble outputs
-basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_98sites_20reps_20250312"
-outdir <- file.path(basedir, "out")
-
-# Get Run metadata from log filename 
-# ??? is there a more reliable way to do this?
-logfile <- dir(basedir, pattern = "pecan_workflow_runlog")
-pattern <- "^pecan_workflow_runlog_([0-9]{14})_([0-9]+-[0-9]+)\\.log$"
-matches <- stringr::str_match(logfile, pattern)
-forecast_time_string <- matches[2]
-forecast_iteration_id <- matches[3]
-forecast_time <- lubridate::as_datetime(as.POSIXct(forecast_time_string, format = "%Y%m%d%H%M%S"))
-obs_flag <- 0
+basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859"
 
 # Read settings file and extract run information
-settings <- PEcAn.settings::read.settings(file.path(basedir, "pecan.CONFIGS.xml"))
+settings <- PEcAn.settings::read.settings(file.path(basedir, "settings.xml"))
+outdir <- file.path(basedir, settings$modeloutdir)
 ensemble_size <- settings$ensemble$size |>
     as.numeric()
 start_date <- settings$run$settings.1$start.date # TODO make this unique for each site
@@ -32,9 +22,14 @@ end_date <- settings$run$settings.1$end.date
 end_year <- lubridate::year(end_date)
 
 # Site Information
-design_points <- readr::read_csv(here::here("data/design_points.csv"), show_col_types = FALSE) |>
-    distinct()
+# design points for 1b
+# data/design_points.csv
+design_pt_csv <- "https://raw.githubusercontent.com/ccmmf/workflows/46a61d58a7b0e43ba4f851b7ba0d427d112be362/data/design_points.csv"
+design_points <- readr::read_csv(design_pt_csv, show_col_types = FALSE) |>
+    rename(site_id = id) |> # fixed in more recent version of 01 script
+    dplyr::distinct()
 
+## end scratch
 # Variables to extract
 variables <- c("AGB", "TotSoilCarb")
 
@@ -72,7 +67,7 @@ variables <- c("AGB", "TotSoilCarb")
 
 # Preallocate 3-D array for 98 sites, 2 variables, and 20 ensemble members
 site_ids <- design_points |>
-    pull(id) |>
+    pull(site_id) |>
     unique()
 ens_ids <- 1:ensemble_size
 
@@ -83,9 +78,9 @@ ens_ids <- 1:ensemble_size
 # start_year <- end_year - 1
 
 ens_dirs <- expand.grid(ens = PEcAn.utils::left.pad.zeros(ens_ids), 
-                        site = site_ids, 
+                        site_id = site_ids, 
                         stringsAsFactors = FALSE) |>
-    mutate(dir = file.path(outdir, paste("ENS", ens, site, sep = "-")))
+    mutate(dir = file.path(outdir, paste("ENS", ens, site_id, sep = "-")))
 # Check that all ens dirs exist
 existing_dirs <- file.exists(ens_dirs$dir)
 if (!all(existing_dirs)) {
@@ -96,9 +91,9 @@ if (!all(existing_dirs)) {
 # extract output via read.output
 ens_results <- furrr::future_pmap_dfr(
     ens_dirs,
-    function(ens, site, dir) {
+    function(ens, site_id, dir) {
         out_df <- PEcAn.utils::read.output(
-            runid = paste(ens, site, sep = "-"),
+            runid = paste(ens, site_id, sep = "-"),
             outdir = dir,
             start.year = start_year,
             end.year = end_year,
@@ -106,19 +101,25 @@ ens_results <- furrr::future_pmap_dfr(
             dataframe = TRUE,
             verbose = FALSE
         ) |>
-            dplyr::mutate(site = site, ensemble = as.numeric(ens)) |>
+            dplyr::mutate(site_id = site_id, ensemble = as.numeric(ens)) |>
             dplyr::rename(time = posix)
     },
     .options = furrr::furrr_options(seed = TRUE)
 ) |>
-    group_by(ensemble, site, year) |>
+    group_by(ensemble, site_id, year) |>
     filter(year <= end_year) |>
     filter(time == max(time)) |> # only take last value
     ungroup() |>
-    arrange(ensemble, site, year)  |> 
+    arrange(ensemble, site_id, year)  |> 
     tidyr::pivot_longer(cols = all_of(variables), names_to = "variable", values_to = "prediction")
 
-# --- Create 4-D array ---
+## Create Ensemble Output For Downscaling
+## Below, three different output formats are created:
+## 1. 4-D array (time, site, ensemble, variable)
+## 2. long format data frame (time, site, ensemble, variable)
+## 3. NetCDF file (time, site, ensemble, variable)
+
+# --- 1. Create 4-D array ---
 # Add a time dimension (even if of length 1) so that dimensions are: [time, site, ensemble, variable]
 unique_times <- sort(unique(ens_results$time))
 if(length(unique_times) != length(start_year:end_year)){
@@ -138,7 +139,7 @@ for (var in variables) {
         dim = c(length(unique_times), length(site_ids), length(ens_ids)),
         dimnames = list(
             datetime = as.character(unique_times),
-            site = site_ids,
+            site_id = site_ids,
             ensemble = as.character(ens_ids)
         )
     )
@@ -147,7 +148,7 @@ for (var in variables) {
     subset_idx <- which(ens_results$variable == var)
     if (length(subset_idx) > 0) {
         i_time <- match(ens_results$time[subset_idx], unique_times)
-        i_site <- match(ens_results$site[subset_idx], site_ids)
+        i_site <- match(ens_results$site_id[subset_idx], site_ids)
         i_ens <- match(ens_results$ensemble[subset_idx], ens_ids)
         arr[cbind(i_time, i_site, i_ens)] <- ens_results$prediction[subset_idx]
     }
@@ -156,15 +157,15 @@ for (var in variables) {
 }
 
 saveRDS(ens_arrays, file = file.path(outdir, "efi_ens_arrays.rds"))
-    
+
+# --- 2. Create EFI Standard v1.0 long format data frame ---
 efi_long <- ens_results |>
     rename(datetime = time) |>
-    select(datetime, site, ensemble, variable, prediction)
+    select(datetime, site_id, ensemble, variable, prediction)
 
 readr::write_csv(efi_long, file.path(outdir, "efi_ens_long.csv"))
 
-
-####--- Generate EFI Standard v1.0 NetCDF files
+####--- 3. Create EFI Standard v1.0 NetCDF files
 library(ncdf4)
 # Assume these objects already exist (created above):
 #   unique_times: vector of unique datetime strings
@@ -177,10 +178,10 @@ library(ncdf4)
 time_char <- unique_times
 
 lat <- design_points |>
-    filter(id %in% site_ids) |> # only required when testing w/ subset
+    filter(site_id %in% site_ids) |> # only required when testing w/ subset
     dplyr::pull(lat)
 lon <- design_points |>
-    filter(id %in% site_ids) |>
+    filter(site_id %in% site_ids) |>
     dplyr::pull(lon)
 
 # Convert time to CF-compliant values using PEcAn.utils::datetime2cf
@@ -265,7 +266,20 @@ ncvar_put(nc_out, lon_var, lon)
 ncvar_put(nc_out, agb_ncvar, ens_arrays[["AGB"]])
 ncvar_put(nc_out, soc_ncvar, ens_arrays[["TotSoilCarb"]])
 
-# Add global attributes per EFI standards.
+## Add global attributes per EFI standards.
+
+# Get Run metadata from log filename
+# ??? is there a more reliable way to do this?
+logfile <- dir(basedir, pattern = "log$")
+pattern <- "([0-9]{14})_([0-9]+)\\.log$"
+forecast_time_string <- stringr::str_match(logfile, "[0-9]{12}")
+if (is.na(forecast_time_string)) {
+    PEcAn.logger::logger.error("Unable to extract forecast time from log filename.")
+}
+forecast_iteration_id <- forecast_time_string # or ?
+forecast_time <- lubridate::as_datetime(forecast_time_string, format = "%Y%m%d%H%M%S")
+obs_flag <- 0
+
 ncatt_put(nc_out, 0, "model_name", "SIPNET")
 ncatt_put(nc_out, 0, "model_version", "v1.3")
 ncatt_put(nc_out, 0, "iteration_id", forecast_iteration_id)

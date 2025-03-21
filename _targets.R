@@ -22,7 +22,7 @@ list(
     ),
     tar_target(simulations,
         {
-            source("downscale/02_design_point_simulations.R")
+            source("downscale/02_extract_sipnet_output.R")
             design_point_wide # output from 02-design_point_simulations.R
         },
         deps = cluster_sites

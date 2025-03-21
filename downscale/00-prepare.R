@@ -27,200 +27,87 @@
 #' 
 ## -----------------------------------------------------------------------------
 
-options(repos = c(
-  pecanproject = 'https://pecanproject.r-universe.dev',
-  ropensci     = 'https://ropensci.r-universe.dev',
-  CRAN         = 'https://cloud.r-project.org'))
+# options(repos = c(
+#   pecanproject = 'https://pecanproject.r-universe.dev',
+#   ropensci     = 'https://ropensci.r-universe.dev',
+#   CRAN         = 'https://cloud.r-project.org'))
 
-# install.packages("PEcAn.all")
-## Required until https://github.com/UCANR-IGIS/caladaptr/pull/3 is merged
-# remotes::install_github("dlebauer/caladaptr")
 library(PEcAn.all)
 library(tidyverse)
-
-library(caladaptr)
 library(sf)
 library(terra)
-## Required until PR 3423is merged https://github.com/PecanProject/pecan/pull/3423
-# check if PR is merged
-devtools::load_all(here::here("../pecan/modules/data.land"))
 
-## Check available compute resources
-benchmarkme::get_ram()
-ncpu <- benchmarkme::get_cpu()$no_of_cores
+# remotes::install_github("UCANR-IGIS/caladaptr")
+library(caladaptr)
+
+## Check available compute resources and set up parallel processing
 no_cores <- parallel::detectCores(logical = FALSE)
-future_multi <- ifelse(future::supportsMulticore(),
-       future::plan(future::multicore),
-       future::plan(future::multisession))
-future::plan(future_multi,
-             workers = ncpu - 2)
+future::plan(multicore, workers = no_cores - 2)
 
+data_dir <- "/projectnb2/dietzelab/ccmmf/data"
+raw_data_dir <- "/projectnb2/dietzelab/ccmmf/data_raw"
 
+ca_albers_crs <- 3310
 
-
-#' 
-#' ## Organize Input Data
-#' 
-#' ### Domain Polygons
-#' 
-#' Here we are generating domain polygons that will be used for subsetting.
-#' These are converted to convex hulls and simplified for computational efficiency.
-#' The Yolo County domain is a smaller domain that can be used for testing and debugging.
-#' 
-#' These include:
-#' 
-#' - caladapt_domain_convex_hull: a convex hull for the Cal-Adapt domain
-#' - ca_convex_hull: a convex hull around CA
-#' - ca_state_polygon_simplified: a simplified convex hull for CA
-#' - ca_state_polygon: a convex hull for CA
-#' 
-#' - ca_convex_hull_reduced: a simplified convex hull for CA
-#' - yolo_bbox: a smaller domain limited to Yolo County
-#' 
-## ----eval = FALSE-------------------------------------------------------------
-# # remotes::install_github("ucanr-igis/caladaptr")
-# ## Cal-Adapt Domain
-# caladapt_domain <- caladaptr::ca_aoipreset_geom("counties") |>
-#      sf::st_transform(4326) |>
-#      sf::st_union() |>
-#      sf::st_convex_hull()
-# st_write(caladapt_domain, "data/caladapt_domain_convex_hull.geojson")
-# 
-# ## California State
-# ca_counties_polygons <- ca_aoipreset_geom("counties") |>
-#      dplyr::filter(state_name == "California") |>
-#      dplyr::select(state_name, county_name = name, geom) |>
-#      sf::st_transform(4326)
-# 
-# ca_state_polygon <- ca_counties_polygons |>
-#      group_by(state_name) |>
-#      mutate(geom = sf::st_union(geom))
-# 
-# ca_state_polygon_simplified <- sf::st_simplify(ca_state_polygon, dTolerance = 5000)
-# file.remove("data/ca_state_polygon_simplified.geojson")
-# sf::st_write(ca_state_polygon_simplified, "data/ca_state_polygon_simplified.geojson")
-# 
-# ## Yolo County
-# yolo_county_polygon <- ca_counties_polygons |>
-#     filter(county_name=='Yolo')
-# 
-# yolo_county_polygon_simplified <- sf::st_simplify(yolo_county_polygon, dTolerance = 5000)
-# sf::st_write(yolo_county_polygon_simplified, "data/yolo_county_polygon_simplified.geojson")
-# yolo_county_convex_hull <- sf::st_convex_hull(yolo_county_polygon_simplified)
-# # check if it is sufficiently simple to avoid unnecessary computational expensse
-# # st_coordinates(yolo_county_convex_hull)
-# 
-# ca_state_polygon <- sf::st_read("data/ca_convex_hull_reduced.geojson")
-# 
-
-#' 
-## -----------------------------------------------------------------------------
-ca_state_polygon <- sf::st_read("data/ca_convex_hull_reduced.geojson")
-yolo_county_polygon <- sf::st_read("data/yolo_county_polygon_simplified.geojson")
-
-#' 
 #' ### LandIQ Woody Polygons
 #' 
-#' The first step is to convert LandIQ to a open, standard format.
+#' The first step is to convert LandIQ to a open and standard (TBD) format.
 #' 
-#' We will use a GeoPackage file to store geospatial information and an associated CSV file with attributes.
+#' We will use a GeoPackage file to store geospatial information and 
+#' associated CSV files to store attributes associated with the LandIQ fields.
+#' 
+#' The `site_id` field is the unique identifier for each field.
 #' 
 #' The landiq2std function will be added to the PEcAn.data.land package, and has been implemented in a Pull Request https://github.com/PecanProject/pecan/pull/3423. The function is a work in progress. Two key work to be done. First `landiq2std` does not currently perform all steps to get from the original LandIQ format to the standard format - some steps related to harmonizing LandIQ across years have been completed manually. Second, the PEcAn 'standard' for such data is under development as we migrate from a Postgres database to a more portable GeoPackage + CSV format.
 #' 
-## ----eval=FALSE---------------------------------------------------------------
-input_file = 'data/i15_Crop_Mapping_2016_SHP/i15_Crop_Mapping_2016.shp'
-output_gpkg = 'data/ca_fields.gpkg'
-output_csv = 'data/ca_field_attributes.csv'
+## Convert SHP to Geotiff`
+## Required until PR 3423 is merged https://github.com/PecanProject/pecan/pull/3423
+# check if PR is merged
+# devtools::install_github("dlebauer/pecan",
+#                          ref = "shp2gpkg",
+#                          subdir = "modules/data.land")
 
-landiq2std(input_file, output_gpkg, output_csv)
+devtools::load_all("../pecan/modules/data.land/")
+input_file = file.path(raw_data_dir, 'i15_Crop_Mapping_2016_SHP/i15_Crop_Mapping_2016.shp')
+ca_fields_gpkg <- file.path(data_dir, 'ca_fields.gpkg')
+ca_attributes_csv = file.path(data_dir, 'ca_field_attributes.csv')
+if(!file.exists(ca_fields_gpkg) & !file.exists(ca_attributes_csv)) {
+  landiq2std(input_file, ca_fields_gpkg, ca_attributes_csv)
+}
 
+ca_fields <- sf::st_read(ca_fields_gpkg) |>
+  sf::st_transform(crs = ca_albers_crs)
+  
 #' ##### Subset Woody Perennial Crop Fields
-#' 
+#'
 #' Phase 1 focuses on Woody Perennial Crop fields.
-#' 
+#'
 #' Next, we will subset the LandIQ data to only include woody perennial crop fields.
 #' At the same time we will calculate the total percent of California Croplands that are woody perennial crop.
-#' 
+#'
 ## -----------------------------------------------------------------------------
-ca_fields <- sf::st_read("data/ca_fields.gpkg")
-ca_attributes <- readr::read_csv("data/ca_field_attributes.csv")
+ca_fields |>
+  filter(pft = = "woody perennial crop") |>
+  sf::st_transform(crs = ca_albers_crs) |>
+  dplyr::select(site_id, crop, pft, geom) |>
+  sf::st_write(file.path(data_dir, 'ca_woody.gpkg'), 
+    delete_dsn = TRUE)
 
-ca <- ca_fields |>
-  dplyr::select(-lat, -lon) |>
-  dplyr::left_join(ca_attributes, by = "id")
+ca_attributes <- readr::read_csv(ca_attributes_csv)
 
-ca_woody <- ca |>
-  dplyr::filter(pft == "woody perennial crop")
-sf::st_write(ca_woody,
-        "data/ca_woody.gpkg", delete_layer = TRUE)
-
-#' 
-#' Now, calculate percent of California croplands that are woody perennial crops, in order to estimate the
-#' number of design points that will be selected in the clustering step.
-#' 
-#' 
-## -----------------------------------------------------------------------------
-system.time(
-pft_area <- ca |>
-  dplyr::select(id, pft, area_ha) |>
-  dtplyr::lazy_dt() |>
-  dplyr::mutate(woody_indicator = ifelse(pft == "woody perennial crop", 1L, 0L)) |>
-  dplyr::group_by(woody_indicator) |>
-  dplyr::summarize(pft_area = sum(area_ha))
-)
-
-
-
-#' 
-#' ### Subset California Woody Crop Fields for development & testting
-#' 
-#' Now, create a subset of the California Woody Crop Fields for development & testting
-#' 
-## ----eval=FALSE---------------------------------------------------------------
-# set.seed(25)
-# ca_woody_subset <- ca_woody  |>
-#    dplyr::sample_n(200)
-# 
-# sf::st_write(ca_woody_subset,
-#         "data/ca_woody_subset.gpkg", delete_layer = TRUE)
-
-#' 
+#'
 #' ### Convert Polygons to Points.
-#' 
+#'
 #' For Phase 1, we will use points to query raster data.
 #' In later phases we will evaluate the performance of polygons and how querying environmental data using polygons will affect the performance of clustering and downscaling algorithms.
-#' 
-## ----polygons-to-points-------------------------------------------------------
-woody_gpkg <- "data/ca_woody.gpkg" # use **ca_woody_subset.gpkg** for development and testing
+#'
 
-# load fields, convert polygons to points, and subset
-ca_woody_pts <- sf::st_read(woody_gpkg) |>
+ca_fields_pts <- ca_fields |>
+  dplyr::select(-lat, -lon) |>
+  left_join(ca_attributes, by = "site_id") |>
   sf::st_centroid() |>
   # and keep only the columns we need
-  dplyr::select(id, crop, pft, geom)
-
-
-#' 
-#' ## Anchor Sites
-#' 
-## ----anchor-sites-------------------------------------------------------------
-# Anchor sites from UC Davis, UC Riverside, and Ameriflux.
-anchor_sites <- readr::read_csv("data/anchor_sites.csv")
-
-anchor_sites_pts <- anchor_sites |>
-  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
-
-# Join with ca_fields: keep only the rows associated with anchor sites
-# takes ~ 1 min on BU cluster w/ "Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz"
-anchor_sites_with_ids <- anchor_sites_pts |>
-   # spatial join find ca_fields that contain anchor site points
-  sf::st_join(ca_fields, join = sf::st_within)
-
-sf::st_write(anchor_sites_with_ids |>
-               dplyr::select(id, lat, lon, location, site_name, crops, pft),
-               dsn = "data/anchor_sites_ids.csv",
-               delete_layer = TRUE)
-
+  dplyr::select(site_id, crop, pft, geom)
 
 #' 
 #' ## Environmental Covariates
@@ -229,128 +116,105 @@ sf::st_write(anchor_sites_with_ids |>
 #' 
 #' #### Load Prepared Soilgrids GeoTIFF
 #' 
-#' Using already prepared SoilGrids layers
+#' Using already prepared SoilGrids layers. 
+#' TODO: move a copy of these files to data_dir
 #' 
 ## ----load-soilgrids-----------------------------------------------------------
 soilgrids_north_america_clay_tif <- '/projectnb/dietzelab/dongchen/anchorSites/NA_runs/soil_nc/soilgrids_250m/clay/clay_0-5cm_mean/clay/clay_0-5cm_mean.tif'
 soilgrids_north_america_ocd_tif <- '/projectnb/dietzelab/dongchen/anchorSites/NA_runs/soil_nc/soilgrids_250m/ocd/ocd_0-5cm_mean/ocd/ocd_0-5cm_mean.tif'
 ## if we want to clip to CA
-## use terra to read in that file and clip to california
-# soilgrids_california <- terra::crop(soilgrids_north_america, yolo_bbox)
+## use terra to read in that file and then extract values for each location
 
-# read in the file
-# read two layers
 soilgrids_north_america_clay_rast <- terra::rast(soilgrids_north_america_clay_tif)
 soilgrids_north_america_ocd_rast <- terra::rast(soilgrids_north_america_ocd_tif)
 
-
 #' 
-#' #### Extract clay from SoilGrids
+#' #### Extract clay and carbon stock from SoilGrids
 #' 
 ## ----sg-clay-ocd--------------------------------------------------------------
 
-clay <- (terra::extract(soilgrids_north_america_clay_rast, terra::vect(ca_woody_pts)) |>
-  dplyr::select(-ID)) |>
-  dplyr::pull()/ 10
+clay <- terra::extract(
+  soilgrids_north_america_clay_rast,
+  terra::vect(ca_fields_pts |>
+    sf::st_transform(crs = sf::st_crs(soilgrids_north_america_clay_rast)))) |>
+  dplyr::select(-ID) |>
+  dplyr::pull() / 10
 
-ocd <- terra::extract(soilgrids_north_america_ocd_rast, terra::vect(ca_woody_pts)) |>
+ocd <- terra::extract(
+  soilgrids_north_america_ocd_rast,
+  terra::vect(ca_fields_pts |>
+    sf::st_transform(crs = sf::st_crs(soilgrids_north_america_ocd_rast)))) |>
   dplyr::select(-ID) |>
   dplyr::pull()
 
-ca_woody_pts_clay_ocd <- cbind(ca_woody_pts,
+ca_fields_pts_clay_ocd <- cbind(ca_fields_pts,
                                clay = clay,
                                ocd = ocd)
-
-required_cols <- c("id", "crop", "pft", "clay", "ocd", "geom")
-assertthat::assert_that(
-  all(required_cols %in% colnames(ca_woody_pts_clay_ocd)),
-            msg = "ca_woody_pts_clay_ocd is missing expected columns")
-
 
 #' 
 #' ### Topographic Wetness Index
 #' 
 ## ----twi----------------------------------------------------------------------
 twi_tiff <- '/projectnb/dietzelab/dongchen/anchorSites/downscale/TWI/TWI_resample.tiff'
-twi_rast <- terra::rast(twi_tiff)
+twi_rast <- terra::rast(twi_tiff) 
 
-twi <- terra::extract(twi_rast, vect(ca_woody_pts)) |>
-  select(-ID) |>
+twi <- terra::extract(
+  twi_rast,
+  terra::vect(ca_fields_pts |>
+    sf::st_transform(crs = sf::st_crs(twi_rast)))) |>
+  dplyr::select(-ID) |>
   dplyr::pull()
 
-ca_woody_pts_clay_ocd_twi <- cbind(ca_woody_pts_clay_ocd, twi = twi)
-
-
-#' 
-#' ### Cal-Adapt Climate Regions
-#' 
-## ----caladapt_climregions-----------------------------------------------------
-
-ca_albers_crs <- 3310 # use California Albers project (EPSG:3310) for speed,
-                      # and so units are in meters
-                      # required that crs(x) == crs(y) for st_join
-
-ca_climregions <- caladaptr::ca_aoipreset_geom("climregions") |>
-    sf::st_transform(crs = ca_albers_crs) |>
-    dplyr::rename(climregion_id = id,
-           climregion_name = name)
-saveRDS(ca_climregions, file = "data/ca_climregions.rds")
+ca_fields_pts_clay_ocd_twi <- cbind(ca_fields_pts_clay_ocd, twi = twi)
 
 #' 
-## ----join_climregions---------------------------------------------------------
-ca_woody_pts_clay_ocd_twi_cr <- ca_woody_pts_clay_ocd_twi |>
-  sf::st_transform(., crs = ca_albers_crs) |>
-  sf::st_join(ca_climregions, join = st_intersects, left = TRUE)
-
-# convenience cache.
-saveRDS(ca_woody_pts_clay_ocd_twi_cr, file = "cache/ca_woody_pts_clay_ocd_twi_cr.rda")
-
-#' 
-#' ### GridMet
+#' ### ERA5 Met Data
 #' 
 ## -----------------------------------------------------------------------------
-gridmet_dir <- "/projectnb/dietzelab/dongchen/anchorSites/NA_runs/GridMET/"
+era5met_dir <- "/projectnb/dietzelab/dongchen/anchorSites/NA_runs/GridMET/"
 
 # List all ERA5_met_*.tiff files for years 2012-2021
 raster_files <- list.files(
-  path = gridmet_dir,
+  path = era5met_dir,
   pattern = "^ERA5_met_\\d{4}\\.tiff$",
   full.names = TRUE
 )
 
 # Read all rasters into a list of SpatRaster objects
-rasters_list <- map(
+rasters_list <- purrr::map(
   raster_files,
-  ~ rast(.x))
+  ~ terra::rast(.x))
 
-years <- map_chr(rasters_list, ~ {
+years <- purrr::map_chr(rasters_list, ~ {
   source_path <- terra::sources(.x)[1]
-  str_extract(source_path, "\\d{4}")
+  stringr::str_extract(source_path, "\\d{4}")
 })  |>
   as.integer()
 
 names(rasters_list) <- years
 
 extract_clim <- function(raster, points_sf) {
-  terra::extract(raster, points_sf) |>
+  terra::extract(
+    raster, 
+    points_sf |> 
+  sf::st_transform(crs = sf::st_crs(raster))) |>
     tibble::as_tibble() |>
     select(-ID) |>
-    mutate(id = points_sf$id) |>
-    select(id, temp, prec, srad, vapr)
+    mutate(site_id = points_sf$site_id) |>
+    select(site_id, temp, prec, srad, vapr)
 }
 
 .tmp <-  rasters_list |>
   furrr::future_map_dfr(
-    ~ extract_clim(.x, ca_woody_pts),
+    ~ extract_clim(.x, ca_fields_pts),
       .id = "year",
       .options = furrr::furrr_options(seed = 123))
-
 
 clim_summaries <- .tmp |>
   dplyr::mutate(
     precip = PEcAn.utils::ud_convert(prec, "second-1", "year-1")
 ) |>
-  dplyr::group_by(id) |>
+  dplyr::group_by(site_id) |>
   dplyr::summarise(
     temp = mean(temp),
     precip = mean(precip),
@@ -359,128 +223,152 @@ clim_summaries <- .tmp |>
   )
 
 #' 
-#' ## Prepare Dataset for Clustering
-#' 
-#' First, we will turn crop names into IDs to support hierarchical clustering
-#' 
-## -----------------------------------------------------------------------------
-crop_ids <- ca_woody_pts |>
-  distinct(crop) |>
-  mutate(crop_id = as.integer(as.factor(crop))) |>
-  write_csv("data/crop_ids.csv")
-
-#' 
 ## ----join_and_subset----------------------------------------------------------
 .all <- clim_summaries  |>
-  dplyr::left_join(ca_woody_pts_clay_ocd_twi_cr, by = "id")  |>
-  dplyr::left_join(crop_ids, by = "crop")
+  dplyr::left_join(ca_fields_pts_clay_ocd_twi, by = "site_id")
 
-assertthat::assert_that(nrow(.all) == nrow(clim_summaries) && nrow(.all) == nrow(ca_woody_pts_clay_ocd_twi_cr),
-                        msg = "join was not 1:1 as expected")
+assertthat::assert_that(
+  nrow(.all) == nrow(clim_summaries) &&
+    nrow(.all) == nrow(ca_fields_pts_clay_ocd_twi),
+  msg = "join was not 1:1 as expected"
+)
 
-glimpse(.all)
-skimr::skim(.all)
+#' Append CA Climate Region
+#'
+## Add Climregions
+# load climate regions for mapping
+#' ### Cal-Adapt Climate Regions
+#'
+#' Climate Region will be used as a factor
+#' in the hierarchical clustering step. 
+## ----caladapt_climregions-----------------------------------------------------
 
-data_for_clust_with_ids <- .all |>
-  #dplyr::select(-c(climregion_name))  |>
+ca_field_climregions <- ca_fields |>
+  sf::st_join(
+    caladaptr::ca_aoipreset_geom("climregions") |>
+      sf::st_transform(crs = ca_albers_crs),
+    join = sf::st_within
+  ) |>
+  dplyr::select(
+    site_id,
+    climregion_id = id,
+    climregion_name = name
+  )
+
+# This returns a point geometry. 
+# To return the **polygon** geometry from ca_fields, 
+# drop geometry from .all instead of from ca_field_climregions
+.all2 <- .all |>
+  dplyr::left_join(
+    ca_field_climregions  |> st_drop_geometry(),
+    by = "site_id"
+  )
+
+site_covariates <- .all2 |>
   na.omit() |>
-  mutate(across(where(is.numeric), ~ signif(., digits = 3)))
+  mutate(across(where(is.numeric), ~ signif(., digits = 3))) 
 
-saveRDS(data_for_clust_with_ids, "data/data_for_clust_with_ids.rds")
+PEcAn.logger::logger.info(
+  round(100 * (1 - nrow(site_covariates) / nrow(ca_fields)), 0), "% of LandIQ polygons (sites) have at least one missing environmental covariate"
+)
+
+# takes a long time
+# knitr::kable(skimr::skim(site_covariates))
+
+readr::write_csv(site_covariates, file.path(data_dir, "site_covariates.csv"))
 
 # Final output for targets; if not in targets, suppress return
 if (exists("IN_TARGETS") && IN_TARGETS) {
-  data_for_clust_with_ids
+  site_covariates
 } else {
-  invisible(data_for_clust_with_ids)
+  invisible(site_covariates)
 }
-#' 
-#' <!--
-#' # [Draft] Unused Code
-#' 
-#' ### Cal-Adapt Climate
-#' 
-#' #### Cal-Adapt Catalog
-#' 
-#' See `ca_catalog_search('30yavg_ens32avg_historical')`
-#' 
-#' ## make a paginated table
-#' 
-## ----eval=FALSE---------------------------------------------------------------
-# library(dplyr)
-# ca_catalog_search('ens32avg') |>
-#   reactable::reactable(searchable = TRUE, filterable = TRUE, defaultPageSize = 20)
 
-#' 
-#' ##### Download Cal-Adapt Climate Rasters
-#' 
-#' LOCA (CMIP5-based)
-#' 
-## ----eval = FALSE-------------------------------------------------------------
-# 
-# #gcm = "ens32avg"
-# gcm = "HadGEM2-ES"
-# scenario = "historical"
-# period = "year"
-# start_year = 1961
-# end_year = 1990
-# out_dir = "data/caladapt/"
-# polygon = ca_state_polygon <- sf::st_read("data/ca_convex_hull_reduced.geojson")
-# 
-# vars <- c("pr", "tasmin", "tasmax")
-# 
-# num_workers <- parallel::detectCores()
-# future::plan(future_multi,
-#             workers = 3)# num_workers
-# ### Not working because Rasters are all 0????
-# caladapt_rasters <- furrr::future_map(
-#   vars,
-#   ~ {
-#     gcms <- gcms # required for parallel
-#     ca_fetch_raster_polygon(
-#       polygon = polygon,
-#       var = .x,
-#       gcm = gcm,
-#       scenario = scenario,
-#       period = period,
-#       start_year = start_year,
-#       end_year = end_year,
-#       out_dir = out_dir
-#   )
-#   },
-#   .options = furrr_options(seed = 123)
-# )
-# 
-# # combine into a dataframe
-# caladapt_rasters_df <- caladapt_rasters |>
-#   purrr::imap_dfr(~ mutate(.x, variable = .y)) |>
-#   dplyr::group_by(variable) |>
-#   dplyr::summarise(raster = list(terra::vrt(raster)))
-# 
-# z <- caladapt_rasters_df |>
-#   dplyr::group_by(variable) |>
-#   dplyr::summarise(raster = terra::extract(raster, terra::vect(ca_woody_pts)))
-# ca_woody_pts_sg_cr_ca <-z
-# 
-# climate_df <- furrr::future_map(
-#   caladapt_rasters_df$raster,
-#   ~ terra::extract(.x, terra::vect(ca_woody_pts)),
-#   .options = furrr_options(seed = 123)
-# )
-# 
-# 
-
-#' 
-#' ##### Cal-Adapt 3.0
-#' 
-## ----eval=FALSE---------------------------------------------------------------
-# my_data <- read_3km_hourly_climate_terra(
-#      data_dir = "local_folder",
-#      variable = "T2",
-#      domain = "d03",
-#      year = 2015,
-#      n_cores = 8
-#    )
-
-#' -->
 #'
+#' ## Anchor Sites
+#'
+## ----anchor-sites-------------------------------------------------------------
+# Anchor sites from UC Davis, UC Riverside, and Ameriflux.
+anchor_sites_pts <- readr::read_csv("data_raw/anchor_sites.csv") |>
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326) |>
+  sf::st_transform(crs = ca_albers_crs)
+
+# Join with ca_fields: keep only the rows associated with anchor sites
+# spatial join find ca_fields that contain anchor site points
+#     takes ~ 1 min on BU cluster w/ "Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz"
+
+# First subset ca_fields to only include those with covariates
+#     (approx.  )
+
+ca_fields_with_covariates <- ca_fields |>
+  dplyr::right_join(site_covariates |> select(site_id), by = "site_id")
+
+anchor_sites_with_ids <- anchor_sites_pts |>
+  sf::st_join(ca_fields_with_covariates,
+    join = sf::st_within
+  )
+
+# Handle unmatched anchor sites
+unmatched_anchor_sites <- anchor_sites_with_ids |>
+  dplyr::filter(is.na(site_id))
+matched_anchor_sites <- anchor_sites_with_ids |>
+  dplyr::filter(!is.na(site_id))
+
+if (nrow(unmatched_anchor_sites) > 0) {
+  # Find nearest indices
+  nearest_indices <- sf::st_nearest_feature(unmatched_anchor_sites, ca_fields)
+
+  # Get nearest ca_fields
+  nearest_ca_fields <- ca_fields |> dplyr::slice(nearest_indices)
+
+  # Assign site_id and calculate distances
+  unmatched_anchor_sites <- unmatched_anchor_sites |>
+    dplyr::mutate(
+      site_id = nearest_ca_fields$site_id,
+      lat = nearest_ca_fields$lat,
+      lon = nearest_ca_fields$lon,
+      distance_m = sf::st_distance(geometry, nearest_ca_fields, by_element = TRUE)
+    )
+  threshold <- units::set_units(250, "m")
+  if (any(unmatched_anchor_sites$distance_m > threshold)) {
+    PEcAn.logger::logger.warn(
+      "The following anchor sites are more than 250 m away from the nearest landiq field:",
+      paste(unmatched_anchor_sites |> filter(distance_m > threshold) |> pull(site_name), collapse = ", "),
+      "Please check the distance_m column in the unmatched_anchor_sites data.",
+      "Consider dropping these sites or expanding the threshold."
+    )
+  }
+
+  # Combine matched and unmatched anchor sites
+  anchor_sites_with_ids <- dplyr::bind_rows(
+    matched_anchor_sites,
+    unmatched_anchor_sites |> select(-distance_m)
+  )
+}
+
+# Check for missing site_id, lat, or lon
+if (any(is.na(anchor_sites_with_ids |> select(site_id, lat, lon)))) {
+  PEcAn.logger::logger.warn(
+    "Some anchor sites **still** have missing site_id, lat, or lon!"
+  )
+}
+
+# Save processed anchor sites
+anchor_sites_with_ids |>
+  dplyr::select(site_id, external_site_id, site_name, lat, lon, crops, pft) |>
+  readr::write_csv(file.path(data_dir, "anchor_sites_ids.csv"))
+
+if(anchor_sites_with_ids |>
+  left_join(site_covariates, by = "site_id") |>
+  dplyr::select(
+    site_id, lat, lon,
+    clay, ocd, twi, temp, precip
+  ) |>
+  filter(if_any(
+    everything(),
+    ~ is.na(.x)
+  ))  |> nrow() > 0) {
+  PEcAn.logger::logger.warn(
+    "Some anchor sites have missing environmental covariates!"
+  )
+}

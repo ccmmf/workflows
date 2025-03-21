@@ -26,38 +26,28 @@ library(terra)
 # parallel computing
 library(cluster)
 library(factoextra)
-library(pathviewr)
+library(pathviewr) #???
 library(furrr)
 library(doParallel)
 library(dplyr)
+
+library(caladaptr) # to plot climate regions
 
 # Set up parallel processing with a safe number of cores
 no_cores <- parallel::detectCores(logical = FALSE)
 plan(multicore,  workers = no_cores - 2)
 options(future.globals.maxSize = benchmarkme::get_ram() * 0.9)
+ca_albers_crs <- 3310 # use California Albers project (EPSG:3310) for speed,
 
-# load climate regions for mapping
-ca_climregions <- readRDS("data/ca_climregions.rds")
-# environmental covariates
-data_for_clust_with_ids <- readRDS("data/data_for_clust_with_ids.rds")
-
-if('mean_temp' %in% names(data_for_clust_with_ids)){
-  data_for_clust_with_ids <- data_for_clust_with_ids |>
-    rename(temp = mean_temp)
-  PEcAn.logger::logger.warn("you should", 
-    "change mean_temp --> temp in data_for_clust_with_ids",
-    "when it is created in 00-prepare.qmd and then delete",
-    "this conditional chunk")
-}
-
-#' 
-#' ## Load Site Environmental Data
-#' 
+data_dir <- "/projectnb/dietzelab/ccmmf/data"
+#'
+#' ## Load Site Environmental Data Covariates
+#'
 #' Environmental data was pre-processed in the previous workflow 00-prepare.qmd.
-#' 
+#'
 #' Below is a sumary of the covariates dataset
-#' 
-#' - id: Unique identifier for each polygon
+#'
+#' - site_id: Unique identifier for each polygon
 #' - temp: Mean Annual Temperature from ERA5
 #' - precip: Mean Annual Precipitation from ERA5
 #' - srad: Solar Radiation
@@ -65,51 +55,26 @@ if('mean_temp' %in% names(data_for_clust_with_ids)){
 #' - clay: Clay content from SoilGrids
 #' - ocd: Organic Carbon content from SoilGrids
 #' - twi: Topographic Wetness Index
-#' - crop_id: identifier for crop type, see table in crop_ids.csv
-#' - climregion_id: Climate Regions as defined by CalAdapt identifier for climate region, see table in climregion_ids.csv
-#' 
-#' 
+
+site_covariates_csv <- file.path(data_dir, "site_covariates.csv")
+site_covariates <- readr::read_csv(site_covariates_csv) 
+  
 #' ## Anchor Site Selection
-#' 
+#'
 #' Load Anchor Sites from UC Davis, UC Riverside, and Ameriflux.
-#' 
+#'
 ## ----anchor-sites-selection---------------------------------------------------
 
-# set coordinate reference system, local and in meters for faster joins
-ca_albers_crs <- 3310 # California Albers EPSG
+anchor_sites_with_ids <- readr::read_csv(file.path(data_dir, "anchor_sites_ids.csv"))
 
-anchor_sites_pts <- readr::read_csv("data/anchor_sites.csv") |>
+anchor_sites_pts <- anchor_sites_with_ids |>
   sf::st_as_sf(coords = c("lon", "lat"), crs = 4326) |>
-  sf::st_transform(crs = ca_albers_crs) |>
-  dplyr::mutate(pt_geometry = geometry) |> 
-  rename(anchor_site_pft = pft)
+  sf::st_transform(crs = ca_albers_crs)
 
-# ca_woody <- sf::st_read("data/ca_woody.gpkg")
-
-ca_fields <- sf::st_read("data/ca_fields.gpkg") |>
-  # must use st_crs(anchor_sites_pts) b/c  !identical(ca_albers_crs, st_crs(ca_albers_crs))
-  sf::st_transform(crs = st_crs(anchor_sites_pts))  |> 
-  rename(landiq_pft = pft)
-
-# Get the index of the nearest polygon for each point
-nearest_idx <- st_nearest_feature(anchor_sites_pts, ca_fields)
-site_field_distances <- diag(st_distance(anchor_sites_pts, ca_fields |> slice(nearest_idx)))
-ca_field_ids  <- ca_fields |> 
-  dplyr::slice(nearest_idx) |>
-  dplyr::select(id, lat, lon)
-
-anchor_sites_ids <- dplyr::bind_cols(
-  anchor_sites_pts,
-  ca_field_ids,
-  distance = site_field_distances
-) |>
-  dplyr::select(id, lat, lon, location, site_name, distance) #,anchor_site_pft, landiq_pft)
-  
-anchor_sites_ids |>
-  readr::write_csv("data/anchor_sites_ids.csv")
 # create map of anchor sites
-anchor_sites_ids |>
-  sf::st_transform(., crs = ca_albers_crs) |>
+ca_climregions <- caladaptr::ca_aoipreset_geom("climregions") |>
+  rename(climregion_name = name, climregion_id = id)
+p <- anchor_sites_pts |>
   ggplot() +
   geom_sf(data = ca_climregions, aes(fill = climregion_name), alpha = 0.25) +
   labs(color = "Climate Region") +
@@ -117,40 +82,45 @@ anchor_sites_ids |>
   scale_color_brewer(palette = "Dark2") +
   labs(color = "PFT") +
   theme_minimal()
+ggsave(p, filename = "downscale/figures/anchor_sites.png", dpi = 300, bg = "white")
 
-woody_anchor_sites <-  anchor_sites_pts |>
-  dplyr::filter(pft == "woody perennial crop")
 anchorsites_for_clust <-
-  data_for_clust_with_ids |>
-  dplyr::filter(id %in% woody_anchor_sites$id)
-
-message("Anchor sites included in final selection:")
-knitr::kable(woody_anchor_sites |> dplyr::left_join(anchorsites_for_clust, by = 'id'))
-
-#' 
+  anchor_sites_with_ids |>
+  select(-pft) |>  # for consistency, only keep pfts from site_covariates
+  left_join(site_covariates, by = 'site_id') 
+  
+#'
 #' ### Subset LandIQ fields for clustering
-#' 
+#'
 #' The following code does:
 #' - Read in a dataset of site environmental data
 #' - Removes anchor sites from the dataset that will be used for clustering
-#' - Subsample the dataset - 80GB RAM too small to cluster 100k rows
-#' - Bind anchor sites back to the dataset 
-#' 
+#' - Subsample the dataset - 136GB RAM is insufficient to cluster 100k rows
+#' - Bind anchor sites back to the dataset
+#'
 ## ----subset-for-clustering----------------------------------------------------
-set.seed(42)  # Set seed for random number generator for reproducibility
-# subsample for testing (full dataset exceeds available Resources)
-sample_size <- 20000
+set.seed(42) # Set seed for random number generator for reproducibility
+# 10k works
+# 2k sufficient for testing
+sample_size <- 10000
 
-data_for_clust <- data_for_clust_with_ids |>
-                    # remove anchor sites
-                    dplyr::filter(!id %in% anchorsites_for_clust$id) |>
-                    sample_n(sample_size - nrow(anchorsites_for_clust)) |>
-                    # row bind anchorsites_for_clust
-                    bind_rows(anchorsites_for_clust) |>
-                    dplyr::mutate(crop = factor(crop),
-                                  climregion_id = factor(climregion_id))
+data_for_clust <- site_covariates |>
+  # remove anchor sites
+  dplyr::filter(!site_id %in% anchorsites_for_clust$site_id) |>
+  # subset to woody perennial crops
+  # dplyr::filter(pft == "woody perennial crop") |>
+  # dplyr::mutate(pft = ifelse(pft == "woody perennial crop", "woody perennial crop", "other")) |>
+  sample_n(sample_size - nrow(anchorsites_for_clust)) |>
+  # now add anchor sites back
+  bind_rows(anchorsites_for_clust) |>
+  dplyr::mutate(
+    crop = factor(crop),
+    climregion_name = factor(climregion_name)
+  ) |>
+  select(-lat, -lon) 
 assertthat::assert_that(nrow(data_for_clust) == sample_size)
-assertthat::assert_that('temp'%in% colnames(data_for_clust))
+
+PEcAn.logger::logger.info("Summary of data for clustering before scaling:")
 skimr::skim(data_for_clust)
 
 #' 
@@ -163,54 +133,80 @@ skimr::skim(data_for_clust)
 #' 
 ## ----k-means-clustering-function----------------------------------------------
 
-perform_clustering <- function(data) {
+perform_clustering <- function(data, k_range = 2:20) {
   # Select numeric variables for clustering
-  clust_data <- data |> select(where(is.numeric))
-
+  clust_data <- data |>
+    select(where(is.numeric), -ends_with("id"))
+  
+  PEcAn.logger::logger.info(
+    "Columns used for clustering: ",
+    paste(names(clust_data), collapse = ", ")
+  )
   # Standardize data
   clust_data_scaled <- scale(clust_data)
-
+  gc()   # free up memory
+  PEcAn.logger::logger.info("Summary of scaled data used for clustering:")
+  print(skimr::skim(clust_data_scaled))
+  
   # Determine optimal number of clusters using elbow method
-  k_range <- 3:12
-  tot.withinss <- future_map_dbl(k_range, function(k) {
-    model <- hkmeans(clust_data_scaled, k)
-    model$tot.withinss
-  }, .options = furrr_options(seed = TRUE))
+  metrics_list <- furrr::future_map(
+    k_range,
+    function(k) {
+      model <- hkmeans(clust_data_scaled, k)
+      total_withinss <- model$tot.withinss
+      sil_score <- mean(silhouette(model$cluster, dist(clust_data_scaled))[, 3])
+ #     dunn_index <- 
+ #     calinski_harabasz <- 
+      list(model = model, total_withinss = total_withinss, sil_score = sil_score)
+    },
+    .options = furrr_options(seed = TRUE)
+  )
+  # extract metrics
+  metrics_df <- data.frame(
+    # see also https://github.com/PecanProject/pecan/blob/b5322a0fc62760b4981b2565aabafc07b848a699/modules/assim.sequential/inst/sda_backup/bmorrison/site_selection/pick_sda_sites.R#L221
+    k = k_range,
+    tot.withinss = map_dbl(metrics_list, "total_withinss"),
+    sil_score = map_dbl(metrics_list, "sil_score")
+#    dunn_index = map_dbl(metrics_list, "dunn_index")
+#    calinski_harabasz = map_dbl(metrics_list, "calinski_harabasz")
+  )
 
-  # Find elbow point
-  elbow_df <- data.frame(k = k_range, tot.withinss = tot.withinss)
-  optimal_k <- find_curve_elbow(elbow_df)
-  message("Optimal number of clusters determined: ", optimal_k)
+  elbow_k <- find_curve_elbow(
+    metrics_df[, c("k", "tot.withinss")],
+    export_type = "k" # default uses row number instead of k
+  )["k"]
 
-  # Plot elbow method results
-  elbow_plot <- ggplot(elbow_df, aes(x = k, y = tot.withinss)) +
-    geom_line() +
-    geom_point() +
-    labs(title = "Elbow Method for Optimal k", x = "Number of Clusters", y = "Total Within-Cluster Sum of Squares")
-  print(elbow_plot)
+## TODO check other metrics (b/c sil and elbow disagree)
+# other metrics
+#  sil_k <- metrics_df$k[which.max(metrics_df$sil_score)]
+#  dunn_k <- metrics_df$k[which.max(metrics_df$dunn_index)]
+#  calinski_harabasz_k <- metrics_df$k[which.max(metrics_df$calinski_harabasz)]
 
-  # Compute silhouette scores to validate clustering quality
-  silhouette_scores <- future_map_dbl(k_range, function(k) {
-    model <- hkmeans(clust_data_scaled, k)
-    mean(silhouette(model$cluster, dist(clust_data_scaled))[, 3])
-  }, .options = furrr_options(seed = TRUE))
+  txtplot::txtplot(
+    x = metrics_df$k, y = metrics_df$tot.withinss, 
+    xlab = "k (number of clusters)",
+    ylab = "SS(Within)"
+  )
+  PEcAn.logger::logger.info(
+    "Optimal number of clusters according to Elbow Method: ", elbow_k, 
+    "(where the k vs ss(within) curve starts to flatten.)"
+  )
 
-  silhouette_df <- data.frame(k = k_range, silhouette = silhouette_scores)
-
-  message("Silhouette scores computed. Higher values indicate better-defined clusters.")
-  print(silhouette_df)
-
-  silhouette_plot <- ggplot(silhouette_df, aes(x = k, y = silhouette)) +
-    geom_line(color = "red") +
-    geom_point(color = "red") +
-    labs(title = "Silhouette Scores for Optimal k", x = "Number of Clusters", y = "Silhouette Score")
-  print(silhouette_plot)
+  PEcAn.logger::logger.info("Silhouette scores computed. Higher values indicate better-defined clusters.")
+  txtplot::txtplot(
+    x = metrics_df$k, y = metrics_df$sil_score,
+    xlab = "Number of Clusters (k)", ylab = "Score"
+  )  
 
   # Perform hierarchical k-means clustering with optimal k
-  final_hkmeans <- hkmeans(clust_data_scaled, optimal_k)
-  data$cluster <- final_hkmeans$cluster
+  final_hkmeans <- hkmeans(clust_data_scaled, elbow_k)
+  clust_data <- cbind(
+    site_id = data$site_id,
+    clust_data, 
+    cluster = final_hkmeans$cluster
+  )
 
-  return(data)
+  return(clust_data)
 }
 
 #' 
@@ -218,43 +214,51 @@ perform_clustering <- function(data) {
 #' 
 ## ----clustering, eval=FALSE---------------------------------------------------
 # 
-# data_clustered <- perform_clustering(data_for_clust)
-# save(data_clustered, file = "cache/data_clustered.rda")
+sites_clustered <- perform_clustering(data_for_clust, k = 5:15)
 
-#' 
+#'
 #' ### Check Clustering
-#' 
+#'
 ## ----check-clustering---------------------------------------------------------
-load("cache/data_clustered.rda")
 # Summarize clusters
-cluster_summary <- data_clustered |>
-                      group_by(cluster) |>
-                      summarise(across(where(is.numeric), mean, na.rm = TRUE))
-if('mean_temp' %in% names(cluster_summary)){
-  cluster_summary <- cluster_summary |>
-    rename(temp = mean_temp)
-  PEcAn.logger::logger.warn("you should", 
-    "change mean_temp --> temp in cluster_summary",
-    "when it is created upstream and then delete this",
-    "conditional chunk")
-}
-# use ggplot to plot all pairwise numeric variables
+cluster_summary <- sites_clustered |>
+  group_by(cluster) |>
+  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)))
 
+knitr::kable(cluster_summary, digits = 0)
+
+# ANOVA based variable importance
+anova_results <- sites_clustered |>
+  select(where(is.numeric)) |>
+  mutate(cluster = as.factor(cluster)) |>
+  aov(cluster ~ ., data = .) |>
+  broom::tidy() 
+
+# Plot all pairwise numeric variables
 library(GGally)
-data_clustered |>
+ggpairs_plot <- sites_clustered |>
+  select(-site_id, -crop, -climregion_id) |>
+  # need small # pfts for ggpairs
+  mutate(pft = ifelse(pft == "woody perennial crop", "woody perennial crop", "other")) |>
   sample_n(1000) |>
-  ggpairs(columns=c(1,2,4,5,6)+1,
-          mapping = aes(color = as.factor(cluster), alpha = 0.8))+
+  ggpairs(
+    columns = c(1, 2, 4, 5, 6) + 1,
+    mapping = aes(color = as.factor(cluster), alpha = 0.8)
+  ) +
   theme_minimal()
+ggsave(ggpairs_plot,
+  filename = "downscale/figures/cluster_pairs.png",
+  dpi = 300, width = 10, height = 10, units = "in"
+)
 
-ggplot(data = cluster_summary, aes(x = cluster)) +
+cluster_plot <- ggplot(data = cluster_summary, aes(x = cluster)) +
   geom_line(aes(y = temp, color = "temp")) +
   geom_line(aes(y = precip, color = "precip")) +
   geom_line(aes(y = clay, color = "clay")) +
   geom_line(aes(y = ocd, color = "ocd")) +
   geom_line(aes(y = twi, color = "twi")) +
   labs(x = "Cluster", y = "Value", color = "Variable")
-
+ggsave(cluster_plot, filename = "downscale/figures/cluster_summary.png", dpi = 300)
 knitr::kable(cluster_summary |> round(0))
 
 
@@ -277,12 +281,14 @@ climregion_ids <- read_csv("data/climregion_ids.csv",
                            ))
 
 factor_stratification <- list(
-    crop_id = table(data_clustered$cluster, data_clustered$crop),
-    climregion_id = table(data_clustered$cluster, data_clustered$climregion_name))
+    crop_id = table(sites_clustered$cluster, sites_clustered$crop),
+    climregion_id = table(sites_clustered$cluster, sites_clustered$climregion_name))
 
 lapply(factor_stratification, knitr::kable)
 # Shut down parallel backend
 plan(sequential)
+
+
 
 #' 
 #' ## Design Point Selection
@@ -292,51 +298,60 @@ plan(sequential)
 #' 
 #' For the final high resolution runs we expect to use approximately 10,000 design points.
 #' For woody croplands, we will start with a number proportional to the total number of sites with woody perennial pfts.
+#'
 #' 
+
+#'
+#' ### How Many Design Points?
+#'
+#' Calculating Woody Cropland Proportion
+#'
+#' Here we calculate percent of California croplands that are woody perennial crops,
+#' in order to estimate the number of design points that will be selected in the clustering step
+## ----woody-proportion---------------------------------------------------------
+ca_attributes <- read_csv(file.path(data_dir, "ca_field_attributes.csv"))
+ca_fields <- sf::st_read(file.path(data_dir, "ca_fields.gpkg"))
+pft_area <- ca_fields |>
+  left_join(ca_attributes, by = "site_id") |>
+  dplyr::select(site_id, pft, area_ha) |>
+  dtplyr::lazy_dt() |>
+  dplyr::mutate(woody_indicator = ifelse(pft == "woody perennial crop", 1L, 0L)) |>
+  dplyr::group_by(woody_indicator) |>
+  dplyr::summarize(pft_area = sum(area_ha)) |>
+  # calculate percent of total area
+  dplyr::mutate(pft_area_pct = pft_area / sum(pft_area) * 100)
+
+knitr::kable(pft_area, digits = 0)
+# answer: 17% of California croplands were woody perennial crops in the
+# 2016 LandIQ dataset
+# So ... if we want to ultimately have 2000 design points, we should have ~ 400
+# design points for woody perennial crops
+
+
 ## ----design-point-selection---------------------------------------------------
 # From the clustered data, remove anchor sites to avoid duplicates in design point selection.
 
 if(!exists("ca_fields")) {
-  ca_fields <- sf::st_read("data/ca_fields.gpkg")
+  ca_fields <- sf::st_read(file.path(data_dir, "ca_fields.gpkg"))
 }
 
-missing_anchor_sites <- woody_anchor_sites|>
-               as_tibble()|>
-               left_join(ca_fields, by = 'id') |>
-               filter(is.na(id)) |> 
-               select(location, site_name, geometry)
-
-if(nrow(missing_anchor_sites) > 0){
-  woody_anchor_sites <- woody_anchor_sites |> 
-                          drop_na(lat, lon)
-  # there is an anchor site that doesn't match the ca_fields;
-  # need to check on this. For now we will just remove it from the dataset.
-  PEcAn.logger::logger.warn(
-    "The following site(s) aren't within DWR crop fields:",
-    knitr::kable(missing_anchor_sites)
-  )
-  PEcAn.logger::logger.info(
-    "Check the sf::st_nearest_feature join at the beginning of this script"
-  )
-}   
-
 set.seed(2222222)
-design_points_ids <- data_clustered |>
-  filter(!id %in% woody_anchor_sites$id) |>
-  select(id)  |>
-  sample_n(100 - nrow(woody_anchor_sites))  |>
-  select(id)
+design_points_ids <- sites_clustered |>
+  filter(!site_id %in% anchorsites_for_clust$site_id) |>
+  select(site_id)  |>
+  sample_n(100 - nrow(anchorsites_for_clust))  |>
+  select(site_id)
 
-anchor_site_ids <- woody_anchor_sites |>
-   select(id)
+anchor_site_ids <- anchorsites_for_clust |>
+   select(site_id)
 
-final_design_points <- bind_rows(design_points_ids,
+design_points <- bind_rows(design_points_ids,
    anchor_site_ids)  |>
-   left_join(ca_fields, by = "id")
+   left_join(ca_fields, by = "site_id")
 
-final_design_points |>
+design_points |>
    as_tibble()  |>
-   select(id, lat, lon) |>
+   select(site_id, lat, lon) |>
    write_csv("data/design_points.csv")
 
 
@@ -348,59 +363,21 @@ final_design_points |>
 ## ----design-point-map---------------------------------------------------------
 # plot map of california and climregions
 
-final_design_points_clust <- final_design_points |>
-  left_join(data_clustered, by = "id") |>
-  select(id, lat, lon, cluster) |>
+design_points_clust <- design_points |>
+  left_join(sites_clustered, by = "site_id") |>
+  select(site_id, lat, lon, cluster) |>
   drop_na(lat, lon) |>
   mutate(cluster = as.factor(cluster)) |>
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
 ca_fields_pts <- ca_fields  |>
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
-ggplot() +
-  geom_sf(data = ca_climregions, aes(fill = climregion_name), alpha = 0.5) +
+
+design_pt_plot <- ggplot() +
+  geom_sf(data = ca_climregions, aes(fill = climregion_name), alpha = 0.75) +
   labs(color = "Climregion") +
   theme_minimal() +
-  geom_sf(data = final_design_points_clust, aes(shape = cluster)) +
-  geom_sf(data = ca_fields_pts, fill = 'black', color = "grey", alpha = 0.5)
+  geom_sf(data = ca_fields, fill = "black", color = "lightgrey", alpha = 0.25) +
+  geom_sf(data = design_points_clust, aes(shape = cluster))
 
-
-#'
-#' ## Woody Cropland Proportion
-#' 
-#' Here we calculate percent of California croplands that are woody perennial crops, in order to estimate the number of design points that will be selected in the clustering step
-#' 
-## ----woody-proportion---------------------------------------------------------
-field_attributes <- read_csv("data/ca_field_attributes.csv")
-ca <- ca_fields |>
-  dplyr::select(-lat, -lon) |>
-  dplyr::left_join(field_attributes, by = "id")
-
-set.seed(5050)
-pft_area <- ca |>
-  dplyr::sample_n(2000) |>
-  dplyr::select(id, pft, area_ha) |>
-  dtplyr::lazy_dt() |>
-  dplyr::mutate(woody_indicator = ifelse(pft == "woody perennial crop", 1L, 0L)) |>
-  dplyr::group_by(woody_indicator) |>
-  dplyr::summarize(pft_area = sum(area_ha))
-
-# now calculate sum of pft_area and the proportion of woody perennial crops
-pft_area <- pft_area |>
-  dplyr::mutate(total_area = sum(pft_area)) |>
-  dplyr::mutate(area_pct = round(100 * pft_area / total_area)) |>
-  select(-total_area, -pft_area) |>
-  dplyr::rename("Woody Crops" = woody_indicator, "Area %" = area_pct) 
-
-PEcAn.logger::logger.info(
-  "Total area and proportion of fields that are woody perennial",
-  "crops in California croplands:",
-  pft_area |> kableExtra::kable()
-)
-
-PEcAn.logger::logger.info(
-  "final output from clustering and design point selection:",
-  cluster_summary |> knitr::kable()
-) #
-
-
+ggsave(design_pt_plot, filename = "downscale/figures/design_points.png", dpi = 300, bg = "white")
