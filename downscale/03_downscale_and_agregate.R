@@ -26,8 +26,10 @@ plan(multicore, workers = no_cores - 1)
 
 # while developing PEcAn:
 # devtools::load_all(here::here("../pecan/modules/assim.sequential/"))
-# remotes::install_git("dlebauer/pecan@ensemble_downscaling", subdir = "modules/assim.sequential")
-remotes::install_git("../pecan@ensemble_downscaling", subdir = "modules/assim.sequential", upgrade = FALSE)
+#remotes::install_git("../pecan@ensemble_downscaling",
+remotes::install_github("dlebauer/pecan@ensemble_downscaling",
+  subdir = "modules/assim.sequential", upgrade = FALSE
+)
 library(PEcAnAssimSequential)
 datadir <- "/projectnb/dietzelab/ccmmf/data"
 basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859"
@@ -186,8 +188,15 @@ co_preds_to_plot <- county_summaries |>
   ))
 
 # now plot map of county-level predictions with total carbon
-units <- unique(co_preds_to_plot$units)
-p <- purrr::map2(cpools, units, function(pool, unit) {
+units <- rep(unique(co_preds_to_plot$units), each = length(cpools))
+pool_x_units <- co_preds_to_plot |>
+  select(carbon_pool, units) |>
+  distinct() |>
+  # remove na
+  filter(!is.na(carbon_pool)) |> # why is one field in SF county NA?
+  arrange(carbon_pool, units)
+
+p <- purrr::map2(pool_x_units$carbon_pool, pool_x_units$units, function(pool, unit) {
   .p <- ggplot(
     co_preds_to_plot |> filter(carbon_pool == pool & units == unit),
     aes(geometry = geom, fill = value)

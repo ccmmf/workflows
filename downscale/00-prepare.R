@@ -63,8 +63,8 @@ ca_albers_crs <- 3310
 ## Convert SHP to Geotiff`
 ## Required until PR 3423 is merged https://github.com/PecanProject/pecan/pull/3423
 # check if PR is merged
-# devtools::install_github("dlebauer/pecan",
-devtools::install_git("../pecan",
+devtools::install_github("dlebauer/pecan",
+#devtools::install_git("../pecan",
   ref = "shp2gpkg",
   subdir = "modules/data.land", 
   upgrade = FALSE
