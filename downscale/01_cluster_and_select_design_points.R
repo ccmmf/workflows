@@ -58,7 +58,7 @@ data_dir <- "/projectnb/dietzelab/ccmmf/data"
 
 site_covariates_csv <- file.path(data_dir, "site_covariates.csv")
 site_covariates <- readr::read_csv(site_covariates_csv) 
-  
+file.exists(site_covariates_csv)
 #' ## Anchor Site Selection
 #'
 #' Load Anchor Sites from UC Davis, UC Riverside, and Ameriflux.
@@ -227,19 +227,11 @@ cluster_summary <- sites_clustered |>
 
 knitr::kable(cluster_summary, digits = 0)
 
-# ANOVA based variable importance
-anova_results <- sites_clustered |>
-  select(where(is.numeric)) |>
-  mutate(cluster = as.factor(cluster)) |>
-  aov(cluster ~ ., data = .) |>
-  broom::tidy() 
-
 # Plot all pairwise numeric variables
 library(GGally)
 ggpairs_plot <- sites_clustered |>
-  select(-site_id, -crop, -climregion_id) |>
+  select(-site_id) |>
   # need small # pfts for ggpairs
-  mutate(pft = ifelse(pft == "woody perennial crop", "woody perennial crop", "other")) |>
   sample_n(1000) |>
   ggpairs(
     columns = c(1, 2, 4, 5, 6) + 1,
@@ -251,16 +243,28 @@ ggsave(ggpairs_plot,
   dpi = 300, width = 10, height = 10, units = "in"
 )
 
-cluster_plot <- ggplot(data = cluster_summary, aes(x = cluster)) +
-  geom_line(aes(y = temp, color = "temp")) +
-  geom_line(aes(y = precip, color = "precip")) +
-  geom_line(aes(y = clay, color = "clay")) +
-  geom_line(aes(y = ocd, color = "ocd")) +
-  geom_line(aes(y = twi, color = "twi")) +
-  labs(x = "Cluster", y = "Value", color = "Variable")
-ggsave(cluster_plot, filename = "downscale/figures/cluster_summary.png", dpi = 300)
-knitr::kable(cluster_summary |> round(0))
+# scale and reshape to long for plotting
 
+# Normalize the cluster summary data
+scaled_cluster_summary <- cluster_summary |>
+  mutate(across(-cluster, scale)) |>
+  pivot_longer(
+    cols = -cluster,
+    names_to = "variable",
+    values_to = "value"
+  )
+
+cluster_plot <- ggplot(
+  scaled_cluster_summary,
+  aes(x = factor(variable), y = value)
+) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~cluster) +
+  coord_flip() +
+  labs(x = "Variable", y = "Normalized Value") +
+  theme_minimal()
+
+ggsave(cluster_plot, filename = "downscale/figures/cluster_plot.png", dpi = 300)
 
 #' 
 #' #### Stratification by Crops and Climate Regions
@@ -269,26 +273,41 @@ knitr::kable(cluster_summary |> round(0))
 # Check stratification of clusters by categorical factors
 
 # cols should be character, factor
-crop_ids <- read_csv("data/crop_ids.csv",
+crop_ids <- read_csv(file.path(data_dir, "crop_ids.csv"),
                      col_types = cols(
                        crop_id = col_factor(),
                        crop = col_character())
                        )
-climregion_ids <- read_csv("data/climregion_ids.csv",
+climregion_ids <- read_csv(file.path(data_dir, "climregion_ids.csv"),
                            col_types = cols(
                              climregion_id = col_factor(),
                              climregion_name = col_character()
                            ))
 
-factor_stratification <- list(
-    crop_id = table(sites_clustered$cluster, sites_clustered$crop),
-    climregion_id = table(sites_clustered$cluster, sites_clustered$climregion_name))
 
-lapply(factor_stratification, knitr::kable)
-# Shut down parallel backend
-plan(sequential)
+## ----stratification-----------------------------------------------------------
+# The goal here is to check the stratification of the clusters by crop and climregion
+# to ensure that the clusters are not dominated by a single crop or climregion
+# BUT probably best to normalize by the total number of fields in each cluster 
+# if this is to be useful
+# is this useful?
 
+# ca_attributes <- read_csv(file.path(data_dir, "ca_field_attributes.csv"))
+# site_covariates <- read_csv(file.path(data_dir, "site_covariates.csv"))
 
+# sites_clustered <- sites_clustered |>
+#   left_join(ca_attributes, by = "site_id") |>
+#   left_join(site_covariates, by = "site_id")
+
+# factor_stratification <- list(
+#     crop_id = table(sites_clustered$cluster, sites_clustered$crop),
+#     climregion_id = table(sites_clustered$cluster, sites_clustered$climregion_name))
+
+# normalize <- function(x) {
+#   round(100 * x / rowSums(x), 1)
+# }
+# normalized_stratification <- lapply(factor_stratification, normalize)
+# lapply(normalized_stratification, knitr::kable)
 
 #' 
 #' ## Design Point Selection
@@ -308,20 +327,21 @@ plan(sequential)
 #'
 #' Here we calculate percent of California croplands that are woody perennial crops,
 #' in order to estimate the number of design points that will be selected in the clustering step
+#' This is commented out because it takes a while and the number won't change
 ## ----woody-proportion---------------------------------------------------------
 ca_attributes <- read_csv(file.path(data_dir, "ca_field_attributes.csv"))
 ca_fields <- sf::st_read(file.path(data_dir, "ca_fields.gpkg"))
-pft_area <- ca_fields |>
-  left_join(ca_attributes, by = "site_id") |>
-  dplyr::select(site_id, pft, area_ha) |>
-  dtplyr::lazy_dt() |>
-  dplyr::mutate(woody_indicator = ifelse(pft == "woody perennial crop", 1L, 0L)) |>
-  dplyr::group_by(woody_indicator) |>
-  dplyr::summarize(pft_area = sum(area_ha)) |>
-  # calculate percent of total area
-  dplyr::mutate(pft_area_pct = pft_area / sum(pft_area) * 100)
+# pft_area <- ca_fields |>
+#   left_join(ca_attributes, by = "site_id") |>
+#   dplyr::select(site_id, pft, area_ha) |>
+#   dtplyr::lazy_dt() |>
+#   dplyr::mutate(woody_indicator = ifelse(pft == "woody perennial crop", 1L, 0L)) |>
+#   dplyr::group_by(woody_indicator) |>
+#   dplyr::summarize(pft_area = sum(area_ha)) |>
+#   # calculate percent of total area
+#   dplyr::mutate(pft_area_pct = pft_area / sum(pft_area) * 100)
 
-knitr::kable(pft_area, digits = 0)
+# knitr::kable(pft_area, digits = 0)
 # answer: 17% of California croplands were woody perennial crops in the
 # 2016 LandIQ dataset
 # So ... if we want to ultimately have 2000 design points, we should have ~ 400
@@ -330,10 +350,6 @@ knitr::kable(pft_area, digits = 0)
 
 ## ----design-point-selection---------------------------------------------------
 # From the clustered data, remove anchor sites to avoid duplicates in design point selection.
-
-if(!exists("ca_fields")) {
-  ca_fields <- sf::st_read(file.path(data_dir, "ca_fields.gpkg"))
-}
 
 set.seed(2222222)
 design_points_ids <- sites_clustered |>
@@ -352,8 +368,7 @@ design_points <- bind_rows(design_points_ids,
 design_points |>
    as_tibble()  |>
    select(site_id, lat, lon) |>
-   write_csv("data/design_points.csv")
-
+   write_csv(file.path(data_dir, "design_points.csv"))
 
 #' 
 #' ### Design Point Map
@@ -374,10 +389,11 @@ ca_fields_pts <- ca_fields  |>
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
 design_pt_plot <- ggplot() +
-  geom_sf(data = ca_climregions, aes(fill = climregion_name), alpha = 0.75) +
-  labs(color = "Climregion") +
+  geom_sf(data = ca_climregions, fill = 'white') +
   theme_minimal() +
-  geom_sf(data = ca_fields, fill = "black", color = "lightgrey", alpha = 0.25) +
-  geom_sf(data = design_points_clust, aes(shape = cluster))
+  geom_sf(data = ca_fields, fill = "lightgrey", color = "lightgrey", alpha = 0.25) +
+  geom_sf(data = design_points_clust) +
+  geom_text(data = design_points_clust, aes(label = cluster, geometry = geometry), 
+            size = 2, stat = "sf_coordinates")
 
 ggsave(design_pt_plot, filename = "downscale/figures/design_points.png", dpi = 300, bg = "white")

@@ -176,81 +176,95 @@ co_preds_to_plot <- county_summaries |>
     cols = c(mean_total_c, sd_total_c, mean_c_density, sd_c_density),
     names_to = "stat",
     values_to = "value"
-  )
+  ) |>
+  mutate(units = case_when(
+    str_detect(stat, "total_c") ~ "Carbon Stock (Tg)",
+    str_detect(stat, "c_density") ~ "Carbon Density (kg/m2)"
+  ), stat = case_when(
+    str_detect(stat, "mean") ~ "Mean",
+    str_detect(stat, "sd") ~ "SD"
+  ))
 
 # now plot map of county-level predictions with total carbon
-p <- purrr::map(cpools, function(pool) {
+units <- unique(co_preds_to_plot$units)
+p <- purrr::map2(cpools, units, function(pool, unit) {
   .p <- ggplot(
-    co_preds_to_plot |> filter(carbon_pool == pool),
+    co_preds_to_plot |> filter(carbon_pool == pool & units == unit),
     aes(geometry = geom, fill = value)
   ) +
     geom_sf(data = county_boundaries, fill = "lightgrey", color = "black") +
     geom_sf() +
     scale_fill_viridis_c(option = "plasma") +
     theme_minimal() +
+    facet_grid(carbon_pool ~ stat) +
     labs(
-      title = paste0(pool, "-C by County"),
-      fill = "Total Carbon (Tg)"
-    ) +
-    facet_grid(~stat)
+      title = paste("County-Level Predictions for", pool, unit),
+      fill = "Value"
+    )
 
+  unit <- ifelse(unit == "Carbon Stock (Tg)", "stock",
+    ifelse(unit == "Carbon Density (kg/m2)", "density", NA)
+  )
+
+  plotfile <- here::here("downscale/figures", paste0("county_", pool, "_carbon_", unit, ".png"))
+  print(plotfile)
   ggsave(
     plot = .p,
-    filename = here::here("downscale/figures",paste0("county_total_", pool, ".png")),
+    filename = plotfile,
     width = 10, height = 5,
     bg = "white"
   )
-return(.p)
+  return(.p)
 })
 
-## Variable Importance
+# Variable Importance
 
-# importance_summary <- map_dfr(cpools, function(cp) {
-#   # Extract the importance for each ensemble model in the carbon pool
-#   importances <- map(1:20, function(i) {
-#     model <- downscale_output_list[[cp]][["model"]][[i]]
-#     randomForest::importance(model)[, "%IncMSE"]
-#   })
+importance_summary <- map_dfr(cpools, function(cp) {
+  # Extract the importance for each ensemble model in the carbon pool
+  importances <- map(1:20, function(i) {
+    model <- downscale_output_list[[cp]][["model"]][[i]]
+    randomForest::importance(model)[, "%IncMSE"]
+  })
 
-#   # Turn the list of importance vectors into a data frame
-#   importance_df <- map_dfr(importances, ~ tibble(importance = .x), .id = "ensemble") |>
-#     group_by(ensemble) |>
-#     mutate(predictor = names(importances[[1]])) |>
-#     ungroup()
+  # Turn the list of importance vectors into a data frame
+  importance_df <- map_dfr(importances, ~ tibble(importance = .x), .id = "ensemble") |>
+    group_by(ensemble) |>
+    mutate(predictor = names(importances[[1]])) |>
+    ungroup()
 
-#   # Now summarize median and IQR for each predictor across ensembles
-#   summary_df <- importance_df |>
-#     group_by(predictor) |>
-#     summarize(
-#       median_importance = median(importance, na.rm = TRUE),
-#       sd_importance = sd(importance, na.rm = TRUE)
-#     ) |>
-#     mutate(carbon_pool = cp)
+  # Now summarize median and IQR for each predictor across ensembles
+  summary_df <- importance_df |>
+    group_by(predictor) |>
+    summarize(
+      median_importance = median(importance, na.rm = TRUE),
+      lcl_importance = quantile(importance, 0.25, na.rm = TRUE),
+      ucl_importance = quantile(importance, 0.75, na.rm = TRUE)
+    ) |>
+    mutate(carbon_pool = cp)
 
-#   summary_df
-# })
+  summary_df
+})
 
-# library(ggplot2)
-# library(dplyr)
+library(ggplot2)
+library(dplyr)
 
-# # Create the popsicle (lollipop) plot
-# p <- ggplot(importance_summary, aes(x = reorder(predictor, median_importance), y = median_importance)) +
-#   geom_errorbar(aes(ymin = median_importance - sd_importance, ymax = median_importance + sd_importance),
-#     width = 0.2, color = "gray50"
-#   ) +
-#   geom_point(size = 4, color = "steelblue") +
-#   coord_flip() +
-#   facet_wrap(~carbon_pool, scales = "free_y") +
-#   labs(
-#     title = "Popsicle Plot of Variable Importance",
-#     x = "Predictor",
-#     y = "Median %IncMSE (<U+00B1> SD)"
-#   ) +
-#   theme_minimal()
+# Create the popsicle (lollipop) plot
+p <- ggplot(importance_summary, aes(x = reorder(predictor, median_importance), y = median_importance)) +
+  geom_errorbar(aes(ymin = lcl_importance, ymax = ucl_importance),
+    width = 0.2, color = "gray50") +
+  geom_point(size = 4, color = "steelblue") +
+  coord_flip() +
+  facet_wrap(~carbon_pool, scales = "free_y") +
+  labs(
+    title = "Variable Importance",
+    x = "Predictor",
+    y = "Median Increase MSE (SD)"
+  ) +
+  theme_minimal()
 
-# ggsave(p, filename = here::here("downscale/figures", "importance_summary.png"),
-#   width = 10, height = 5,
-#   bg = "white"
-# )
+ggsave(p, filename = here::here("downscale/figures", "importance_summary.png"),
+  width = 10, height = 5,
+  bg = "white"
+)
 
-# print(p)
+print(p)

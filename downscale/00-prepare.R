@@ -64,8 +64,11 @@ ca_albers_crs <- 3310
 ## Required until PR 3423 is merged https://github.com/PecanProject/pecan/pull/3423
 # check if PR is merged
 # devtools::install_github("dlebauer/pecan",
-#                          ref = "shp2gpkg",
-#                          subdir = "modules/data.land")
+devtools::install_git("../pecan",
+  ref = "shp2gpkg",
+  subdir = "modules/data.land", 
+  upgrade = FALSE
+)
 
 devtools::load_all("../pecan/modules/data.land/")
 input_file = file.path(raw_data_dir, 'i15_Crop_Mapping_2016_SHP/i15_Crop_Mapping_2016.shp')
