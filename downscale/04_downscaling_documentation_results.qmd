@@ -2,12 +2,21 @@
 title: "Downscaling Workflow Documentation"
 author: "David LeBauer"
 date: "`r Sys.Date()`"
-format: html
+format:
+  html:
+    self-contained: true
+    embed-resources: true
+    df-print: paged
+    toc: true
 execute:
   echo: false
 ---
 
-# Downscaling Workflow Overview
+<!--
+quarto render downscale/04_downscaling_documentation_results.qmd --to html
+-->
+
+# Overview
 
 The downscaling workflow is used to predict carbon pools (Soil Organic Carbon and Aboveground Biomass) for cropland fields in California and then aggregate these predictions to the county scale.
 
@@ -17,9 +26,9 @@ This multi-step approach facilitates uncertainty quantification by maintaining e
 
 **Definitions**
 
-  - **Design Points**: Fields chosen via stratified random sampling - using k-means clustering on environmental data layers - across all of California crop fields.
-  - **Crop Fields**: These are all of the croplands in the LandIQ dataset.
-  - **Anchor Sites:** These are sites that will be used as ground truth for calibration and validation. These include UC research stations and Ameriflux sites with high quality data.
+- **Design Points**: Fields chosen via stratified random sampling - using k-means clustering on environmental data layers - across all of California crop fields.
+- **Crop Fields**: These are all of the croplands in the LandIQ dataset.
+- **Anchor Sites:** These are sites that will be used as ground truth for calibration and validation. These include UC research stations and Ameriflux sites with high quality data.
 
 
 **Steps**
@@ -250,13 +259,18 @@ county_summaries <- county_summaries |>
    ) |> 
    dplyr::select(`Carbon Pool`, `County`, `Mean Total C (Tg/ county)`, `Mean C Density (kg/ha)`)
 
+# Create Table
+htmlwidgets::setWidgetIdSeed(123) # required to embed table self-contained in html
+options(htmlwidgets.TEMP_DIR = "htmlwidgets")
+
 DT::datatable(
    county_summaries,
    options = list(
       pageLength = 10,
       searchHighlight = TRUE
    ),
-   rownames = FALSE
+   rownames = FALSE,
+   escape = FALSE
 )
 ```
 
