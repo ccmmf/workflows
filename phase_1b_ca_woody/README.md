@@ -1,4 +1,12 @@
 
+Compile sipnet with support for irrigation events:
+```{sh}
+# instructions TODO --
+# basically edit src/sipnet/modelStructures.h to set EVENT_HANDLER to 1,
+# then recompile
+```
+
+
 Put inputs where they're expected:
 ```{sh}
 # curl -o cccmmf_phase_1b_input_artifacts.tgz [url TK] 
