@@ -1,0 +1,339 @@
+---
+title: "SIPNET validation for phase 1b statewide woody crops"
+output: html_document
+---
+
+In this phase of CCMMF buildout, we move from matching conditions at a single well-studied location (phase 1a) to simulating a fixed time interval in selected orchards across California (phase 1b). Validation for 1b focuses on site-level modeled biomass from each of these design points; see the downscaling workflow to see how the resulting site-level values are combined with environmental covariates to generate statewide carbon maps.
+
+We do not have access to detailed management history or direct onsite measurements for most of the chosen design points, so we evaluate simulated biomass in 2023 against two proxies:
+* At all sites that were not cleared during the 2016 to 2023 model period, we compare modeled 2023 biomass to the Landsat-derived LandTrendr forest biomass dataset. Note that Landtrendr was also used to set modeled initial biomass in 2016, so this comparison gives an estimate of timeseries divergence across the study period.
+* At sites whose age and species can be determined from DWR crop maps and where the species is reported as one of almond, walnut, pistachio, or orange, we compare modeled 2023 biomass against CARB's age-based allometries for those species.
+
+As onsite measurements for individual design points are identified and processed (from published literature or datasets shared by other researchers), we will add comparisons like those provided for Belridge orchard in phase 1a.  
+
+
+
+```{r load}
+library(tidyverse)
+theme_set(theme_bw())
+
+# outdir <- "_from_cluster/ccmmf_phase_1b_20250319064759_14859/output"
+outdir <- "output"
+
+site_info <- read.csv("site_info.csv")
+
+# Includes only the design points listed in the 2020 DWR crop map as having
+# `planting_year` <= 2016 (so excludes annuals and sites cleared 2016-2020).
+# `still_present_2023` = TRUE means planting_year <= 2016 in the 2023 map too.
+site_age <- read.csv("data/site_planting_years.csv")
+
+landtrendr_2023 <- terra::rast("data_raw/ca_composite_2023_median.tif")
+```
+
+```{r funs}
+read_ncdir <- function(path, start, end, vars = NULL) {
+  path |>
+    list.files(pattern = "ENS-", full.names = TRUE) |>
+    data.frame(path = _) |>
+    separate_wider_regex(
+      cols = path,
+      patterns = c(
+        ".*/ENS-",
+        ens_num = "\\d+",
+        "-",
+        site = ".*?"
+      ),
+      cols_remove = FALSE
+    ) |>
+    mutate(ens_num = as.numeric(ens_num)) |>
+    nest_by(ens_num, site, .key = "path") |>
+    mutate(
+      contents = map(
+        path,
+        ~ PEcAn.utils::read.output(
+          outdir = .x,
+          runid = "", # included in outdir already
+          dataframe = TRUE,
+          variables = vars,
+          print_summary = FALSE,
+          verbose = FALSE,
+          start.year = start,
+          end.year = end
+        )
+      )
+    ) |>
+    unnest(contents)
+}
+```
+
+
+```{r load-data, cache = TRUE}
+abvgrdwood_23 <- read_ncdir(
+  file.path(outdir, "out"),
+  start = 2023,
+  end = 2023,
+  vars = "AbvGrndWood"
+)
+
+abvgrdwood_16 <- read_ncdir(
+  file.path(outdir, "out"),
+  start = 2016,
+  end = 2016,
+  vars = "AbvGrndWood"
+)
+
+# totsoilcarb_23 <- read_ncdir(
+#  file.path(outdir, "out"),
+#  start.year = 2022,
+#  end.year = 2023,
+#  vars = "TotSoilCarb"
+# )
+```
+
+## Cleanup: Remove sites missing LAI
+
+A few sites were run with missing values for initial LAI.
+The IC calculation logic did not handle these correctly and resulted in
+these sites being simulated with a (too high) default starting biomass
+instead of the provided LandTrendr values.
+
+To identify these we could reparse IC files looking for missing values,
+but that's slow. Instead I'll look for sites whose AbvGrndWood at start of
+simulation in 2016 is within float error of 18 kgC/m2 (that is, a total woody
+mass of 30 kgC/m2 with coarse and fine roots each set to be 20% of the total).
+
+```{r badsites, cache = TRUE}
+lai_missing <- abvgrdwood_16 |>
+  ungroup() |>
+  filter(posix == min(posix), AbvGrndWood > 17.5) |>
+  distinct(site)
+lai_missing
+
+abvgrdwood_23 <- abvgrdwood_23 |>
+  anti_join(lai_missing)
+```
+
+## Modeled biomass vs LandTrendr composite biomass
+
+```{r extract-landtrendr, cache=TRUE}
+point_buf <- site_info |>
+  terra::vect(crs = "epsg:4326") |>
+  terra::project(landtrendr_2023) |>
+  # TODO what is the right buffer distance to use here?
+  # For IC extraction I used 200m, but now suspect that will be large for some (many?) fields
+  # terra::buffer(width = 200)
+  terra::buffer(width = 90)
+
+wood_carbon_fraction <- 0.48
+
+landtrender_2023_agb <- terra::extract(
+  x = landtrendr_2023,
+  y = point_buf,
+  fun = mean,
+  bind = TRUE
+) |>
+  as.data.frame() |>
+  select(
+    site = id,
+    AGB_median = ends_with("median")
+  ) |>
+  mutate(
+    AGB_median = PEcAn.utils::ud_convert(
+      AGB_median * wood_carbon_fraction,
+      "Mg ha-1",
+      "kg m-2"
+    )
+  )
+
+
+agb_with_lt <- abvgrdwood_23 |>
+  filter(posix == max(posix)) |>
+  left_join(landtrender_2023_agb) |>
+  left_join(site_age, by = c("site" = "id")) |>
+  filter(still_present_2023) |>
+  select(-path, -posix)
+
+agb_crop_summary <- agb_with_lt |>
+  group_by(crop_code) |>
+  summarize(
+    n_sites = n_distinct(site),
+    age_min = min(2023 - planting_year),
+    age_max = max(2023 - planting_year),
+    mean_AGB_landtrendr = mean(AGB_median),
+    mean_AGB_sipnet = mean(AbvGrndWood)
+  )
+agb_tot_summary <- agb_with_lt |>
+  ungroup() |>
+  summarize(
+    crop_code = "Total",
+    n_sites = n_distinct(site),
+    age_min = min(2023 - planting_year),
+    age_max = max(2023 - planting_year),
+    mean_AGB_landtrendr = mean(AGB_median),
+    mean_AGB_sipnet = mean(AbvGrndWood)
+  )
+bind_rows(agb_crop_summary, agb_tot_summary)
+
+```
+
+```{r agb-fit}
+agb_fits <- agb_with_lt |>
+  ungroup() |>
+  nest_by(ens_num) |>
+  mutate(
+    fit = list(lm(AbvGrndWood ~ AGB_median, data = data)),
+    r2 = summary(fit)$adj.r.squared,
+    nse = 1 - (
+      sum((data$AGB_median - data$AbvGrndWood)^2) /
+        sum((data$AGB_median - mean(data$AGB_median))^2)
+    ),
+    rmse = sqrt(mean((data$AGB_median - data$AbvGrndWood)^2))
+  )
+agb_fits |> select(-data, -fit)
+agb_fits |>
+  ungroup() |>
+  summarize(across(r2:rmse, c(mean = mean, sd = sd))) |>
+  pivot_longer(everything(), names_to = c("stat", ".value"), names_sep = "_")
+```
+
+
+```{r plot-agb}
+agb_with_lt |>
+  ggplot() +
+  aes(AGB_median, AbvGrndWood) +
+  geom_abline(lty = "dashed") +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ens_num) +
+  labs(
+    x = "LandTrendr 2023 median AGB, kg C/m2",
+    y = "Sipnet AbvGrndWood 2023, kg C/m2")
+```
+
+## Modeled biomass vs allometry
+
+Here we use a set of allometric equations for almonds, walnuts, pistachios,
+and oranges developed by CARB as part of the 2018 NWL Inventory.
+
+Note that at least for this set of design points, no sites were specifically
+as "oranges" (crop type C3) in the DWR crop map. We therefore treated all
+unspecified "citrus and subtropical" (crop type C) as oranges, but excluded
+sites specifically labeled as a non-orange subtropical crop;
+so four olive (C6) sites are included in the LandTrendr comparison above but
+excluded here.
+
+Deciduous sites were only included if specifically identified as
+almond (D12), walnut (D13), or pistachio (D14). 14 sites identified as non-nut
+fruits (D1, D3, D5, D16) or miscellaneous deciduous (D10) were excluded from the
+allometric comparison.
+
+```{r allom-fn}
+allom_kgC_m2 <- function(age, species = c("almond", "walnut", "pistachio", "orange")) {
+  if (any(age > 50)) stop("this allometry only valid to age 50")
+  species <- match.arg(species)
+
+  dens_m <- c(almond = -15.45, walnut = -19.97, pistachio = -24.7, orange = -34.71)
+  dens_b <- c(almond = 125.72, walnut = 103.5, pistachio = 184.93, orange = 223.83)
+  carbon_m <- c(almond = 12.9823, walnut = 9.3295, pistachio = 1.2879, orange = 2.4435)
+  carbon_b <- c(almond = 1.3923, walnut = 1.6121, pistachio = 1.8835, orange = 1.3712)
+
+  trees_acre <- dens_m[species] * log(age) + dens_b[species]
+  lbs_tree <- carbon_m[species] * (age^carbon_b[species])
+
+  PEcAn.utils::ud_convert(trees_acre * lbs_tree, "lb acre-1", "kg m-2")
+}
+```
+
+```{r allom-read}
+site_allom_C <- site_age |>
+  mutate(species = case_when(
+    crop_code == "C" ~ "orange",
+    crop_code == "C3" ~ "orange",
+    crop_code == "D12" ~ "almond",
+    crop_code == "D13" ~ "walnut",
+    crop_code == "D14" ~ "pistachio",
+    TRUE ~ NA_character_
+  )) |>
+  # TODO want to do anything other than drop sites with nontarget species?
+  filter(!is.na(species)) |>
+  group_by(species) |>
+  mutate(
+    allom_C_2016 = allom_kgC_m2(2016 - planting_year, species[[1]]),
+    allom_C_2023 = allom_kgC_m2(2023 - planting_year, species[[1]])
+  )
+# site_allom_C
+```
+
+```{r allom-join, cache = TRUE}
+agb_with_allom <- abvgrdwood_23 |>
+  filter(posix == max(posix)) |>
+  left_join(site_allom_C, by = c("site" = "id")) |>
+  filter(!is.na(planting_year)) |>
+  select(-path, -posix)
+
+
+allom_crop_summary <- agb_with_allom |>
+  group_by(species) |>
+  summarize(
+    n_sites = n_distinct(site),
+    age_min = min(2023 - planting_year),
+    age_max = max(2023 - planting_year),
+    mean_allom_AGB = mean(allom_C_2023),
+    mean_AGB_sipnet = mean(AbvGrndWood)
+  )
+allom_tot_summary <- agb_with_allom |>
+  ungroup() |>
+  summarize(
+    species = "Total",
+    n_sites = n_distinct(site),
+    age_min = min(2023 - planting_year),
+    age_max = max(2023 - planting_year),
+    mean_allom_AGB = mean(allom_C_2023),
+    mean_AGB_sipnet = mean(AbvGrndWood)
+  )
+bind_rows(allom_crop_summary, allom_tot_summary)
+```
+
+```{r allom-fits}
+allom_fits <- agb_with_allom |>
+  ungroup() |>
+  nest_by(ens_num) |>
+  mutate(
+    fit = list(lm(AbvGrndWood ~ allom_C_2023, data = data)),
+    r2 = summary(fit)$adj.r.squared,
+    nse = 1 - (
+      sum((data$allom_C_2023 - data$AbvGrndWood)^2) /
+        sum((data$allom_C_2023 - mean(data$allom_C_2023))^2)
+    ),
+    rmse = sqrt(mean((data$allom_C_2023 - data$AbvGrndWood)^2))
+  )
+allom_fits |> select(-data, -fit)
+allom_fits |>
+  ungroup() |>
+  summarize(across(r2:rmse, c(mean = mean, sd = sd))) |>
+  pivot_longer(everything(), names_to = c("stat", ".value"), names_sep = "_")
+```
+```{r plot-allom}
+agb_with_allom |>
+  ggplot() +
+  aes(allom_C_2023, AbvGrndWood, color = species) +
+  geom_abline(lty = "dashed") +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ens_num) +
+  labs(
+    x = "Allometric AGB 2023 from orchard age, kg C/m2",
+    y = "Sipnet AbvGrndWood 2023, kg C/m2")
+
+agb_with_allom |>
+  ggplot() +
+  aes(allom_C_2023, AbvGrndWood) +
+  geom_abline(lty = "dashed") +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~species) +
+  labs(
+    x = "Allometric AGB 2023 from orchard age, kg C/m2",
+    y = "Sipnet AbvGrndWood 2023, kg C/m2")
+
+```

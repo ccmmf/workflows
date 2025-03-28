@@ -32,3 +32,9 @@ srun --mem-per-cpu=5G --time=5:00:00 \
 	"$runlog" settings.xml site_info.csv \
 	output IC_files data/IC_prep
 ```
+
+Run validation:
+```{sh}
+module load r
+srun Rscript -e 'rmarkdown::render("validate.Rmd")'
+```
