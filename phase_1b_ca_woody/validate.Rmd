@@ -6,7 +6,9 @@ output: html_document
 In this phase of CCMMF buildout, we move from matching conditions at a single well-studied location (phase 1a) to simulating a fixed time interval in selected orchards across California (phase 1b). Validation for 1b focuses on site-level modeled biomass from each of these design points; see the downscaling workflow to see how the resulting site-level values are combined with environmental covariates to generate statewide carbon maps.
 
 We do not have access to detailed management history or direct onsite measurements for most of the chosen design points, so we evaluate simulated biomass in 2023 against two proxies:
+
 * At all sites that were not cleared during the 2016 to 2023 model period, we compare modeled 2023 biomass to the Landsat-derived LandTrendr forest biomass dataset. Note that Landtrendr was also used to set modeled initial biomass in 2016, so this comparison gives an estimate of timeseries divergence across the study period.
+
 * At sites whose age and species can be determined from DWR crop maps and where the species is reported as one of almond, walnut, pistachio, or orange, we compare modeled 2023 biomass against CARB's age-based allometries for those species.
 
 As onsite measurements for individual design points are identified and processed (from published literature or datasets shared by other researchers), we will add comparisons like those provided for Belridge orchard in phase 1a.  
