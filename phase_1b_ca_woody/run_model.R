@@ -1,16 +1,6 @@
 #!/usr/bin/env Rscript
 
 
-# Installs all needed PEcAn packages and their dependencies,
-# pulling from a combination of CRAN and R-Universe.
-# TODO: If on a clean system, need to install some system libraries first
-#  (e.g. libudunits2?)
-if (!requireNamespace("PEcAn.all", quietly = TRUE)) {
-  options(repos = c(getOption("repos"), PEcAn = "pecanproject.r-universe.dev"))
-  install.packages("PEcAn.all")
-}
-
-
 library("PEcAn.all")
 
 
