@@ -47,7 +47,7 @@ Rscript downscale/00_prepare.R
 
 This script prepares data for clustering and downscaling process.
 
-It reads in the LandIQ crop map, anchor sites, and environmental covariates, and creates a table of environmental covariates for each field in the LandIQ crop map. It also links a table of anchor sites to their corresponding LandIQ fields so that these can be used in downstreamm analyses.
+It reads in the LandIQ crop map, anchor sites, and environmental covariates, and creates a table of environmental covariates for each field in the LandIQ crop map. It also links a table of anchor sites to their corresponding LandIQ fields so that these can be used in downstream analyses.
 
 - Converts LandIQ-derived shapefiles to a geopackage with geospatial information and a CSV with other attributes from the LandIQ dataset.
 - Extracts environmental covariates (clay, organic carbon, topographic wetness, temperature, precipitation, solar radiation, vapor pressure) for each field in the LandIQ dataset.
@@ -98,7 +98,7 @@ Rscript downscale/01_cluster_and_select_design_points.R
 
 Use k-means clustering to select a representative set of 75 fields that represent environmental space, and add these to the 23 distinct[^1^] anchor sites.
 
-[^1^]: There are 25 anchor sites but two have duplicate lat / lon coordinates. This will be addressed in future iterations analysis.
+[^1^]: There are 25 anchor sites but two have duplicate lat / lon coordinates. This will be addressed in future iterations of the analysis.
 
 These are the sites where the SIPNET crop and biogeochemistry model will be run. Currently we are running SIPNET for 98 total sites, which includes 75 design points and 23 anchor sites. 
 
@@ -156,7 +156,7 @@ These are produced by the Modeling Workflow
 
 - `out/ENS-<ensemble_number>-<site_id>/YYYY.nc` 
   - These are NetCDF files that contain the SIPNET outputs for each site in a standardized format.
-  - Currently, <ensemble_number> is 1:20, and 98 values of <site_id> identify the design points. For final runs, these numbers may be closer to 100 ensemble members and 10k design points.
+  - Currently, <ensemble_number> is a value from 1 to 20 ensemble members, and there are 98 values of <site_id> that identify the design points. For final runs, these numbers may be closer to 100 ensemble members and 10k design points.
 
 ## Extract SIPNET Output
 
@@ -214,7 +214,7 @@ Builds a Random Forest model for each ensemble member of each output to predict 
 **County Carbon Stocks and Densities**
 ### County-Level Carbon Stock and Density Maps
 
-The following maps illustrate the spatial variation and uncertainty (mean and standard deviation) of the predicted carbon pools at the county level. Each map is accompanied by a descriptive title to ensure clarity.
+The following maps illustrate the spatial variation and uncertainty (mean and standard deviation) of the predicted carbon pools at the county level. 
 
 #### County Carbon Stock for TotSoilCarb
 
