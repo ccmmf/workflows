@@ -282,7 +282,7 @@ Dietze, Michael C., R. Quinn Thomas, Jody Peters, Carl Boettiger, Gerbrand Koren
 
 **LandIQ Crop Map**
 
-Land IQ, LLC. California Crop Mapping (2014). California Department of Water Resources, 2017. https://gis.water.ca.gov/app/CADWRLandUseViewer/.
+Land IQ, LLC. California Crop Mapping (2014). California Department of Water Resources, 2017. https://data.cnra.ca.gov/dataset/statewide-crop-mapping.
 
 **SoilGrids250m**
 
