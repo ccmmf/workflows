@@ -232,6 +232,20 @@ The following maps illustrate the spatial variation and uncertainty (mean and st
 
 ![](figures/county_AGB_carbon_density.png)
 
+### Variable Importance and Partial Dependence
+
+The following plots show the variable importance from the random forest models used for downscaling, along with partial dependence plots for the top two predictors.
+
+Variable importance quantifies how useful each covariate is in predicting the carbon stock<!-- or ghg flux-->. Partial dependence plots show the marginal effect of individual predictors on model response after averaging over the other predictors.
+
+#### TotSoilCarb - Importance and Partial Dependence
+
+![](figures/TotSoilCarb_importance_partial_plots.png)
+
+#### AGB - Importance and Partial Dependence
+
+![](figures/AGB_importance_partial_plots.png)
+
 ### Searchable Table
 
 The table below provides a searchable summary of the county-level carbon stocks and densities.

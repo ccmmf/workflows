@@ -10,7 +10,7 @@
 #' This workflow will:
 #'
 #' - Use environmental covariates to predict SIPNET estimated SOC for each woody crop field in the LandIQ dataset
-#'   - Uses Random Forest [maybe change to CNN later] trained on site-scale model runs.
+#'   - Uses Random Forest [may change to CNN later] trained on site-scale model runs.
 #'   - Build a model for each ensemble member
 #' - Write out a table with predicted biomass and SOC to maintain ensemble structure, ensuring correct error propagation and spatial covariance.
 #' - Aggregate County-level biomass and SOC inventories
@@ -20,6 +20,7 @@ library(tidyverse)
 library(sf)
 library(terra)
 library(furrr)
+library(patchwork) # for combining plots
 
 no_cores <- parallel::detectCores(logical = FALSE)
 plan(multicore, workers = no_cores - 1)
@@ -226,8 +227,9 @@ p <- purrr::map2(pool_x_units$carbon_pool, pool_x_units$units, function(pool, un
   return(.p)
 })
 
-# Variable Importance
+# Variable Importance and Partial Dependence Plots
 
+# First, calculate variable importance summary as before
 importance_summary <- map_dfr(cpools, function(cp) {
   # Extract the importance for each ensemble model in the carbon pool
   importances <- map(1:20, function(i) {
@@ -254,13 +256,9 @@ importance_summary <- map_dfr(cpools, function(cp) {
   summary_df
 })
 
-library(ggplot2)
-library(dplyr)
-
-# Create the popsicle (lollipop) plot
-p <- ggplot(importance_summary, aes(x = reorder(predictor, median_importance), y = median_importance)) +
-  geom_errorbar(aes(ymin = lcl_importance, ymax = ucl_importance),
-    width = 0.2, color = "gray50") +
+# Create importance plot
+p_importance <- ggplot(importance_summary, aes(x = reorder(predictor, median_importance), y = median_importance)) +
+  geom_errorbar(aes(ymin = lcl_importance, ymax = ucl_importance), width = 0.2, color = "gray50") +
   geom_point(size = 4, color = "steelblue") +
   coord_flip() +
   facet_wrap(~carbon_pool, scales = "free_y") +
@@ -271,9 +269,72 @@ p <- ggplot(importance_summary, aes(x = reorder(predictor, median_importance), y
   ) +
   theme_minimal()
 
-ggsave(p, filename = here::here("downscale/figures", "importance_summary.png"),
-  width = 10, height = 5,
-  bg = "white"
+# Save importance plot
+ggsave(p_importance, filename = here::here("downscale/figures", "importance_summary.png"),
+  width = 10, height = 5, bg = "white"
 )
 
-print(p)
+# Now create and save combined importance + partial plots for each carbon pool
+for (cp in cpools) {
+  # Find top 2 predictors for this carbon pool
+  top_predictors <- importance_summary |>
+    filter(carbon_pool == cp) |>
+    arrange(desc(median_importance)) |>
+    slice_head(n = 2) |>
+    pull(predictor)
+  
+  # Set up a 3-panel plot
+  png(filename = here::here("downscale/figures", paste0(cp, "_importance_partial_plots.png")),
+      width = 14, height = 6, units = "in", res = 300, bg = "white")
+  
+  par(mfrow = c(1, 3))
+  
+  # Panel 1: Show only this carbon pool's importance plot
+  # Extract just this carbon pool's data
+  cp_importance <- importance_summary |> filter(carbon_pool == cp)
+  
+  # Create importance plot for just this carbon pool
+  par(mar = c(5, 10, 4, 2)) # Adjust margins for first panel
+  with(cp_importance, 
+       dotchart(median_importance, 
+                labels = reorder(predictor, median_importance),
+                xlab = "Median Increase MSE (SD)",
+                main = paste("Variable Importance -", cp),
+                pch = 19, col = "steelblue", cex = 1.2))
+  
+  # Add error bars
+  with(cp_importance, 
+       segments(lcl_importance, 
+                seq_along(predictor), 
+                ucl_importance, 
+                seq_along(predictor),
+                col = "gray50"))
+  
+  # Panels 2 & 3: Create partial plots for top 2 predictors
+  model <- downscale_output_list[[cp]][["model"]][[1]]
+  
+  # First top predictor partial plot
+  par(mar = c(5, 5, 4, 2)) # Reset margins for other panels
+  randomForest::partialPlot(model, 
+                           pred.data = covariates, 
+                           x.var = top_predictors[1], 
+                           main = paste("Partial Dependence Plot for", top_predictors[1]),
+                           xlab = top_predictors[1], 
+                           ylab = paste("Predicted", cp),
+                           col = "steelblue", 
+                           lwd = 2)
+  
+  # Second top predictor partial plot
+  randomForest::partialPlot(model, 
+                           pred.data = covariates, 
+                           x.var = top_predictors[2], 
+                           main = paste("Partial Dependence Plot for", top_predictors[2]),
+                           xlab = top_predictors[2], 
+                           ylab = paste("Predicted", cp),
+                           col = "steelblue", 
+                           lwd = 2)
+  
+  dev.off()
+}
+
+print(p_importance)
