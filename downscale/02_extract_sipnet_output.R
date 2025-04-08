@@ -29,7 +29,6 @@ design_points <- readr::read_csv(design_pt_csv, show_col_types = FALSE) |>
     rename(site_id = id) |> # fixed in more recent version of 01 script
     dplyr::distinct()
 
-## end scratch
 # Variables to extract
 variables <- c("AGB", "TotSoilCarb")
 
