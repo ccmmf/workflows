@@ -200,7 +200,8 @@ extract_clim <- function(raster, points_sf) {
   terra::extract(
     raster, 
     points_sf |> 
-  sf::st_transform(crs = sf::st_crs(raster))) |>
+      sf::st_transform(crs = sf::st_crs(raster))
+  ) |>
     tibble::as_tibble() |>
     select(-ID) |>
     mutate(site_id = points_sf$site_id) |>
