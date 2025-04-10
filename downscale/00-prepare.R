@@ -20,24 +20,11 @@
 #' - Clean up domain code
 #' - Create a bunch of tables and join all at once at the end
 #' - Disambiguate the use of 'ca' in object names; currently refers to both California and Cal-Adapt
-#' 
-#' ## Install & Load PEcAn
-#' 
-#' See https://pecanproject.github.io/documentation/develop/
-#' 
-## -----------------------------------------------------------------------------
-
-# options(repos = c(
-#   pecanproject = 'https://pecanproject.r-universe.dev',
-#   ropensci     = 'https://ropensci.r-universe.dev',
-#   CRAN         = 'https://cloud.r-project.org'))
 
 library(PEcAn.all)
 library(tidyverse)
 library(sf)
 library(terra)
-
-# remotes::install_github("UCANR-IGIS/caladaptr")
 library(caladaptr)
 
 ## Check available compute resources and set up parallel processing
@@ -61,16 +48,8 @@ ca_albers_crs <- 3310
 #' The landiq2std function will be added to the PEcAn.data.land package, and has been implemented in a Pull Request https://github.com/PecanProject/pecan/pull/3423. The function is a work in progress. Two key work to be done. First `landiq2std` does not currently perform all steps to get from the original LandIQ format to the standard format - some steps related to harmonizing LandIQ across years have been completed manually. Second, the PEcAn 'standard' for such data is under development as we migrate from a Postgres database to a more portable GeoPackage + CSV format.
 #' 
 ## Convert SHP to Geotiff`
-## Required until PR 3423 is merged https://github.com/PecanProject/pecan/pull/3423
-# check if PR is merged
-devtools::install_github("dlebauer/pecan",
-#devtools::install_git("../pecan",
-  ref = "shp2gpkg",
-  subdir = "modules/data.land", 
-  upgrade = FALSE
-)
 
-devtools::load_all("../pecan/modules/data.land/")
+# if these functions aren't available, see software dependency docs
 input_file = file.path(raw_data_dir, 'i15_Crop_Mapping_2016_SHP/i15_Crop_Mapping_2016.shp')
 ca_fields_gpkg <- file.path(data_dir, 'ca_fields.gpkg')
 ca_attributes_csv = file.path(data_dir, 'ca_field_attributes.csv')
@@ -91,8 +70,9 @@ ca_attributes <- readr::read_csv(ca_attributes_csv)
 #'
 ## -----------------------------------------------------------------------------
 ca_fields |>
-  left_join(ca_attributes |> select(site_id, pft), by = c("site_id")) |>
   filter(pft == "woody perennial crop") |>
+  left_join(ca_attributes |> 
+  select(site_id, pft), by = c("site_id")) |>
   sf::st_transform(crs = ca_albers_crs) |>
   dplyr::select(site_id, geom) |>
   sf::st_write(file.path(data_dir, 'ca_woody.gpkg'), 
@@ -196,35 +176,35 @@ years <- purrr::map_chr(rasters_list, ~ {
 
 names(rasters_list) <- years
 
-extract_clim <- function(raster, points_sf) {
-  terra::extract(
+extract_clim <- function(raster, points_sf) {  
+  terra::extract(  
     raster, 
     points_sf |> 
-  sf::st_transform(crs = sf::st_crs(raster))) |>
-    tibble::as_tibble() |>
-    select(-ID) |>
-    mutate(site_id = points_sf$site_id) |>
-    select(site_id, temp, prec, srad, vapr)
-}
+      sf::st_transform(crs = sf::st_crs(raster))  
+  ) |>  
+    tibble::as_tibble() |>  
+    select(-ID) |>  
+    mutate(site_id = points_sf$site_id) |>  
+    select(site_id, temp, prec, srad, vapr)  
+}  
 
 .tmp <-  rasters_list |>
   furrr::future_map_dfr(
     ~ extract_clim(.x, ca_fields_pts),
-      .id = "year",
-      .options = furrr::furrr_options(seed = 123))
+      .id = "year"
 
 clim_summaries <- .tmp |>
   dplyr::mutate(
-    precip = PEcAn.utils::ud_convert(prec, "second-1", "year-1")
-) |>
-  dplyr::group_by(site_id) |>
-  dplyr::summarise(
-    temp = mean(temp),
-    precip = mean(precip),
-    srad = mean(srad),
-    vapr = mean(vapr)
-  )
-
+extract_clim <- function(raster, points_sf) {
+  terra::extract(
+    raster, 
+    points_sf |> 
+      sf::st_transform(crs = sf::st_crs(raster)),
+    bind = TRUE
+  ) |>
+    select(site_id, temp, prec, srad, vapr)
+}
+}
 #' 
 ## ----join_and_subset----------------------------------------------------------
 .all <- clim_summaries  |>

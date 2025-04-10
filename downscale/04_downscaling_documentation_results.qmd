@@ -33,11 +33,11 @@ This multi-step approach facilitates uncertainty quantification by maintaining e
 
 **Steps**
 
-1. **Data Preparation**: Prepares data for clustering and downscaling process.
-2. **Design Point Selection**: Uses k-means clustering to select a representative set of fields that represent environmental space, and add these to the anchor sites.
-3. **SIPNET Model Runs**: A separate workflow prepares inputs and runs SIPNET simulations for the design points.
-4. **Extract SIPNET Output**: Extracts ensemble SIPNET outputs for the design points and converts them into NetCDF, array, and long formats.
-5. **Downscale and Aggregate SIPNET Output**: Builds a Random Forest model for each ensemble member to predict SOC and AGB, downscales the predictions to the full set of fields, and aggregates predictions to county-level estimates to produce maps and summary statistics.
+* **Data Preparation**: Prepares data for clustering and downscaling process.
+* **Design Point Selection**: Uses k-means clustering to select a representative set of fields that represent environmental space, and add these to the anchor sites.
+* **SIPNET Model Runs**: A separate workflow prepares inputs and runs SIPNET simulations for the design points.
+* **Extract SIPNET Output**: Extracts ensemble SIPNET outputs for the design points and converts them into NetCDF, array, and long formats.
+* **Downscale and Aggregate SIPNET Output**: Builds a Random Forest model for each ensemble member to predict SOC and AGB, downscales the predictions to the full set of fields, and aggregates predictions to county-level estimates to produce maps and summary statistics.
 
 ## Data Preparation
 
@@ -54,6 +54,90 @@ It reads in the LandIQ crop map, anchor sites, and environmental covariates, and
 - Groups fields into Cal-Adapt climate regions.
 - Assigns anchor sites to fields.
 
+**Software Requirements:**
+
+**Software:**
+
+Modules
+
+```{bash eval = FALSE}
+# Load system modules
+module load R/4.4.0 quarto/1.2.313 \
+  gdal/3.10.2 proj/9.5.1 geos/3.13.1
+```
+
+R Packages
+
+Spatial Data
+- sf
+- terra
+
+Analysis
+- PEcan.all 
+- randomForest (for random forest modeling)
+- factoextra
+
+Plotting
+- knitr (for rendering tables)
+- patchwork (for combining ggplot2 plots)
+- viridis (for color scales in ggplot2)
+
+Utilities
+- tidyverse (includes dplyr, ggplot2, readr, purrr, etc.)
+- parallel
+- remotes
+- here
+- lubridate
+- furrr (for parallelized purrr functions)
+- cluster
+- pathviewr
+- skimr
+
+```{r eval = FALSE}
+# Define R repositories 
+options(repos = c(
+  # https://pecanproject.github.io/pecan-documentation/develop/r-universe.html
+  pecanproject = 'https://pecanproject.r-universe.dev',
+  # ropensci     = 'https://ropensci.r-universe.dev',
+  ajlyons      = 'https://ajlyons.r-universe.dev', # caladaptr
+  CRAN         = 'https://cloud.r-project.org'))
+
+# Install CRAN packages
+
+install.packages(c(
+  # Utilities
+  "knitr", "tidyverse", "parallel", "here", "lubridate", "furrr", "cluster", "pathviewr", "caladaptr", "skimr",
+
+  # Analysis
+  "PEcAn.all", "randomForest", "factoextra",
+  "sf", "terra",
+
+  # Plotting
+ "patchwork", "viridis"
+
+))
+
+# Install PEcAn modules from GitHub (with specific branch names)
+# This is to use features that are still under development
+remotes::install_github("PecanProject/pecan@ensemble_downscaling", 
+  subdir = "modules/assim.sequential", upgrade = FALSE)
+remotes::install_github("PecanProject/pecan@shp2gpkg", 
+   subdir = "modules/data.land", upgrade = FALSE)
+# Should probably move to using renv
+# Initialize renv if not already done
+# if (!file.exists("renv.lock")) {
+#  renv::init(bare = TRUE)
+# }
+
+# Install PEcAn modules from specific branch on GitHub
+# renv::install("PecanProject/pecan@ensemble_downscaling", 
+  subdir = "modules/assim.sequential")
+# renv::install("PecanProject/pecan@shp2gpkg", 
+  subdir = "modules/data.land")
+
+# Snapshot the environment to lock dependencies
+# renv::snapshot()
+```
 
 **Inputs:**
 

@@ -1,5 +1,5 @@
 #' ---
-#' Title: Downscale and Agregate Woody Crop SOC stocks
+#' Title: Downscale and Aggregate Woody Crop SOC stocks
 #' author: "David LeBauer"
 #' ---
 #'
@@ -25,12 +25,6 @@ library(patchwork) # for combining plots
 no_cores <- parallel::detectCores(logical = FALSE)
 plan(multicore, workers = no_cores - 1)
 
-# while developing PEcAn:
-# devtools::load_all(here::here("../pecan/modules/assim.sequential/"))
-#remotes::install_git("../pecan@ensemble_downscaling",
-remotes::install_github("dlebauer/pecan@ensemble_downscaling",
-  subdir = "modules/assim.sequential", upgrade = FALSE
-)
 library(PEcAnAssimSequential)
 datadir <- "/projectnb/dietzelab/ccmmf/data"
 basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859"
