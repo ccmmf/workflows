@@ -176,17 +176,17 @@ years <- purrr::map_chr(rasters_list, ~ {
 
 names(rasters_list) <- years
 
-extract_clim <- function(raster, points_sf) {  
-  terra::extract(  
+extract_clim <- function(raster, points_sf) {
+  terra::extract(
     raster, 
     points_sf |> 
-      sf::st_transform(crs = sf::st_crs(raster))  
-  ) |>  
-    tibble::as_tibble() |>  
-    select(-ID) |>  
-    mutate(site_id = points_sf$site_id) |>  
-    select(site_id, temp, prec, srad, vapr)  
-}  
+      sf::st_transform(crs = sf::st_crs(raster))
+    ) |>
+    tibble::as_tibble() |>
+    select(-ID) |>
+    mutate(site_id = points_sf$site_id) |>
+    select(site_id, temp, prec, srad, vapr)
+}
 
 .tmp <-  rasters_list |>
   furrr::future_map_dfr(
@@ -195,16 +195,16 @@ extract_clim <- function(raster, points_sf) {
 
 clim_summaries <- .tmp |>
   dplyr::mutate(
-extract_clim <- function(raster, points_sf) {
-  terra::extract(
-    raster, 
-    points_sf |> 
-      sf::st_transform(crs = sf::st_crs(raster)),
-    bind = TRUE
-  ) |>
-    select(site_id, temp, prec, srad, vapr)
-}
-}
+    precip = PEcAn.utils::ud_convert(prec, "second-1", "year-1")
+) |>
+  dplyr::group_by(site_id) |>
+  dplyr::summarise(
+    temp = mean(temp),
+    precip = mean(precip),
+    srad = mean(srad),
+    vapr = mean(vapr)
+  )
+
 #' 
 ## ----join_and_subset----------------------------------------------------------
 .all <- clim_summaries  |>
