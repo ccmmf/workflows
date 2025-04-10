@@ -217,7 +217,7 @@ extract_clim <- function(raster, points_sf) {
 clim_summaries <- .tmp |>
   dplyr::mutate(
     precip = PEcAn.utils::ud_convert(prec, "second-1", "year-1")
-) |>
+  ) |>
   dplyr::group_by(site_id) |>
   dplyr::summarise(
     temp = mean(temp),
