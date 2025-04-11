@@ -305,7 +305,6 @@ anchor_sites_pts <- anchor_sites |>
 # by identifying and investigating discrepancies
 
 # First subset ca_fields to only include those with covariates
-#     (approx.  )
 
 ca_fields_with_covariates <- ca_fields |>
   dplyr::right_join(site_covariates |> select(site_id), by = "site_id")
