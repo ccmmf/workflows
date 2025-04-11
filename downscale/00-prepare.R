@@ -361,7 +361,7 @@ if (any(is.na(anchor_sites_with_ids |> select(site_id, lat, lon)))) {
   )
 }
 
-# Check that all anchor sites have covariates
+# Check for anchor sites with any covariate missing
 n_missing <- anchor_sites_with_ids |>
   left_join(site_covariates, by = "site_id") |>
   dplyr::select(
