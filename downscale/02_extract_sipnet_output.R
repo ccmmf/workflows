@@ -280,7 +280,6 @@ ncvar_put(nc_out, soc_ncvar, ens_arrays[["TotSoilCarb"]])
 
 # Get Run metadata from log filename
 # ??? is there a more reliable way to do this?
-# TODO try parsing STATUS file
 forecast_time <- readr::read_tsv(
     file.path(basedir, 'output', "STATUS"),
     col_names = FALSE
