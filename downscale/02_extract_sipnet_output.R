@@ -108,7 +108,7 @@ ens_results <- furrr::future_pmap_dfr(
             dataframe = TRUE,
             verbose = FALSE
         ) |>
-            dplyr::mutate(site_id = site_id, ensemble = as.numeric(ens)) |>
+            dplyr::mutate(site_id = .env$site_id, ensemble = as.numeric(.env$ens)) |>
             dplyr::rename(time = posix)
     },
     .options = furrr::furrr_options(seed = TRUE)
@@ -280,7 +280,6 @@ ncvar_put(nc_out, soc_ncvar, ens_arrays[["TotSoilCarb"]])
 
 # Get Run metadata from log filename
 # ??? is there a more reliable way to do this?
-# TODO try parsing STATUS file
 forecast_time <- readr::read_tsv(
     file.path(basedir, 'output', "STATUS"),
     col_names = FALSE
