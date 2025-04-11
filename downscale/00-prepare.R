@@ -277,13 +277,6 @@ PEcAn.logger::logger.info(
 
 readr::write_csv(site_covariates, file.path(data_dir, "site_covariates.csv"))
 
-# Final output for targets; if not in targets, suppress return
-if (exists("IN_TARGETS") && IN_TARGETS) {
-  site_covariates
-} else {
-  invisible(site_covariates)
-}
-
 #'
 #' ## Anchor Sites
 #'

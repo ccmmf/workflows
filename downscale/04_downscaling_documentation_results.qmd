@@ -275,6 +275,10 @@ county_summaries <- county_summaries |>
    dplyr::select(`Carbon Pool`, `County`, `Mean Total C (Tg/ county)`, `Mean C Density (kg/ha)`)
 
 # Create Table
+# TODO 
+#  - Fix point w/ missing county
+#  - Add n to table
+
 htmlwidgets::setWidgetIdSeed(123) # required to embed table self-contained in html
 options(htmlwidgets.TEMP_DIR = "htmlwidgets")
 

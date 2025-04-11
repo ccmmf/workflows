@@ -166,14 +166,14 @@ for (var in variables) {
     ens_arrays[[var]] <- arr
 }
 
-saveRDS(ens_arrays, file = file.path(outdir, "efi_ens_arrays.rds"))
+saveRDS(ens_arrays, file = file.path(outdir, "ensemble_output.rds"))
 
 # --- 2. Create EFI Standard v1.0 long format data frame ---
 efi_long <- ens_results |>
     rename(datetime = time) |>
     select(datetime, site_id, ensemble, variable, prediction)
 
-readr::write_csv(efi_long, file.path(outdir, "efi_ens_long.csv"))
+readr::write_csv(efi_long, file.path(outdir, "ensemble_output.csv"))
 
 ####--- 3. Create EFI Standard v1.0 NetCDF files
 library(ncdf4)
@@ -256,7 +256,7 @@ nc_vars <- list(
     TotSoilCarb = soc_ncvar
 )
 
-nc_file <- file.path(outdir, "efi_forecast.nc")
+nc_file <- file.path(outdir, "ensemble_output.nc")
 
 if (file.exists(nc_file)) {    
     file.remove(nc_file)
@@ -289,6 +289,7 @@ forecast_time <- readr::read_tsv(
     pull(X3)
 forecast_iteration_id <- as.numeric(forecast_time) # or is run_id available?
 obs_flag <- 0
+
 ncatt_put(nc_out, 0, "model_name", settings$model$type) 
 ncatt_put(nc_out, 0, "model_version", settings$model$revision)
 ncatt_put(nc_out, 0, "iteration_id", forecast_iteration_id)
@@ -298,4 +299,4 @@ ncatt_put(nc_out, 0, "creation_date", format(Sys.time(), "%Y-%m-%d"))
 # Close the netCDF file.
 nc_close(nc_out)
 
-PEcAn.logger::logger.info("EFI-compliant netCDF file 'efi_forecast.nc' created.")
+PEcAn.logger::logger.info("EFI-compliant netCDF file 'ensemble_output.nc' created.")
