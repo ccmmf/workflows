@@ -20,7 +20,9 @@
 #' - Clean up domain code
 #' - Create a bunch of tables and join all at once at the end
 #' - Disambiguate the use of 'ca' in object names; currently refers to both California and Cal-Adapt
-
+#' - decide if we need both Ameriflux shortnames and full names in anchor_sites.csv
+#'    (prob. yes, b/c both are helpful); if so, come up w/ better name than 'location'
+#' - make sure anchor_sites_ids.csv fields are defined in README 
 library(tidyverse)
 library(sf)
 library(terra)
@@ -382,5 +384,10 @@ if (n_missing > 0) {
 anchor_sites_with_ids |>
   sf::st_drop_geometry() |>
   dplyr::select(site_id, lat, lon, external_site_id, site_name, crops, pft) |>
+  # save lat, lon with 5 decimal places 
+  dplyr::mutate(
+    lat = round(lat, 5),
+    lon = round(lon, 5)
+  ) |>
   readr::write_csv(file.path(data_dir, "anchor_sites_ids.csv"))
 
