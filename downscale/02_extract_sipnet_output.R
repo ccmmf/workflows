@@ -108,7 +108,7 @@ ens_results <- furrr::future_pmap_dfr(
             dataframe = TRUE,
             verbose = FALSE
         ) |>
-            dplyr::mutate(site_id = site_id, ensemble = as.numeric(ens)) |>
+            dplyr::mutate(site_id = .env$site_id, ensemble = as.numeric(.env$ens)) |>
             dplyr::rename(time = posix)
     },
     .options = furrr::furrr_options(seed = TRUE)
