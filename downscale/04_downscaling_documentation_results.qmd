@@ -54,90 +54,6 @@ It reads in the LandIQ crop map, anchor sites, and environmental covariates, and
 - Groups fields into Cal-Adapt climate regions.
 - Assigns anchor sites to fields.
 
-**Software Requirements:**
-
-**Software:**
-
-Modules
-
-```{bash eval = FALSE}
-# Load system modules
-module load R/4.4.0 quarto/1.2.313 \
-  gdal/3.10.2 proj/9.5.1 geos/3.13.1
-```
-
-R Packages
-
-Spatial Data
-- sf
-- terra
-
-Analysis
-- PEcan.all 
-- randomForest (for random forest modeling)
-- factoextra
-
-Plotting
-- knitr (for rendering tables)
-- patchwork (for combining ggplot2 plots)
-- viridis (for color scales in ggplot2)
-
-Utilities
-- tidyverse (includes dplyr, ggplot2, readr, purrr, etc.)
-- parallel
-- remotes
-- here
-- lubridate
-- furrr (for parallelized purrr functions)
-- cluster
-- pathviewr
-- skimr
-
-```{r eval = FALSE}
-# Define R repositories 
-options(repos = c(
-  # https://pecanproject.github.io/pecan-documentation/develop/r-universe.html
-  pecanproject = 'https://pecanproject.r-universe.dev',
-  # ropensci     = 'https://ropensci.r-universe.dev',
-  ajlyons      = 'https://ajlyons.r-universe.dev', # caladaptr
-  CRAN         = 'https://cloud.r-project.org'))
-
-# Install CRAN packages
-
-install.packages(c(
-  # Utilities
-  "knitr", "tidyverse", "parallel", "here", "lubridate", "furrr", "cluster", "pathviewr", "caladaptr", "skimr",
-
-  # Analysis
-  "PEcAn.all", "randomForest", "factoextra",
-  "sf", "terra",
-
-  # Plotting
- "patchwork", "viridis"
-
-))
-
-# Install PEcAn modules from GitHub (with specific branch names)
-# This is to use features that are still under development
-remotes::install_github("PecanProject/pecan@ensemble_downscaling", 
-  subdir = "modules/assim.sequential", upgrade = FALSE)
-remotes::install_github("PecanProject/pecan@shp2gpkg", 
-   subdir = "modules/data.land", upgrade = FALSE)
-# Should probably move to using renv
-# Initialize renv if not already done
-# if (!file.exists("renv.lock")) {
-#  renv::init(bare = TRUE)
-# }
-
-# Install PEcAn modules from specific branch on GitHub
-# renv::install("PecanProject/pecan@ensemble_downscaling", 
-  subdir = "modules/assim.sequential")
-# renv::install("PecanProject/pecan@shp2gpkg", 
-  subdir = "modules/data.land")
-
-# Snapshot the environment to lock dependencies
-# renv::snapshot()
-```
 
 **Inputs:**
 
@@ -322,13 +238,14 @@ The following plots show the variable importance from the random forest models u
 
 Variable importance quantifies how useful each covariate is in predicting the carbon stock<!-- or ghg flux-->. Partial dependence plots show the marginal effect of individual predictors on model response after averaging over the other predictors.
 
-#### TotSoilCarb - Importance and Partial Dependence
+#### Variable Importance and Partial Dependence
 
 ![](figures/TotSoilCarb_importance_partial_plots.png)
 
 #### AGB - Importance and Partial Dependence
 
 ![](figures/AGB_importance_partial_plots.png)
+
 
 ### Searchable Table
 

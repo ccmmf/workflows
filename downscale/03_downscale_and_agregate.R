@@ -21,9 +21,7 @@ library(sf)
 library(terra)
 library(furrr)
 library(patchwork) # for combining plots
-
-no_cores <- parallel::detectCores(logical = FALSE)
-plan(multicore, workers = no_cores - 1)
+library(pdp)       # for computing partial dependence plots
 
 library(PEcAnAssimSequential)
 datadir <- "/projectnb/dietzelab/ccmmf/data"
@@ -31,6 +29,7 @@ basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859"
 settings <- PEcAn.settings::read.settings(file.path(basedir, "settings.xml"))
 outdir <- file.path(basedir, settings$modeloutdir)
 options(readr.show_col_types = FALSE)
+set.seed(123)
 
 
 #' ## Get Site Level Outputs
@@ -140,7 +139,7 @@ ens_county_preds <- downscale_preds |>
   ) |>
   ungroup() |>
   mutate(
-    c_density = PEcAn.utils::ud_convert(total_c / total_ha, "Tg/ha", "kg/m2")
+    c_density = total_c / total_ha
   ) |>
   arrange(carbon_pool, county, ensemble)
 
@@ -250,85 +249,77 @@ importance_summary <- map_dfr(cpools, function(cp) {
   summary_df
 })
 
-# Create importance plot
-p_importance <- ggplot(importance_summary, aes(x = reorder(predictor, median_importance), y = median_importance)) +
-  geom_errorbar(aes(ymin = lcl_importance, ymax = ucl_importance), width = 0.2, color = "gray50") +
-  geom_point(size = 4, color = "steelblue") +
-  coord_flip() +
-  facet_wrap(~carbon_pool, scales = "free_y") +
-  labs(
-    title = "Variable Importance",
-    x = "Predictor",
-    y = "Median Increase MSE (SD)"
-  ) +
-  theme_minimal()
-
-# Save importance plot
-ggsave(p_importance, filename = here::here("downscale/figures", "importance_summary.png"),
-  width = 10, height = 5, bg = "white"
-)
-
 # Now create and save combined importance + partial plots for each carbon pool
 for (cp in cpools) {
-  # Find top 2 predictors for this carbon pool
-  top_predictors <- importance_summary |>
-    filter(carbon_pool == cp) |>
-    arrange(desc(median_importance)) |>
-    slice_head(n = 2) |>
-    pull(predictor)
   
-  # Set up a 3-panel plot
-  png(filename = here::here("downscale/figures", paste0(cp, "_importance_partial_plots.png")),
-      width = 14, height = 6, units = "in", res = 300, bg = "white")
+  # Filter importance data for carbon pool cp
+  cp_importance <- importance_summary |>
+    dplyr::filter(carbon_pool == cp)
   
-  par(mfrow = c(1, 3))
+  # Select top 2 predictors
+  top_predictors <- cp_importance |>
+    dplyr::arrange(dplyr::desc(median_importance)) |>
+    dplyr::slice_head(n = 2) |>
+    dplyr::pull(predictor)
   
-  # Panel 1: Show only this carbon pool's importance plot
-  # Extract just this carbon pool's data
-  cp_importance <- importance_summary |> filter(carbon_pool == cp)
+  # Build variable importance plot for carbon pool cp
+  p_importance_cp <- ggplot2::ggplot(cp_importance, 
+                                     ggplot2::aes(x = reorder(predictor, median_importance),
+                                                  y = median_importance)) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = lcl_importance, ymax = ucl_importance),
+                           width = 0.2, color = "gray50") +
+    ggplot2::geom_point(size = 4, color = "steelblue") +
+    ggplot2::coord_flip() +
+    ggplot2::labs(title = paste("Variable Importance -", cp),
+                  x = "Predictor",
+                  y = "Median Increase MSE (SD)") +
+    ggplot2::theme_minimal()
   
-  # Create importance plot for just this carbon pool
-  par(mar = c(5, 10, 4, 2)) # Adjust margins for first panel
-  with(cp_importance, 
-       dotchart(median_importance, 
-                labels = reorder(predictor, median_importance),
-                xlab = "Median Increase MSE (SD)",
-                main = paste("Variable Importance -", cp),
-                pch = 19, col = "steelblue", cex = 1.2))
-  
-  # Add error bars
-  with(cp_importance, 
-       segments(lcl_importance, 
-                seq_along(predictor), 
-                ucl_importance, 
-                seq_along(predictor),
-                col = "gray50"))
-  
-  # Panels 2 & 3: Create partial plots for top 2 predictors
   model <- downscale_output_list[[cp]][["model"]][[1]]
   
-  # First top predictor partial plot
-  par(mar = c(5, 5, 4, 2)) # Reset margins for other panels
-  randomForest::partialPlot(model, 
-                           pred.data = covariates, 
-                           x.var = top_predictors[1], 
-                           main = paste("Partial Dependence Plot for", top_predictors[1]),
-                           xlab = top_predictors[1], 
-                           ylab = paste("Predicted", cp),
-                           col = "steelblue", 
-                           lwd = 2)
+  # Bin top predictors in covariates to make partial dependence faster
+  # Covariates is ~400k rows, so binning will speed up the process
+  binned_covariates_df <- covariates |>
+    dplyr::mutate(dplyr::across(dplyr::all_of(top_predictors), ~ cut(.x, breaks = 100, labels = FALSE))) |>
+    as.data.frame()
   
-  # Second top predictor partial plot
-  randomForest::partialPlot(model, 
-                           pred.data = covariates, 
-                           x.var = top_predictors[2], 
-                           main = paste("Partial Dependence Plot for", top_predictors[2]),
-                           xlab = top_predictors[2], 
-                           ylab = paste("Predicted", cp),
-                           col = "steelblue", 
-                           lwd = 2)
+  # Compute partial dependence for the top predictors,
+  # explicitly supplying the predict function via an anonymous function.
+  pd1 <- pdp::partial(object = model,
+                 pred.var = top_predictors[1],
+                 train = binned_covariates_df,
+                 grid.resolution = 10,
+                 .f = function(object, newdata) stats::predict(object, newdata))
   
-  dev.off()
+  pd2 <- as.data.frame(
+    pdp::partial(object = model,
+                 pred.var = top_predictors[2],
+                 train = binned_covariates_df,
+                 grid.resolution = 10,
+                 .f = function(object, newdata) stats::predict(object, newdata))
+  )
+  
+  # Build ggplot-based partial dependence plots for each top predictor
+  p_pd1 <- ggplot2::ggplot(pd1, ggplot2::aes(x = !!sym(top_predictors[1]), y = yhat)) +
+    ggplot2::geom_line(linewidth = 1.2, color = "steelblue") +
+    ggplot2::labs(title = paste("Partial Dependence for", top_predictors[1]),
+                  x = top_predictors[1],
+                  y = paste("Predicted", cp)) +
+    ggplot2::theme_minimal()
+  
+  p_pd2 <- ggplot2::ggplot(pd2, ggplot2::aes(x = !!sym(top_predictors[2]), y = yhat)) +
+    ggplot2::geom_line(linewidth = 1.2, color = "steelblue") +
+    ggplot2::labs(title = paste("Partial Dependence for", top_predictors[2]),
+                  x = top_predictors[2],
+                  y = paste("Predicted", cp)) +
+    ggplot2::theme_minimal()
+  
+  # Combine the importance and partial dependence plots using patchwork
+  combined_plot <- p_importance_cp + p_pd1 + p_pd2 + 
+    patchwork::plot_layout(ncol = 3)
+  
+   ggplot2::ggsave(filename = here::here("downscale/figures", paste0(cp, "_importance_partial_plots.png")),
+                  plot = combined_plot,
+                  width = 14, height = 6, bg = "white")
+  
 }
-
-print(p_importance)

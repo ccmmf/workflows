@@ -18,27 +18,25 @@
 ## ----setup--------------------------------------------------------------------
 # general utilities
 library(tidyverse)
-
 # spatial
 library(sf)
 library(terra)
-
+library(caladaptr) # to plot climate regions
 # parallel computing
-library(cluster)
-library(factoextra)
-library(pathviewr) #???
 library(furrr)
 library(doParallel)
 library(dplyr)
+# analysis
+library(cluster)
+library(factoextra)
+library(pathviewr) #???
 
-library(caladaptr) # to plot climate regions
+# plotting
+library(GGally)
 
-# Set up parallel processing with a safe number of cores
-no_cores <- parallel::detectCores(logical = FALSE)
-plan(multicore,  workers = no_cores - 2)
-options(future.globals.maxSize = benchmarkme::get_ram() * 0.9)
+# settings
+set.seed(42)
 ca_albers_crs <- 3310 # use California Albers project (EPSG:3310) for speed,
-
 data_dir <- "/projectnb/dietzelab/ccmmf/data"
 #'
 #' ## Load Site Environmental Data Covariates
@@ -58,7 +56,7 @@ data_dir <- "/projectnb/dietzelab/ccmmf/data"
 
 site_covariates_csv <- file.path(data_dir, "site_covariates.csv")
 site_covariates <- readr::read_csv(site_covariates_csv) 
-file.exists(site_covariates_csv)
+
 #' ## Anchor Site Selection
 #'
 #' Load Anchor Sites from UC Davis, UC Riverside, and Ameriflux.
@@ -86,8 +84,9 @@ ggsave(p, filename = "downscale/figures/anchor_sites.png", dpi = 300, bg = "whit
 
 anchorsites_for_clust <-
   anchor_sites_with_ids |>
-  select(-pft) |>  # for consistency, only keep pfts from site_covariates
-  left_join(site_covariates, by = 'site_id') 
+  select(-pft) |>                                             
+  left_join(site_covariates, by = 'site_id')                  
+  
   
 #'
 #' ### Subset LandIQ fields for clustering
@@ -99,7 +98,6 @@ anchorsites_for_clust <-
 #' - Bind anchor sites back to the dataset
 #'
 ## ----subset-for-clustering----------------------------------------------------
-set.seed(42) # Set seed for random number generator for reproducibility
 # 10k works
 # 2k sufficient for testing
 sample_size <- 10000
@@ -126,12 +124,21 @@ skimr::skim(data_for_clust)
 #' 
 #' ### K-means Clustering
 #' 
-#' First, create a function `perform_clustering` to perform hierarchical k-means and find optimal clusters.
-#' 
-#' K-means on the numeric columns (temp, precip, clay, possibly ignoring 'crop'
-#' or treat 'crop' as categorical by some encoding if needed).
-#' 
-## ----k-means-clustering-function----------------------------------------------
+#' K-means on the numeric columns of covariates 
+#' Full list printed in message; currently (temp, precip, srad, vapr, clay, ocd, twi)
+#' could include 'crop' as categorical with one-hot encoding) i.e.
+#' crop1 crop2 crop3
+#' 0     1    0
+#' 1     0    0
+#' by changing function below w/ 
+# perform_clustering <- function(data, k_range = 2:20) {
+  # Perform one-hot encoding for the 'crop' variable
+  # encoded_crop <- model.matrix(~ crop - 1, data = data)
+  # clust_data <- data |>
+  #   select(where(is.numeric), -ends_with("id")) |>
+  #   cbind(encoded_crop)
+  # extract metrics
+
 
 perform_clustering <- function(data, k_range = 2:20) {
   # Select numeric variables for clustering
@@ -161,7 +168,9 @@ perform_clustering <- function(data, k_range = 2:20) {
     },
     .options = furrr_options(seed = TRUE)
   )
-  # extract metrics
+
+
+
   metrics_df <- data.frame(
     # see also https://github.com/PecanProject/pecan/blob/b5322a0fc62760b4981b2565aabafc07b848a699/modules/assim.sequential/inst/sda_backup/bmorrison/site_selection/pick_sda_sites.R#L221
     k = k_range,
@@ -213,7 +222,8 @@ perform_clustering <- function(data, k_range = 2:20) {
 #' Apply clustering function to the sampled dataset.
 #' 
 ## ----clustering, eval=FALSE---------------------------------------------------
-# 
+
+PEcAn.logger::logger.info("Starting clustering")
 sites_clustered <- perform_clustering(data_for_clust, k = 5:15)
 
 #'
@@ -228,13 +238,13 @@ cluster_summary <- sites_clustered |>
 knitr::kable(cluster_summary, digits = 0)
 
 # Plot all pairwise numeric variables
-library(GGally)
 ggpairs_plot <- sites_clustered |>
   select(-site_id) |>
   # need small # pfts for ggpairs
   sample_n(1000) |>
   ggpairs(
-    columns = c(1, 2, 4, 5, 6) + 1,
+    # plot all values except site_id and cluster
+    columns = setdiff(names(sites_clustered), c("site_id", "cluster")),
     mapping = aes(color = as.factor(cluster), alpha = 0.8)
   ) +
   theme_minimal()
@@ -273,17 +283,21 @@ ggsave(cluster_plot, filename = "downscale/figures/cluster_plot.png", dpi = 300)
 # Check stratification of clusters by categorical factors
 
 # cols should be character, factor
-crop_ids <- read_csv(file.path(data_dir, "crop_ids.csv"),
-                     col_types = cols(
-                       crop_id = col_factor(),
-                       crop = col_character())
-                       )
-climregion_ids <- read_csv(file.path(data_dir, "climregion_ids.csv"),
-                           col_types = cols(
-                             climregion_id = col_factor(),
-                             climregion_name = col_character()
-                           ))
+crop_ids <- read_csv(
+  file.path(data_dir, "crop_ids.csv"),
+  col_types = cols(
+    crop_id = col_factor(),
+    crop = col_character()
+  )
+)
 
+climregion_ids <- read_csv(
+  file.path(data_dir, "climregion_ids.csv"),
+  col_types = cols(
+    climregion_id = col_factor(),
+    climregion_name = col_character()
+  )
+)
 
 ## ----stratification-----------------------------------------------------------
 # The goal here is to check the stratification of the clusters by crop and climregion
@@ -351,7 +365,6 @@ ca_fields <- sf::st_read(file.path(data_dir, "ca_fields.gpkg"))
 ## ----design-point-selection---------------------------------------------------
 # From the clustered data, remove anchor sites to avoid duplicates in design point selection.
 
-set.seed(2222222)
 design_points_ids <- sites_clustered |>
   filter(!site_id %in% anchorsites_for_clust$site_id) |>
   select(site_id)  |>

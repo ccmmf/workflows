@@ -1,3 +1,13 @@
+# This file processess the output from SIPNET ensemble runs and generates
+# three different data formats that comply with Ecological Forecasting Initiative 
+# (EFI) standard:
+# 1. A 4-D array (time, site, ensemble, variable)
+# 2. A long format data frame (time, site, ensemble, variable)
+# 3. A NetCDF file (time, site, ensemble, variable)
+# This code can be moved to PEcAn.utils as one or more functions
+# I did this so that I could determine which format is easiest to work with
+# For now, I am planning to work with the CSV format
+# TODO: write out EML metadata in order to be fully EFI compliant
 library(PEcAn.logger)
 library(lubridate)
 library(dplyr)
@@ -5,18 +15,15 @@ library(ncdf4)
 library(furrr)
 library(stringr)
 
-no_cores <- parallel::detectCores(logical = FALSE)
-plan(multicore, workers = no_cores - 1)
-
 # Define base directory for ensemble outputs
-basedir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859"
+modeloutdir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859"
 
 # Read settings file and extract run information
-settings <- PEcAn.settings::read.settings(file.path(basedir, "settings.xml"))
-outdir <- file.path(basedir, settings$modeloutdir)
+settings <- PEcAn.settings::read.settings(file.path(modeloutdir, "settings.xml"))
+outdir <- file.path(modeloutdir, settings$modeloutdir)
 ensemble_size <- settings$ensemble$size |>
     as.numeric()
-start_date <- settings$run$settings.1$start.date # TODO make this unique for each site
+start_date <- settings$run$settings.1$start.date
 start_year <- lubridate::year(start_date)
 end_date <- settings$run$settings.1$end.date
 end_year <- lubridate::year(end_date)
@@ -64,7 +71,6 @@ variables <- c("AGB", "TotSoilCarb")
 #' | AGB                           | Total aboveground biomass                |
 #' | time_bounds                   | history time interval endpoints          |
 
-# Preallocate 3-D array for 98 sites, 2 variables, and 20 ensemble members
 site_ids <- design_points |>
     pull(site_id) |>
     unique()
@@ -87,7 +93,9 @@ if (!all(existing_dirs)) {
     PEcAn.logger::logger.warn("Missing expected ensemble directories: ", paste(missing_dirs, collapse = ", "))
 }
 
-# extract output via read.output
+# extract output via PEcAn.utils::read.output
+# temporarily suppress logging or else it will print a lot of file names
+logger_level <- PEcAn.logger::logger.setLevel("OFF")
 ens_results <- furrr::future_pmap_dfr(
     ens_dirs,
     function(ens, site_id, dir) {
@@ -106,11 +114,14 @@ ens_results <- furrr::future_pmap_dfr(
     .options = furrr::furrr_options(seed = TRUE)
 ) |>
     group_by(ensemble, site_id, year) |>
-    filter(year <= end_year) |>
+    #filter(year <= end_year) |> # not sure why this was necessary; should be taken care of by read.output
     filter(time == max(time)) |> # only take last value
     ungroup() |>
     arrange(ensemble, site_id, year)  |> 
     tidyr::pivot_longer(cols = all_of(variables), names_to = "variable", values_to = "prediction")
+
+# restore logging
+logger_level <- PEcAn.logger::logger.setLevel(logger_level)
 
 ## Create Ensemble Output For Downscaling
 ## Below, three different output formats are created:
@@ -269,21 +280,20 @@ ncvar_put(nc_out, soc_ncvar, ens_arrays[["TotSoilCarb"]])
 
 # Get Run metadata from log filename
 # ??? is there a more reliable way to do this?
-logfile <- dir(basedir, pattern = "log$")
-pattern <- "([0-9]{14})_([0-9]+)\\.log$"
-forecast_time_string <- stringr::str_match(logfile, "[0-9]{12}")
-if (is.na(forecast_time_string)) {
-    PEcAn.logger::logger.error("Unable to extract forecast time from log filename.")
-}
-forecast_iteration_id <- forecast_time_string # or ?
-forecast_time <- lubridate::as_datetime(forecast_time_string, format = "%Y%m%d%H%M%S")
+# TODO try parsing STATUS file
+forecast_time <- readr::read_tsv(
+    file.path(basedir, 'output', "STATUS"),
+    col_names = FALSE
+) |>
+    filter(X1 == "FINISHED") |>
+    pull(X3)
+forecast_iteration_id <- as.numeric(forecast_time) # or is run_id available?
 obs_flag <- 0
-
-ncatt_put(nc_out, 0, "model_name", "SIPNET")
-ncatt_put(nc_out, 0, "model_version", "v1.3")
+ncatt_put(nc_out, 0, "model_name", settings$model$type) 
+ncatt_put(nc_out, 0, "model_version", settings$model$revision)
 ncatt_put(nc_out, 0, "iteration_id", forecast_iteration_id)
-ncatt_put(nc_out, 0, "forecast_time", format(forecast_time, "%Y-%m-%d %H:%M:%S"))
-ncatt_put(nc_out, 0, "obs_flag", 0)
+ncatt_put(nc_out, 0, "forecast_time", forecast_time)
+ncatt_put(nc_out, 0, "obs_flag", obs_flag)
 ncatt_put(nc_out, 0, "creation_date", format(Sys.time(), "%Y-%m-%d"))
 # Close the netCDF file.
 nc_close(nc_out)
