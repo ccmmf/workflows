@@ -256,7 +256,6 @@ site_allom_C <- site_age |>
     crop_code == "D14" ~ "pistachio",
     TRUE ~ NA_character_
   )) |>
-  # TODO want to do anything other than drop sites with nontarget species?
   filter(!is.na(species)) |>
   group_by(species) |>
   mutate(
