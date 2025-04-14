@@ -1,5 +1,9 @@
 #!/usr/bin/env Rscript
 
+# Creates initial condition (IC) files for each location in site_info,
+# using values from data_dir if they are already present,
+# or looking them up and writing them to data_dir if they are not.
+
 ## ---------------------------------------------------------
 # Inputs: Update these for your site(s)
 
@@ -26,7 +30,7 @@ ic_outdir <- "IC_files"
 # on the ceoas server at the moment.
 # TODO find out whether this is available from a supported source.
 #
-# Here I am using a subset (just year 2016 clipped to the CA state boundaries)
+# Here I am using a subset (year 2016 clipped to the CA state boundaries)
 # of the 30-m CONUS median and stdev maps that are stored on the Dietze lab
 # server.
 #

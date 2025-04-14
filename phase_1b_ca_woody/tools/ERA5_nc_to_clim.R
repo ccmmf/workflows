@@ -1,6 +1,13 @@
 #!/usr/bin/env Rscript
 
-## --------- edit for your system and site ----------------------------
+# Converts ERA5 meteorology data from PEcAn's standard netCDF format
+# to Sipnet `clim` driver files.
+
+# This is basically a thin wrapper around `met2model.SIPNET()`.
+# Only the filenames are specific to ERA5 by assuming each file is named
+# "ERA5.<ens_id>.<year>nc" with ens_id between 1 and 10.
+
+## --------- edit this section for your system and simulation ---------
 
 # Path to your existing ERA5 data in PEcAn CF format:
 # Single site, single-year netcdfs, in subdirectories per ensemble member.

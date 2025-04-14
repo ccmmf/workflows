@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Sends a set of PEcAn ensemble simulations to the scheduler,
+# formatted as a Slurm array job.
+
+# Invoked by PEcAn as part of start.model.runs(),
+# at the end of a pretty complicated setup process,
+# when configured to do so via settings$host$modellauncher.
+
+# See PEcAn docs for the gory details and don't bother attempting to
+# call this script directly :)
+
+
 launchdir=$(dirname "$1")
 logfile="$launchdir"/slurm_submit_log.txt
 joblistfile="$launchdir"/joblist.txt

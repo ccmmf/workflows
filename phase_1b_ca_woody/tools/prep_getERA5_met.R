@@ -1,41 +1,15 @@
 #!/usr/bin/env Rscript
 
-## --------- edit for your system and site ----------------------------
+# Converts raw ERA5 ensemble netCDFs to PEcAn-standard met format,
+# then from PEcAn-standard to Sipnet `clim` driver format.
 
-# Path to your existing ERA5 data
-#
-# These should be whole-year ensemble netcdfs as downloaded from ECWMF,
-# with dimensions (latitude, longitude, number [aka ensemble member], time).
-# Files must be named '<raw_era5_path>/ERA5_<year>.nc'
-#
-# In concept you can download these using
-# `PEcAn.data.atmosphere::download.ERA5.old()`, but in practice the ECMWF API
-# has changed and we are waiting for it to stabilize again before we devote
-# time to update the code.
-# Meanwhile, consider manually downloading locations/years of interest via web:
-# https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
-raw_era5_path <- "/projectnb/dietzelab/dongchen/anchorSites/ERA5"
-
-
-# Path to save intermediate format:
-# Single site, single-year netcdfs, in subdirectories per ensemble member.
-# Files named '<site_era5_path>/ERA5_<siteid>_<ensid>/ERA5.<ensid>.<year>.nc'
-site_era5_path <- "/projectnb/dietzelab/chrisb/ERA5_nc"
-
-# Output path:
-# single-site, multi-year Sipnet clim files, one per ensemble member.
-# Files named <site_sipnet_met_path>/<siteid>/ERA5.<ensid>.<start>.<end>.clim
-site_sipnet_met_path <- "/projectnb/dietzelab/chrisb/ERA5_SIPNET"
-
-# location and time to extract
-site_info <- read.csv("site_info.csv")
-site_info$start_date <- "2016-01-01"
-site_info$end_date <- "2024-12-31"
-
+# This was used (via wrapper script `run_ERA5_met_extract.sh`) to generate the met files
+# provided in cccmmf_phase_1b_input_artifacts.tgz, and is not expected to need
+# to be rerun unless adding new sites or extending the simulation dates.
 
 # Usage notes:
 # I'm hoping this is a one-off, so I ran it on the BU cluster
-# (because that's where the raw files are) without trying to
+# (because that's where our copy of the raw files sites) without trying to
 # generalize to Slurm.
 #
 # 0. setup:
@@ -52,7 +26,7 @@ site_info$end_date <- "2024-12-31"
 #   cd /projectnb/dietzelab/chrisb/ccmmf/workflows/phase_1b_ca_woody/
 #   module load R
 #   Rscript tools/make_site_info_csv.R
-#   time Rscript tools/prep_getERA5_met.R
+#   time Rscript tools/ERA5_met_extract.R
 # I should have called `screen` first to protect against connection timeouts.
 # It ran for about 4 hours, apparently extracting about one site per hour,
 # then terminated when my session dropped.
@@ -60,8 +34,49 @@ site_info$end_date <- "2024-12-31"
 # 2. Batch job
 # I modified the script below to run in parallel if there are cores available,
 # then put module commands and SGE directives into a quick bash script:
-# qsub tools/run_getERA5.sh
+# qsub tools/run_ERA5_met_extract.sh
 
+
+
+## --------- edit this section for your system and simulation ---------
+
+# Path to your existing ERA5 data
+#
+# These should be whole-year ensemble netcdfs as downloaded from ECWMF,
+# with dimensions (latitude, longitude, number [aka ensemble member], time).
+# Files must be named '<raw_era5_path>/ERA5_<year>.nc'
+#
+# In concept you can download these using
+# `PEcAn.data.atmosphere::download.ERA5.old()`, but in practice the ECMWF API
+# has changed and we are waiting for it to stabilize again before we devote
+# time to update the code.
+# Meanwhile, consider manually downloading locations/years of interest via web:
+# https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
+raw_era5_path <- "/projectnb/dietzelab/dongchen/anchorSites/ERA5"
+
+
+# Path to save PEcAn met format
+#
+# These are single site, single-year netcdfs placed in subdirectories per
+# ensemble member.
+# Files have dimensions (lat, lon, time), with only one lat and lon per file;
+# note that ensemble number is tracked only in the filename and not in the
+# netCDF metadata.
+# Files are named
+#  '<site_era5_path>/ERA5_<siteid>_<ensid>/ERA5.<ensid>.<year>.nc'
+site_era5_path <- "/projectnb/dietzelab/chrisb/ERA5_nc"
+
+# Path to save Sipnet format
+#
+# These are single-site, multi-year Sipnet clim files, one per ensemble member.
+# Files are tab-delimited ASCII test with no header and are named
+#  <site_sipnet_met_path>/<siteid>/ERA5.<ensid>.<start>.<end>.clim
+site_sipnet_met_path <- "/projectnb/dietzelab/chrisb/ERA5_SIPNET"
+
+# location and time to extract
+site_info <- read.csv("site_info.csv")
+site_info$start_date <- "2016-01-01"
+site_info$end_date <- "2024-12-31"
 
 future::plan("multisession", workers = as.numeric(Sys.getenv("NSLOTS")) - 1)
 

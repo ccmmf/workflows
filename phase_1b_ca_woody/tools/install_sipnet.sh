@@ -3,6 +3,14 @@
 #SBATCH -n1
 #SBATCH --time=00:10:00
 
+# Compiles Sipnet with support for management events,
+# adds revision hash to the binary name,
+# and creates a symlink to it in your workdir or bindir of choice.
+
+# Usage:
+#  install_sipnet.sh path/to/repo/ path/to/bin/ path/to/symlinked/sipnet
+# All paths will be created if needed; link will be overwritten if extant
+
 set -e
 
 SIPNET_DIR=${1:-~/sipnet}
