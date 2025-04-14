@@ -217,7 +217,7 @@ agb_with_lt |>
 Here we use a set of allometric equations for almonds, walnuts, pistachios,
 and oranges developed by CARB as part of the 2018 NWL Inventory.
 
-Note that at least for this set of design points, no sites were specifically
+Note that at least for this set of design points, no sites were categorized as
 as "oranges" (crop type C3) in the DWR crop map. We therefore treated all
 unspecified "citrus and subtropical" (crop type C) as oranges, but excluded
 sites specifically labeled as a non-orange subtropical crop;
