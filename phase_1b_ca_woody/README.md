@@ -86,10 +86,10 @@ srun --mem-per-cpu=5G --time=5:00:00 \
 
 Note that this requires 2023 LandTrendr outputs to be present in `data_raw/ca_composite_2023_median.tif`.
 
-I ran this locally after copying results back to my laptop; to run it on the cluster, prefix the command below with `module load r && srun`, and to include the compiled result in the output archive edit `output IC_files data/IC_prep` to  `output IC_files data/IC_prep notebooks/` in the archive step above.
+I ran this locally after copying results back to my laptop; to run it on the cluster, prefix the command below with `module load r && srun`, and to include the compiled result in the output archive edit `output IC_files data/IC_prep` to  `output IC_files data/IC_prep validate.html` in the archive step above.
 
 ```{sh}
-Rscript -e 'rmarkdown::render("notebooks/validate.Rmd")'
+Rscript -e 'rmarkdown::render("validate.Rmd")'
 ```
 
 
