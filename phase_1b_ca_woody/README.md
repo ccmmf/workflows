@@ -38,7 +38,7 @@ If this is a brand-new installation, expect this to take a few hours to download
 sbatch -o install_pecan.out ./tools/install_pecan.sh
 ```
 
-## Input prep: Copy artifacts and create IC files
+## Input prep: Copy artifacts and create Initial Condition (IC) files
 
 Copy in the provided input files:
 
