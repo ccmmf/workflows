@@ -121,7 +121,7 @@ abvgrdwood_23 <- abvgrdwood_23 |>
 point_buf <- site_info |>
   terra::vect(crs = "epsg:4326") |>
   terra::project(landtrendr_2023) |>
-  # TODO what is the right buffer distance to use here?
+  # TODO load field polygons and clip to those
   # For IC extraction I used 200m, but now suspect that will be large for some (many?) fields
   # terra::buffer(width = 200)
   terra::buffer(width = 90)
