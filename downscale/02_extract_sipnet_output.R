@@ -114,6 +114,12 @@ ens_results <- furrr::future_pmap_dfr(
             dplyr::mutate(site_id = .env$site_id, ensemble = as.numeric(.env$ens)) |>
             dplyr::rename(time = posix)
     },
+    # Avoids warning "future unexpectedly generated random numbers",
+    # which apparently originates from actions taken inside the `units` package
+    # when its namespace is loaded by ud_convert inside read.output.
+    # The warning is likely spurious, but looks scary and setting seed to
+    # silence it does not hurt anything. 
+    # Associated bug report: https://github.com/r-quantities/units/issues/409
     .options = furrr::furrr_options(seed = TRUE)
 ) |>
     group_by(ensemble, site_id, year) |>
