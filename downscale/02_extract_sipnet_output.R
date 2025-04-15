@@ -33,7 +33,7 @@ end_year <- lubridate::year(end_date)
 # data/design_points.csv
 design_pt_csv <- "https://raw.githubusercontent.com/ccmmf/workflows/46a61d58a7b0e43ba4f851b7ba0d427d112be362/data/design_points.csv"
 design_points <- readr::read_csv(design_pt_csv, show_col_types = FALSE) |>
-    rename(site_id = id) |> # fixed in more recent version of 01 script
+    rename(site_id = id) |> # TODO remove; has already been renamed in source file 
     dplyr::distinct()
 
 # Variables to extract
@@ -43,6 +43,9 @@ variables <- c("AGB", "TotSoilCarb")
 #' This list is from the YYYY.nc.var files, and may change, 
 #'   e.g. if we write out less information in order to save time and storage space
 #' See SIPNET parameters.md for more details
+#' PEcAn standard units follow Climate Forecasting standards: 
+#' Carbon and water pools are in units of kg / m2
+#' Fluxes are in units of kg / m2 / s-1
 #'
 #' | Variable                      | Description                              |
 #' |-------------------------------|------------------------------------------|
@@ -120,6 +123,8 @@ ens_results <- furrr::future_pmap_dfr(
     arrange(ensemble, site_id, year)  |> 
     tidyr::pivot_longer(cols = all_of(variables), names_to = "variable", values_to = "prediction")
 
+# After extraction, ens_results$prediction is in kg C m-2 for both AGB and TotSoilCarb
+
 # restore logging
 logger_level <- PEcAn.logger::logger.setLevel(logger_level)
 
@@ -166,14 +171,18 @@ for (var in variables) {
     ens_arrays[[var]] <- arr
 }
 
-saveRDS(ens_arrays, file = file.path(outdir, "ensemble_output.rds"))
+# ens_arrays: each array is [time, site, ensemble], values in kg C m-2
+
+saveRDS(ens_arrays, file = file.path(outdir, "ensemble_output.rds")) # units: kg C m-2
 
 # --- 2. Create EFI Standard v1.0 long format data frame ---
 efi_long <- ens_results |>
     rename(datetime = time) |>
     select(datetime, site_id, ensemble, variable, prediction)
+# NOTE: prediction is in kg C m-2
 
 readr::write_csv(efi_long, file.path(outdir, "ensemble_output.csv"))
+# Consider: write a README or add a comment about units in the CSV
 
 ####--- 3. Create EFI Standard v1.0 NetCDF files
 library(ncdf4)
@@ -218,13 +227,13 @@ dims <- list(time_dim, site_dim, ensemble_dim)
 # Define forecast variables:
 agb_ncvar <- ncvar_def(
     name = "AGB",
-    units = "kg C m-2",
+    units = "kg C m-2", # correct units
     dim = dims,
     longname = "Total aboveground biomass"
 )
 soc_ncvar <- ncvar_def(
     name = "TotSoilCarb",
-    units = "kg C m-2",
+    units = "kg C m-2", # correct units
     dim = dims,
     longname = "Total Soil Carbon"
 )
@@ -281,7 +290,7 @@ ncvar_put(nc_out, soc_ncvar, ens_arrays[["TotSoilCarb"]])
 # Get Run metadata from log filename
 # ??? is there a more reliable way to do this?
 forecast_time <- readr::read_tsv(
-    file.path(basedir, 'output', "STATUS"),
+    file.path(modeloutdir, 'output', "STATUS"),
     col_names = FALSE
 ) |>
     filter(X1 == "FINISHED") |>
@@ -299,3 +308,4 @@ ncatt_put(nc_out, 0, "creation_date", format(Sys.time(), "%Y-%m-%d"))
 nc_close(nc_out)
 
 PEcAn.logger::logger.info("EFI-compliant netCDF file 'ensemble_output.nc' created.")
+PEcAn.logger::logger.info("All ensemble outputs (RDS, CSV, NetCDF) are in kg C m-2 for AGB and TotSoilCarb.")

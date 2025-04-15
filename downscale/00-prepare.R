@@ -282,6 +282,7 @@ readr::write_csv(site_covariates, file.path(data_dir, "site_covariates.csv"))
 #'
 ## ----anchor-sites-------------------------------------------------------------
 # Anchor sites from UC Davis, UC Riverside, and Ameriflux.
+# TODO rename raw_data/anchor_sites --> anchor_locations.csv 
 anchor_sites <- readr::read_csv("data_raw/anchor_sites.csv")
 anchor_sites_pts <- anchor_sites |>
   sf::st_as_sf(coords = c("lon", "lat"), crs = 4326) |>
@@ -381,5 +382,5 @@ anchor_sites_with_ids |>
     lat = round(lat, 5),
     lon = round(lon, 5)
   ) |>
-  readr::write_csv(file.path(data_dir, "anchor_sites_ids.csv"))
+  readr::write_csv(file.path(data_dir, "anchor_sites.csv"))
 

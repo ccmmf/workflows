@@ -211,7 +211,6 @@ Builds a Random Forest model for each ensemble member of each output to predict 
 
 ## Results
 
-**County Carbon Stocks and Densities**
 ### County-Level Carbon Stock and Density Maps
 
 The following maps illustrate the spatial variation and uncertainty (mean and standard deviation) of the predicted carbon pools at the county level. 
@@ -238,6 +237,9 @@ The following plots show the variable importance from the random forest models u
 
 Variable importance quantifies how useful each covariate is in predicting the carbon stock<!-- or ghg flux-->. Partial dependence plots show the marginal effect of individual predictors on model response after averaging over the other predictors.
 
+![](figures/importance.png)
+
+<!--
 #### Variable Importance and Partial Dependence
 
 ![](figures/TotSoilCarb_importance_partial_plots.png)
@@ -246,44 +248,46 @@ Variable importance quantifies how useful each covariate is in predicting the ca
 
 ![](figures/AGB_importance_partial_plots.png)
 
-
+--->
 ### Searchable Table
 
 The table below provides a searchable summary of the county-level carbon stocks and densities.
 
 ```{r}
+
 outdir <- "/projectnb/dietzelab/ccmmf/ccmmf_phase_1b_20250319064759_14859/output/out"
 # Load county summaries data
-county_summaries <- read.csv(file.path(outdir, "county_summaries.csv"))
-
+county_summaries <- readr::read_csv(file.path(outdir, "county_summaries.csv"),
+  show_col_types = FALSE)
+#colnames(county_summaries)
 # Combine mean and SD into a single column for carbon density
-county_summaries <- county_summaries |> 
-   dplyr::mutate(
-      `Mean Total C (Tg/ county)` = paste0(
-         signif(mean_total_c, 2), 
-         " (", signif(sd_total_c, 2), ")"
-      ),
-      `Mean C Density (kg/ha)` = paste0(
-         signif(mean_c_density, 2), 
-         " (", signif(sd_c_density, 2), ")"
-      )
-   ) |> 
-   dplyr::rename(
-      `Carbon Pool` = carbon_pool,
-      `County` = county
-   ) |> 
-   dplyr::select(`Carbon Pool`, `County`, `Mean Total C (Tg/ county)`, `Mean C Density (kg/ha)`)
+county_summaries_table <- county_summaries |> 
+  dplyr::mutate(
+    `Mean Total C (Tg/county)` = paste0(
+       signif(co_mean_c_total_Tg, 2), 
+       " (", signif(co_sd_c_total_Tg, 2), ")"
+    ),
+    `Mean C Density (Mg/ha)` = paste0(
+       signif(co_mean_c_density_Mg_ha, 2), 
+       " (", signif(co_sd_c_density_Mg_ha, 2), ")"
+    )
+     ) |> 
+     dplyr::rename(
+    `Carbon Pool` = carbon_pool,
+    `County` = county,
+    `# Fields` = n
+     ) |> 
+     dplyr::select(`Carbon Pool`, `County`, `# Fields`, `Mean Total C (Tg/county)`, `Mean C Density (Mg/ha)`)
 
 # Create Table
 # TODO 
 #  - Fix point w/ missing county
-#  - Add n to table
 
 htmlwidgets::setWidgetIdSeed(123) # required to embed table self-contained in html
 options(htmlwidgets.TEMP_DIR = "htmlwidgets")
 
 DT::datatable(
-   county_summaries,
+   county_summaries_table,
    options = list(
       pageLength = 10,
       searchHighlight = TRUE
