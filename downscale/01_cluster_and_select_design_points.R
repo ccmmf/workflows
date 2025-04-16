@@ -36,7 +36,7 @@ library(GGally)
 
 # settings
 set.seed(42)
-ca_albers_crs <- 3310 # use California Albers project (EPSG:3310) for speed,
+ca_albers_crs <- 3310 # use California Albers projection (EPSG:3310) for speed
 data_dir <- "/projectnb/dietzelab/ccmmf/data"
 #'
 #' ## Load Site Environmental Data Covariates
