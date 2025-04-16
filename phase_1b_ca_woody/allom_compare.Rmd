@@ -1,0 +1,135 @@
+# Comparing LandTrendr and CARB allometric orchard wood biomass predictions
+
+```{r setup}
+library(tidyverse)
+library(terra)
+library(tidyterra)
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4.5, out.width = "100%")
+```
+
+## Define biomass-from-age prediction function
+
+Combines allometries from CARB for trees per acre and carbon per tree according to age.
+Applicable to orange, almond, walnut, or pistachio trees that are 0-50 years old.
+
+TODO incorporate uncertainty from DEMETER_FutureModeling.xlsx.
+
+```{r allom-fn}
+allom_kgC_m2 <- function(age, species = c("almond", "walnut", "pistachio", "orange")) {
+  if (any(age > 50)) stop("this allometry only valid to age 50")
+  species <- match.arg(species)
+
+  dens_m <- c(almond = -15.45, walnut = -19.97, pistachio = -24.7, orange = -34.71)
+  dens_b <- c(almond = 125.72, walnut = 103.5, pistachio = 184.98, orange = 223.83)
+  carbon_m <- c(almond = 12.9823, walnut = 9.3295, pistachio = 1.2879, orange = 2.4435)
+  carbon_b <- c(almond = 1.3923, walnut = 1.6121, pistachio = 1.8835, orange = 1.3712)
+
+  trees_acre <- dens_m[species] * log(age) + dens_b[species]
+  lbs_tree <- carbon_m[species] * (age^carbon_b[species])
+
+  PEcAn.utils::ud_convert(trees_acre * lbs_tree, "lb acre-1", "kg m-2")
+}
+```
+
+## Read LandTrendr biomass from satellite timeseries
+
+I'll use 2023 medians from the LandTrendr composite biomass product ([Kennedy et al. 2018](https://doi.org/10.1088/1748-9326/aa9d9e)),
+which is primarily Landsat-derived and refined by data fusion with FIA and lidar forest plot data.
+The reported values are aboveground _wood_ mass in Mg/ha, so multiply by 0.47 to get carbon.
+
+```{r read_raw}
+lt_map <- rast("data_raw/ca_composite_2023_median.tif")
+
+dwr_map <- vect("data_raw/dwr_map/i15_Crop_Mapping_2023_Provisional_20241127.gdb") |> 
+  project(lt_map)
+```
+
+Exploratory analysis (not shown here) suggests that the 2023 DWR map does not break out citrus by species:
+There are zero fields whose main crop is grapefruit (C1), lemon (C2), or orange (C3),
+but it does have fields for most non-citrus crops in the C category
+including C4 dates, C5 avocadoes, C6 olives, C7 "miscellaneous subtropical fruit".
+I'll take this to mean all types of citrus are lumped as class "C" (unspecified citrus and subtropical)
+and will use the orange allometry for all fields with `MAIN_CROP=="C"`.
+
+A `YR_PLANTED` of 1984 (the earliest that appears in the dataset) appears to mean "1984 or earlier",
+so I'll use fields listed as planted between 1985 and 2022.
+
+```{r extract}
+dwr_allom <- dwr_map |>
+  select(UniqueID, YR_PLANTED, MAIN_CROP) |>
+  filter(
+    YR_PLANTED > 1984,
+    YR_PLANTED < 2023,
+    MAIN_CROP %in% c("C", "D12", "D13", "D14")
+  ) |>
+  mutate(
+    species = case_when(
+      MAIN_CROP == "C" ~ "orange",
+      MAIN_CROP == "D12" ~ "almond",
+      MAIN_CROP == "D13" ~ "walnut",
+      MAIN_CROP == "D14" ~ "pistachio"
+  )) |>
+  group_by(species) |>
+  mutate(allom_C = allom_kgC_m2(2023 - YR_PLANTED, species[[1]]))  
+
+pred_C <- extract(lt_map, dwr_allom, fun = mean, bind = TRUE) |>
+  as_tibble() |>
+  rename(lt_C = ca_composite_2023_median) |>
+  mutate(lt_C = PEcAn.utils::ud_convert(0.47 * lt_C, "Mg ha-1", "kg m-2"))
+
+pred_C |>
+  group_by(species) |>
+  summarize(across(everything(), c(n=length,mean=mean,sd=sd,max=max,min=min)))
+```
+
+```{r plot}
+theme_set(theme_bw())
+
+#ggplot(pred_C) +
+#  aes(lt_C, allom_C) +
+#  facet_wrap(~species) +
+#  geom_smooth(method = "lm") +
+#  geom_abline(lty = "dashed")
+
+#same as above but with hex tiles
+ggplot(pred_C) +
+  aes(lt_C, allom_C) +
+  # geom_point(alpha = 0.3) +
+  geom_hex(binwidth = 0.5) +
+  scale_fill_gradient(trans = "log10") +
+  facet_wrap(~species) +
+  geom_smooth(method = "lm") +
+  geom_abline(lty = "dashed")
+
+ggplot(pred_C) +
+  aes(2023 - YR_PLANTED, lt_C) +
+  facet_wrap(~species) +
+  # geom_point(alpha = 0.3) +
+  geom_hex(binwidth = 1) +
+  scale_fill_gradient(trans = "log10") +
+  geom_smooth(method = "lm")
+```
+
+```{r stats}
+pred_C |>
+  ungroup() |>
+  nest_by(species) |>
+  mutate(
+    fit = list(lm(allom_C ~ lt_C, data = data)),
+    r2 = summary(fit)$r.squared,
+    rmse = sqrt(mean(fit$residuals^2)),
+    nse = 1 - (
+      sum((data$allom_C - data$lt_C)^2) /
+        sum((data$allom_C - mean(data$allom_C, na.rm = TRUE))^2)
+    ))
+
+# With 1984 included:
+## # A tibble: 4 × 6
+## # Rowwise:  species
+##   species                 data fit         r2  rmse    nse
+##   <chr>     <list<tibble[,5]>> <list>   <dbl> <dbl>  <dbl>
+## 1 almond          [44,877 × 5] <lm>   0.0132   3.74 -0.728
+## 2 orange          [30,967 × 5] <lm>   0.0536   1.37 -1.94 
+## 3 pistachio       [10,768 × 5] <lm>   0.149    3.55 -0.197
+## 4 walnut          [18,622 × 5] <lm>   0.00543  3.82 -1.30
+```

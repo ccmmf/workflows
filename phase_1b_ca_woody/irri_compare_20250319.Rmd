@@ -1,0 +1,227 @@
+# Initial Evaluation of Sipnet Irrigation Support
+
+Comparing aboveground wood predictions between irrigated and unirrigated
+ runs of Sipnet for 2016-2023 at 98 woody perennial sites across CA.
+
+
+```{r setup}
+library(tidyverse)
+library(tidyterra)
+library(terra)
+
+irri_path <- "_from_cluster/ccmmf_phase_1b_20250314211904_12855/"
+noirri_path <- "_from_cluster/ccmmf_phase_1b_98sites_20reps_20250312/"
+landtrendr_2016_path <- "data_raw/ca_biomassfiaald_2016_median.tif"
+landtrendr_23_path <- "data_raw/ca_composite_2023_median.tif"
+ca_outline_path <- "data_raw/ca_outline_shp/"
+
+
+```
+
+## Read outputs
+
+Defining a function to read files -- note that this is duplicated in 
+validate.Rmd, and the version there may have some improvements.
+TODO unify these.
+
+```{r fn}
+read_ncdir <- function(path, vars = NULL, pattern = "ENS", ...) {
+  path |>
+    list.files(pattern = "*.nc$", full.names = TRUE, recursive = TRUE) |>
+    grep(pattern = pattern, value = TRUE) |>
+    data.frame(file = _) |>
+    separate_wider_regex(
+      cols = file,
+      patterns = c(
+        ".*/ENS-",
+        ens_num = "\\d+",
+        "-",
+        site = ".*?",
+        "/.*"
+      ),
+      cols_remove = FALSE
+    ) |>
+    mutate(ens_num = as.numeric(ens_num)) |>
+    nest_by(ens_num, site, .key = "path") |>
+    mutate(
+      contents = map(
+        path,
+        \(x)PEcAn.utils::read.output(
+          ncfiles = x,
+          dataframe = TRUE,
+          variables = vars,
+          print_summary = FALSE,
+          verbose = FALSE,
+          ...
+        )
+      )
+    ) |>
+    unnest(contents)
+}
+```
+
+
+```{r read-data}
+abvgrdwood_noirri <- read_ncdir(file.path(noirri_path, "out"), vars = "AbvGrndWood", start.year = 2023)
+abvgrdwood_irri <- read_ncdir(file.path(irri_path, "output/out"), vars = "AbvGrndWood", start.year = 2023)
+site_info <- read.csv(file.path(irri_path, "site_info.csv"))
+```
+
+
+## Plot onto a map
+
+Mapping each site as a colored point, facetting by ensemble member
+...Hard to see much from this TBH. Saving this code but marking it eval=FALSE.
+
+```{r points-on-map, eval=FALSE}
+ca <- terra::vect(ca_outline_path)
+
+abvgrdwood_noirri |>
+  filter(posix == max(posix)) |>
+  left_join(site_info, by = c(site = "id")) |>
+  vect(crs = "epsg:4326") |>
+  ggplot() +
+  geom_spatvector(data = ca) +
+  geom_spatvector(aes(color = AbvGrndWood)) +
+  theme_bw() +
+  facet_wrap(~ens_num) +
+  ggtitle("Rainfed only")
+abvgrdwood_irri |>
+  filter(posix == max(posix)) |>
+  left_join(site_info, by = c(site = "id")) |>
+  vect(crs = "epsg:4326") |>
+  ggplot() +
+  geom_spatvector(data = ca) +
+  geom_spatvector(aes(color = AbvGrndWood)) +
+  theme_bw() +
+  facet_wrap(~ens_num) +
+  ggtitle("Irrigated 1500 mm/yr")
+```
+
+## Plot wood stocks
+
+Density distributions of site wood stocks
+
+```{r stock-density}
+agb_tlast <- bind_rows(
+  rainfed = abvgrdwood_noirri |> filter(posix == max(posix)),
+  irrigated = abvgrdwood_irri |> filter(posix == max(posix)),
+  .id = "water_source"
+)
+agb_tlast |>
+  ggplot() +
+  aes(
+    x = AbvGrndWood,
+    color = water_source,
+    group = paste(water_source, ens_num)
+  ) +
+  geom_freqpoly(stat = "density") +
+  theme_bw() +
+  xlab("Modeled aboveground wood in 2023, kg C m-2") +
+  ggtitle("Distribution of wood C stock in 98 orchards")
+```
+
+## Compare to LandTrender 2023 medians
+
+```{r vs-ltmed}
+lt_med <- terra::rast(landtrendr_23_path)
+wood_carbon_fraction <- 0.47
+
+point_buf <- site_info |>
+  terra::vect(crs = "epsg:4326") |>
+  terra::project(lt_med) |>
+  terra::buffer(width = 200)
+landtrender_2023_agb <- terra::extract(
+  x = lt_med,
+  y = point_buf,
+  fun = mean,
+  bind = TRUE
+) |>
+  as.data.frame() |>
+  select(
+    site = id,
+    AGB_median = ends_with("median")
+  ) |>
+  mutate(AGB_median = PEcAn.utils::ud_convert(
+    AGB_median * wood_carbon_fraction, "Mg ha-1", "kg m-2"))
+agb_with_lt <- agb_tlast |>
+  left_join(landtrender_2023_agb)
+ggplot(agb_with_lt) +
+  aes(AGB_median, AbvGrndWood, color = water_source) +
+  geom_abline(lty = "dashed") +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ens_num) +
+  theme_bw() +
+  xlab("LandTrender AGB 2023, kg C m-2") +
+  ylab("Sipnet AGB 2023, kg C m-2")
+
+agb_rmse <- agb_with_lt |>
+  ungroup() |>
+  nest_by(water_source, ens_num) |>
+  mutate(
+    rmse = sqrt(mean((data$AGB_median - data$AbvGrndWood)^2))
+  )
+agb_rmse |>
+  group_by(water_source) |>
+  summarize(mean(rmse), sd(rmse))
+```
+
+
+
+## Comparing start and end biomass vs start and end landtrender
+
+```{r compare-2016}
+lt_med_16 <- terra::rast(landtrendr_2016_path)
+landtrender_2016_agb <- terra::extract(
+  x = lt_med_16,
+  y = point_buf,
+  fun = mean,
+  bind = TRUE
+) |>
+  as.data.frame() |>
+  select(
+    site = id,
+    AGB_median = ends_with("median")
+  ) |>
+  mutate(
+    AGB_median = PEcAn.utils::ud_convert(
+      AGB_median * wood_carbon_fraction,
+      "Mg ha-1",
+      "kg m-2"
+    )
+  )
+
+landtrender_2016_agb |>
+  left_join(landtrender_2023_agb, by = "site", suffix = c("_2016", "_2023")) |>
+  mutate(diff = AGB_median_2023 - AGB_median_2016) |>
+  ggplot() +
+  aes(AGB_median_2016, AGB_median_2023, color = diff) +
+  geom_point() +
+  geom_abline() +
+  geom_smooth(method = "lm") +
+  theme_bw()
+
+agb_t0 <- bind_rows(
+  rainfed = read_ncdir(
+      file.path(noirri_path, "out"),
+      vars = "AbvGrndWood",
+      start.year = 2016,
+      end.year = 2016) |>
+    filter(posix == min(posix)),
+  irrigated = read_ncdir(
+      file.path(irri_path, "output/out"),
+      vars = "AbvGrndWood",
+      start.year = 2016,
+      end.year = 2016) |>
+    filter(posix == min(posix)),
+  .id = "water_source"
+)
+
+landtrender_diff <- landtrender_2016_agb |>
+  left_join(landtrender_2023_agb, by = "site", suffix = c("_2016", "_2023")) |>
+  mutate(AGB_median_diff = AGB_median_2023 - AGB_median_2016)
+agb_t0 |>
+  left_join(landtrender_diff) |>
+  head()
+```

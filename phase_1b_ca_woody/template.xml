@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<pecan>
+ <info>
+  <notes></notes>
+  <userid>-1</userid>
+  <username></username>
+ </info>
+ <outdir>output</outdir>
+ <modeloutdir>output/out</modeloutdir>
+ <rundir>output/run</rundir>
+ <pfts>
+  <pft>
+   <name>temperate.deciduous</name>
+   <posterior.files>pfts/temperate/post.distns.Rdata</posterior.files>
+  </pft>
+ </pfts>
+ <ensemble>
+  <size><!-- inserted at config time --></size>
+  <variable>NPP</variable>
+  <variable>TotSoilCarb</variable>
+  <variable>AbvGrndWood</variable>
+  <variable>Qle</variable>
+  <variable>SoilMoistFrac</variable>
+  <samplingspace>
+   <parameters>
+    <method>uniform</method>
+   </parameters>
+   <met>
+    <method>sampling</method>
+   </met>
+   <poolinitcond>
+    <method>sampling</method>
+   </poolinitcond>
+   <!-- TODO soil init cond here when ready -->
+  </samplingspace>
+  <start.year><!-- inserted at config time --></start.year>
+  <end.year><!-- inserted at config time --></end.year>
+ </ensemble>
+ <model>
+  <id>99000000003</id>
+  <type>SIPNET</type>
+  <revision>git</revision>
+  <delete.raw>FALSE</delete.raw>
+  <binary>sipnet.git</binary>
+  <prerun>cp data/sipnet.event @RUNDIR@</prerun>
+ </model>
+ <run>
+  <site><!-- inserted at config time --></site>
+  <inputs>
+   <met>
+    <id></id>
+    <path><!-- inserted at config time --></path>
+   </met>
+   <poolinitcond>
+     <source>RS_veg</source>
+     <output>poolinitcond</output>
+     <ensemble><!-- inserted at config time --></ensemble>
+     <path><!-- inserted at config time --></path>
+   </poolinitcond>
+  </inputs>
+  <start.date><!-- inserted at config time --></start.date>
+  <end.date><!-- inserted at config time --></end.date>
+ </run>
+ <host>
+  <name>localhost</name>
+  <outdir>output/out</outdir>
+  <rundir>output/run</rundir>
+  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub>
+  <qsub.jobid>.*job ([0-9]+).*</qsub.jobid>
+  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
+  <modellauncher>
+    <binary>tools/slurm_array_submit.sh</binary>
+    <qsub.extra>-a 1-@NJOBS@</qsub.extra>
+    <Njobmax>1000</Njobmax>
+  </modellauncher>
+ </host>
+</pecan>
