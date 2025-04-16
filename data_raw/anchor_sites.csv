@@ -1,0 +1,26 @@
+external_site_id,site_name,lat,lon,crops,pft
+US-ASH,San Joaquin Valley Almond High Salinity,36.1697,-120.201,Almond,woody perennial crop
+US-ASL,San Joaquin Valley Almond Low Salinity,36.9466,-120.1024,Almond,woody perennial crop
+US-ASM,San Joaquin Valley Almond Medium Salinity,36.1777,-120.2026,Almond,woody perennial crop
+US-PSH,San Joaquin Valley Pistachio High Salinity,36.2347,-119.9247,Pistachio,woody perennial crop
+US-PSL,San Joaquin Valley Pistachio Low Salinity,36.8276,-120.1397,Pistachio,woody perennial crop
+US-Bi1,Bouldin Island Alfalfa,38.0992,-121.4993,Alfalfa,hay and haylage crops
+US-Bi2,Bouldin Island Corn,38.1091,-121.5351,Corn,row crops
+US-Dea,UC Desert REC Alfalfa,32.8136,-115.4423,Alfalfa,hay and haylage crops
+US-DS1,Staten Corn 1,38.1335,-121.539,Corn,row crops
+US-DS2,Staten Corn 2,38.1375,-121.514,Corn,row crops
+US-DS3,Staten Rice 1,38.1235,-121.549,Rice,row crops
+US-Lin,Lindcove Orchard,36.3566,-119.0922,Oranges,woody perennial crop
+US-RGB,Butte County Rice Farm,39.5782,-121.8579,Rice,row crops
+US-RGF,Stanislaus Forage Farm,37.6995,-121.1369,Forage crops,hay and haylage crops
+US-RGG,Glenn County Rice Farm,39.5944,-122.0253,Rice,row crops
+US-RGO,Glenn County Organic Rice,39.6805,-122.0026,Organic rice,row crops
+US-Si1,Staten Island Fallow,38.1747,-121.5047,Fallow,NA
+US-Si2,Staten Island Flooded,38.1758,-121.5167,Rice,row crops
+US-Tw2,Twitchell Corn,38.0969,-121.6365,Corn,row crops
+US-Tw3,Twitchell Alfalfa,38.1152,-121.6469,Alfalfa,herbaceous perennial
+US-Twt,Twitchell Island,38.1087,-121.6531,NA,NA
+russell-ranch,Russell Ranch,38.543,-121.874,"tomato, corn, wheat",row crops
+west-side,West Side Research Center,36.342,-120.108,Row crops including cotton,row crops
+wolfskill,Wolfskill Experimental Orchards,38.503,-121.977,Fruit and nut breeding,woody perennial crop
+ucr-citrus,UC Riverside Citrus Research,33.967,-117.34,Citrus variety collection,woody perennial crop
