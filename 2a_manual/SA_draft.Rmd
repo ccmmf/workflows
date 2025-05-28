@@ -1,0 +1,101 @@
+# Six Quick Single-Site Sensitivity Analyses [SQSSSA ;)]
+
+
+PEcAn's existing sensitivity analysis tool was built assuming a single-site run.
+When turned on in a multi-site settings, it will attempt to run for all sites,
+but will then the post-run analysis for each site will all use the same filenames,
+so each site overwrites the SA results from the previous one.
+
+We will correct this presently, but meanwhile here's a low-effort workaround:
+I'll run the workflow into six different output directories and run the SA for
+each one separately.
+
+```{r setup}
+library(tidverse)
+```
+
+Start by selecting sites. I'd eventually like to use anchor sites for this,
+but the existing design points doesn't provide an immediately obvious way to
+find the mapping back from design points to flux measurement points.
+TODO: fix that too.
+
+
+```{r pick-sa-sites}
+set.seed(433563456)
+sa_sites <- read.csv("site_info.csv") |>
+	group_by(site.pft) |>
+	sample_n(3)
+```
+
+```{r copy-files}
+stop("TODO: warn here if git not clean")
+
+file.copy("site_info.csv", "site_info_all.csv')
+file.copy("template.xml", "template_bak.xml")
+
+# NB _not_ parsing the XML here! Just treating whole lines as strings
+# and inserting the whole block before `</pecan>`
+template_lines <- readLines("template.xml")
+sa_block <- c(
+	"<sensitivity.analysis>",
+	"  <quantiles>",
+	"   <sigma>-3</sigma>",
+	"   <sigma>-2</sigma>",
+	"  <sigma>-1</sigma>",
+	"  <sigma>1</sigma>",
+	"  <sigma>2</sigma>",
+	"  <sigma>3</sigma>",
+	" </quantiles>",
+	" <variable>NPP</variable>",
+	" <variable>TotSoilCarb</variable>",
+	" <variable>AbvGrndWood</variable>",
+	" <variable>Qle</variable>",
+	" <variable>SoilMoistFrac</variable>",
+	" <perpft>TRUE</perpft>",
+	" <start.year>2016</start.year>",
+	" <end.year>2023</end.year>",
+	"</sensitivity.analysis>"
+)
+cat(template_lines[-length(template_lines)], file = "template_sa.xml")
+
+cat(sa_block, file = "template_sa.xml", append = TRUE)
+cat(template_lines[length(template_lines)], file = "template_sa.xml")
+```
+
+
+```{r run-sa-fn}
+run_subdir_sa <- function(site) {
+	read.csv("site_info_all.csv") |>
+		filter(id == site) |>
+		write.csv(paste0("site_info_", site, ".csv"), row.names = FALSE)
+		file.copy(paste0("site_info_", site, ".csv"), "site_info.csv")
+	readLines("template_sa. xml") |>
+		gsub(
+			"<outdir>output</outdir>",
+			paste0("<outdir>output_", site, "</outdir>"),
+			fixed = TRUE
+		) |>
+		gsub(
+			"<modeloutdir>output/out</modeloutdir>",
+			paste0("<modeloutdir>output_", site, "/out</modeloutdir>"),
+			fixed = TRUE
+		) |>
+		gsub(
+			"<rundir>output/run</rundir>",
+			paste0("<rundir>output_", site, "/run</rundir>"),
+			fixed = TRUE
+		) |>
+		cat(paste0("template_", site, ".xml")
+	file.copy(paste0("template_", site, ".xml"), "template.xml")
+	callr::rscript("./03_xml_build.R")
+	file.copy("settings.xml", paste0("settings_", site, ".xml"))
+	callr::("./04_xml_build.R")
+}
+```
+
+
+OK, If I did this right I can now run everything...
+
+```{r run-sa}
+sa_sites |> pull(id) |> walk(run_subdir_sa)
+```

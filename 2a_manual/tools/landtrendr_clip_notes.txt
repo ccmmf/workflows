@@ -1,0 +1,40 @@
+module load gdal
+unzip ca_outline_shp.zip
+mkdir landtrender_ca_clip
+cd landtrender_ca_clip
+gdalwarp -cutline ../ca_outline_shp/california.shp \
+	-crop_to_cutline \
+	/projectnb/dietzelab/dongchen/Multi-site/download_500_sites/AGB/biomassfiaald_2016_median.tif \
+	ca_biomassfiaald_2016_median.tif
+gdalwarp -cutline ../ca_outline_shp/california.shp \
+	-crop_to_cutline \
+	/projectnb/dietzelab/dongchen/Multi-site/download_500_sites/AGB/biomassfiaald_2016_stdv.tif \
+	ca_biomassfiaald_2016_stdv.tif
+
+gdalwarp -cutline ../ca_outline_shp/california.shp \
+	-crop_to_cutline \
+	/projectnb/dietzelab/dongchen/Multi-site/download_500_sites/AGB/composite_2023_median.tif \
+	ca_composite_2023_median.tif
+# no stdv available for 2023
+
+
+
+
+
+
+lt_med <- terra::rast("ca_biomassfiaald_2016_median.tif")
+lt_sd <- terra::rast("ca_biomassfiaald_2016_stdv.tif")
+site_info <- read.csv("site_info.csv")
+
+point_buf <- site_info |>
+	terra::vect(crs = "epsg:4326") |>
+	terra::project(lt_med) |>
+	terra::buffer(width = 200)
+
+terra::extract(x = lt_med, y = point_buf, fun = mean, bind = TRUE) |>
+	terra::extract(x = lt_sd, y = _, fun = mean, bind = TRUE)|>
+	as.data.frame() |>
+	select(
+		siteid = id,
+		AGB_median = ends_with("median"),
+		AGB_sd = ends_with("stdv"))
