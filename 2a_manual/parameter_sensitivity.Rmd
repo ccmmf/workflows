@@ -1,4 +1,4 @@
-# Six Quick Single-Site Sensitivity Analyses [SQSSSA ;)]
+# Ten Quick Single-Site Sensitivity Analyses
 
 
 PEcAn's existing sensitivity analysis tool was built assuming a single-site run.
@@ -7,95 +7,211 @@ but will then the post-run analysis for each site will all use the same filename
 so each site overwrites the SA results from the previous one.
 
 We will correct this presently, but meanwhile here's a low-effort workaround:
-I'll run the workflow into six different output directories and run the SA for
-each one separately.
+I'll run the workflow for six different sites into six different output
+directories and run the SA separately for each site using only the relevant PFT.
 
 ```{r setup}
-library(tidverse)
+library(tidyverse)
 ```
 
-Start by selecting sites. I'd eventually like to use anchor sites for this,
-but the existing design points doesn't provide an immediately obvious way to
-find the mapping back from design points to flux measurement points.
+
+### Site selection
+
+Random for now, choosing five deciduous and five grass sites.
+I'd eventually like to use anchor sites for this, but the existing design
+points file doesn't provide an immediately obvious way to find the mapping back
+from design points to flux measurement points.
 TODO: fix that too.
 
 
 ```{r pick-sa-sites}
 set.seed(433563456)
 sa_sites <- read.csv("site_info.csv") |>
-	group_by(site.pft) |>
-	sample_n(3)
+  group_by(site.pft) |>
+  sample_n(5)
 ```
 
-```{r copy-files}
-stop("TODO: warn here if git not clean")
 
-file.copy("site_info.csv", "site_info_all.csv')
-file.copy("template.xml", "template_bak.xml")
+### File manipulation
 
-# NB _not_ parsing the XML here! Just treating whole lines as strings
-# and inserting the whole block before `</pecan>`
+
+To turn on sensitivity analysis, we add a `<sensitivity.analysis>` block to the
+existing settings file.
+N.B. I am _not_ parsing the XML here, just treating whole lines as strings
+and inserting the SA block before the final `</pecan>`.
+
+PEcAn will generate one model that holds all parameters at their median,
+plus one model per specified quantile _for each input parameter_ defined by the
+PFT, so the six quantiles listed here create  a total of 1 + (6 x 22) = 133
+simulations at each grass site and 1 + (6 x 28) = 169 simulations at each
+deciduous site.
+
+After all simulations are run, the results are analyzed separately for their
+effect on each output variable, averaged across 2016-2023.
+Adding more output variables does not change the number of model invocations
+used in the analysis.
+
+
+```{r add-sa-block}
 template_lines <- readLines("template.xml")
 sa_block <- c(
-	"<sensitivity.analysis>",
-	"  <quantiles>",
-	"   <sigma>-3</sigma>",
-	"   <sigma>-2</sigma>",
-	"  <sigma>-1</sigma>",
-	"  <sigma>1</sigma>",
-	"  <sigma>2</sigma>",
-	"  <sigma>3</sigma>",
-	" </quantiles>",
-	" <variable>NPP</variable>",
-	" <variable>TotSoilCarb</variable>",
-	" <variable>AbvGrndWood</variable>",
-	" <variable>Qle</variable>",
-	" <variable>SoilMoistFrac</variable>",
-	" <perpft>TRUE</perpft>",
-	" <start.year>2016</start.year>",
-	" <end.year>2023</end.year>",
-	"</sensitivity.analysis>"
+  "<sensitivity.analysis>",
+  "  <quantiles>",
+  "   <sigma>-3</sigma>",
+  "   <sigma>-2</sigma>",
+  "  <sigma>-1</sigma>",
+  "  <sigma>1</sigma>",
+  "  <sigma>2</sigma>",
+  "  <sigma>3</sigma>",
+  " </quantiles>",
+  " <variable>NPP</variable>",
+  " <variable>TotSoilCarb</variable>",
+  " <variable>AbvGrndWood</variable>",
+  " <variable>Qle</variable>",
+  " <variable>SoilMoistFrac</variable>",
+  " <perpft>TRUE</perpft>",
+  " <start.year>2016</start.year>",
+  " <end.year>2023</end.year>",
+  "</sensitivity.analysis>"
 )
-cat(template_lines[-length(template_lines)], file = "template_sa.xml")
-
-cat(sa_block, file = "template_sa.xml", append = TRUE)
-cat(template_lines[length(template_lines)], file = "template_sa.xml")
+cat(template_lines[-length(template_lines)], file = "template_sa.xml", sep = "\n")
+cat(sa_block, file = "template_sa.xml", append = TRUE, sep = "\n")
+cat(template_lines[length(template_lines)], file = "template_sa.xml", append = TRUE, sep = "\n")
 ```
 
+Generate a separate site info csv and settings xml for each site to be run.
+While we're editing the XML we also reduce the ensemble size to 1 and turn off
+retention of raw model output, for a ~70% reduction in output disk space.
 
-```{r run-sa-fn}
-run_subdir_sa <- function(site) {
-	read.csv("site_info_all.csv") |>
-		filter(id == site) |>
-		write.csv(paste0("site_info_", site, ".csv"), row.names = FALSE)
-		file.copy(paste0("site_info_", site, ".csv"), "site_info.csv")
-	readLines("template_sa. xml") |>
-		gsub(
-			"<outdir>output</outdir>",
-			paste0("<outdir>output_", site, "</outdir>"),
-			fixed = TRUE
-		) |>
-		gsub(
-			"<modeloutdir>output/out</modeloutdir>",
-			paste0("<modeloutdir>output_", site, "/out</modeloutdir>"),
-			fixed = TRUE
-		) |>
-		gsub(
-			"<rundir>output/run</rundir>",
-			paste0("<rundir>output_", site, "/run</rundir>"),
-			fixed = TRUE
-		) |>
-		cat(paste0("template_", site, ".xml")
-	file.copy(paste0("template_", site, ".xml"), "template.xml")
-	callr::rscript("./03_xml_build.R")
-	file.copy("settings.xml", paste0("settings_", site, ".xml"))
-	callr::("./04_xml_build.R")
+Note this requires PEcAn.settings 1.9.1 or later,
+to fix a bug that occurred when `site_info.csv` contained only one site
+and caused the XML output to wrap the entire list in an extra `<info>` element.
+
+
+```{r settings-build-fn}
+build_site_sa_files <- function(site) {
+  site_info <- read.csv("site_info.csv") |>
+    filter(id == site)
+  write.csv(site_info, paste0("site_info_", site, ".csv"), row.names = FALSE)
+
+  s <- PEcAn.settings::read.settings("template_sa.xml")
+
+  site_out <- paste0("output_", site)
+  s$outdir <- site_out
+  s$rundir <- file.path(site_out, "run")
+  s$modeloutdir <- file.path(site_out, "out")
+  s$host$outdir <- s$outdir
+  s$host$rundir <- s$rundir
+  s$model$delete.raw <- TRUE
+  s$pfts <- s$pfts |> keep(\(x)x$name == site_info$site.pft)
+  PEcAn.settings::write.settings(
+    settings = s,
+    outputfile = paste0("template_", site, ".xml"),
+    outputdir = "."
+  )
+
+  callr::rscript(
+    "03_xml_build.R",
+    cmdargs = c(
+      "--n_ens=1",
+      "--n_met=1",
+      paste0("--site_file=site_info_", site, ".csv"),
+      paste0("--template_file=template_", site, ".xml"),
+      paste0("--output_file=settings_", site, ".xml")
+    )
+  )
 }
+
+sa_sites |>
+  pull(id) |>
+  walk(build_site_sa_files)
 ```
 
-
-OK, If I did this right I can now run everything...
 
 ```{r run-sa}
-sa_sites |> pull(id) |> walk(run_subdir_sa)
+run_site_sa <- function(site) {
+  callr::rscript(
+    "04_run_model.R",
+    cmdargs = paste0("--settings=settings_", site, ".xml")
+  )
+}
+
+sa_sites |>
+  pull(id) |>
+  walk(run_site_sa)
+```
+
+Each site's output contains PDFs with figures summarizing the results of the
+sensitivity analysis, but also a set of Rdata files with the computed values.
+
+Let's collect the Rdata from all sites into a single dataframe.
+
+```{r collect-sa-data}
+read_one_vardecomp <- function(file) {
+  sa_res <- PEcAn.utils::load_local(file)$sensitivity.results
+  pft_name <- names(sa_res)[[1]]
+
+  sa_res[[pft_name]] |>
+    _$variance.decomposition.output |>
+    as.data.frame() |>
+    rownames_to_column(var = "parameter") |>
+    mutate(
+      response_var = sub(".*NOENSEMBLEID\\.([a-zA-Z]+)\\.2016.*", "\\1", file),
+      pft = pft_name
+    )
+}
+
+read_site_vardecomps <- function(dir) {
+  list.files(dir, pattern = "sensitivity.results.*.Rdata", full.names = TRUE) |>
+    map(read_one_vardecomp) |>
+    list_rbind() |>
+    mutate(site = sub("output_", "", basename(dir)))
+}
+
+var_decomps <- sa_sites |>
+  mutate(outdir = paste0("output_", id)) |>
+  map(read_site_vardecomps) |>
+  list_rbind() |>
+  mutate(
+    cv = coef.vars * 100,
+    var = sqrt(variances)
+  )
+```
+
+Now make a multisite and multi-response-variable version of the
+variance decomposition plots that are in each site's PDF output.
+
+```{r var-decomp-summary}
+theme_set(theme_bw())
+base_plot <- ggplot(var_decomps) +
+  aes(
+    xmin = 0,
+    y = reorder(parameter, var),
+    color = site
+  ) +
+  geom_pointrange(position = position_jitter(height = 0.1)) +
+  facet_grid(pft ~ response_var, scales = "free_x") +
+  ylab(NULL)
+
+base_plot +
+  aes(x = cv, xmax = cv) +
+  xlab("CV (%)")
+
+base_plot +
+  aes(x = elasticities, xmax = elasticities) +
+  xlab("Elasticity")
+
+base_plot +
+  aes(x = var, xmax = var) +
+  xlab("Variance")
+```
+
+Another way of looking at this: Pick the single parameter accounting for the
+most variance in each response, ask if this is the same across sites.
+
+```{r}
+var_decomps |>
+  group_by(pft, site, response_var) |>
+  summarize(across(where(is.numeric), \(x)parameter[which.max(x)])) |>
+  knitr::kable()
 ```
