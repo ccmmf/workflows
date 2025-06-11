@@ -6,22 +6,28 @@ library("PEcAn.all")
 
 # --------------------------------------------------
 # Run-time parameters
-# TODO PEcAn's standard workflow.R reads these from the command line
-# using PEcAn.settings::get_args();
-# can go back to that if it turns out we often want to change them often,
-# but for now hard-coding seems simpler.
-#
-# `settings`: path to the XML settings file you want to use for this run.
-#   Be aware all paths are interpreted relative to the working directory of the
-#   process that invokes run_model.R, not relative to the settings file path.
-#
-# `continue`: logical value intended to allow picking up in the middle of a
-#   previously started-and-interrupted workflow.
-#   Does not work reliably. Use at your own risk.
-args <- list(
-  settings = "settings.xml",
-  continue = FALSE
+
+options <- list(
+  optparse::make_option(c("-s", "--settings"),
+    default = "settings.xml",
+    help = paste(
+      "path to the XML settings file you want to use for this run.",
+      "Be aware all paths inside the file are interpreted relative to the",
+      "working directory of the process that invokes run_model.R,",
+      "not relative to the settings file path"
+    )
+  ),
+  optparse::make_option(c("-c", "--continue"),
+    default = FALSE,
+    help = paste(
+      "Attempt to pick up in the middle of a previously interrupted workflow?",
+      "Does not work reliably. Use at your own risk"
+    )
+  )
 )
+
+args <- optparse::OptionParser(option_list = options) |>
+  optparse::parse_args()
 
 
 
