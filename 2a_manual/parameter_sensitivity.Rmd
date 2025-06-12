@@ -1,17 +1,29 @@
-# Ten Quick Single-Site Sensitivity Analyses
+# Ten Single-Site Sensitivity Analyses
 
+Motivation:
+We want to assess parameter sensitivity for the statewide MAGIC
+carbon / GHG inventory workflow, including characterizing any site-to-site
+variation in parameter importance.
 
+Challenge:
 PEcAn's existing sensitivity analysis tool was built assuming a single-site run.
-When turned on in a multi-site settings, it will attempt to run for all sites,
-but will then the post-run analysis for each site will all use the same filenames,
+When turned on in a multi-site settings file it will attempt to run for all
+sites and PFTS,
+but the post-run analysis for each site will all use the same filenames,
 so each site overwrites the SA results from the previous one.
 
-We will correct this presently, but meanwhile here's a low-effort workaround:
-I'll run the workflow for six different sites into six different output
-directories and run the SA separately for each site using only the relevant PFT.
+Solution:
+We will eventually implement multi-site SA support in PEcAn,
+but meanwhile here's a low-effort workaround:
+Run sensitivity analyses in each of ten single-site workflows,
+each with its own output directory and using only the relevant PFT,
+then combine the results for visualization.
+
 
 ```{r setup}
 library(tidyverse)
+library(tidyterra)
+theme_set(theme_bw())
 ```
 
 
@@ -31,6 +43,19 @@ sa_sites <- read.csv("site_info.csv") |>
   sample_n(5)
 ```
 
+That was easy! Now, which sites did we get?
+
+```{r map-sites}
+ca_outline <- terra::vect("data_raw/ca_outline_shp")
+terra::vect(sa_sites, crs = "epsg:4326") |>
+  ggplot() +
+  geom_spatvector(data = ca_outline) +
+  geom_spatvector(aes(color = site.pft)) +
+  theme_void() +
+  theme(legend.position = "inside", legend.justification = c(0.8, 0.8))
+```
+
+
 
 ### File manipulation
 
@@ -48,8 +73,8 @@ deciduous site.
 
 After all simulations are run, the results are analyzed separately for their
 effect on each output variable, averaged across 2016-2023.
-Adding more output variables does not change the number of model invocations
-used in the analysis.
+The number of output variables inspected does not change the number of model
+invocations used in the analysis.
 
 
 ```{r add-sa-block}
@@ -83,12 +108,12 @@ Generate a separate site info csv and settings xml for each site to be run.
 While we're editing the XML we also reduce the ensemble size to 1 and turn off
 retention of raw model output, for a ~70% reduction in output disk space.
 
-Note this requires PEcAn.settings 1.9.1 or later,
+Note this step requires version 1.9.1 or later of `PEcAn.settings`,
 to fix a bug that occurred when `site_info.csv` contained only one site
 and caused the XML output to wrap the entire list in an extra `<info>` element.
 
 
-```{r settings-build-fn}
+```{r settings-build-fn, cache = TRUE}
 build_site_sa_files <- function(site) {
   site_info <- read.csv("site_info.csv") |>
     filter(id == site)
@@ -128,7 +153,7 @@ sa_sites |>
 ```
 
 
-```{r run-sa}
+```{r run-sa, cache = TRUE}
 run_site_sa <- function(site) {
   callr::rscript(
     "04_run_model.R",
@@ -170,23 +195,19 @@ read_site_vardecomps <- function(dir) {
 
 var_decomps <- sa_sites |>
   mutate(outdir = paste0("output_", id)) |>
+  pull(outdir) |>
   map(read_site_vardecomps) |>
-  list_rbind() |>
-  mutate(
-    cv = coef.vars * 100,
-    var = sqrt(variances)
-  )
+  list_rbind()
 ```
 
 Now make a multisite and multi-response-variable version of the
 variance decomposition plots that are in each site's PDF output.
 
-```{r var-decomp-summary}
-theme_set(theme_bw())
+```{r var-decomp-summary, fig.width = 9, fig.height = 6}
 base_plot <- ggplot(var_decomps) +
   aes(
     xmin = 0,
-    y = reorder(parameter, var),
+    y = reorder(parameter, sqrt(variances)),
     color = site
   ) +
   geom_pointrange(position = position_jitter(height = 0.1)) +
@@ -194,16 +215,24 @@ base_plot <- ggplot(var_decomps) +
   ylab(NULL)
 
 base_plot +
-  aes(x = cv, xmax = cv) +
+  aes(x = coef.vars * 100, xmax = coef.vars * 100) +
   xlab("CV (%)")
+
+base_plot +
+  aes(x = sensitivities, xmax = sensitivities) +
+  xlab("Sensitivity")
 
 base_plot +
   aes(x = elasticities, xmax = elasticities) +
   xlab("Elasticity")
 
 base_plot +
-  aes(x = var, xmax = var) +
+  aes(x = sqrt(variances), xmax = sqrt(variances)) +
   xlab("Variance")
+
+base_plot +
+  aes(x = partial.variances * 100, xmax = partial.variances * 100) +
+  xlab("% of Variance")
 ```
 
 Another way of looking at this: Pick the single parameter accounting for the
@@ -211,7 +240,8 @@ most variance in each response, ask if this is the same across sites.
 
 ```{r}
 var_decomps |>
-  group_by(pft, site, response_var) |>
+  group_by(response_var, pft, site) |>
+  select(-partial.variances) |> # will give same result as variances
   summarize(across(where(is.numeric), \(x)parameter[which.max(x)])) |>
   knitr::kable()
 ```
