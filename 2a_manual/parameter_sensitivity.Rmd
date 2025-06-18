@@ -47,10 +47,17 @@ That was easy! Now, which sites did we get?
 
 ```{r map-sites}
 ca_outline <- terra::vect("data_raw/ca_outline_shp")
-terra::vect(sa_sites, crs = "epsg:4326") |>
+
+sa_sites |>
+  mutate(label = substr(id, 1, 8)) |>
+  terra::vect(crs = "epsg:4326") |>
   ggplot() +
   geom_spatvector(data = ca_outline) +
   geom_spatvector(aes(color = site.pft)) +
+  geom_spatvector_text(
+    aes(label = label, color = site.pft),
+    nudge_x = 1,
+    nudge_y = 0.1) +
   theme_void() +
   theme(legend.position = "inside", legend.justification = c(0.8, 0.8))
 ```

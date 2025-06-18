@@ -189,12 +189,13 @@ agb_fits <- agb_with_lt |>
       sum((data$AGB_median - data$AbvGrndWood)^2) /
         sum((data$AGB_median - mean(data$AGB_median))^2)
     ),
-    rmse = sqrt(mean((data$AGB_median - data$AbvGrndWood)^2))
+    rmse = sqrt(mean((data$AGB_median - data$AbvGrndWood)^2)),
+    bias = mean(data$AbvGrndWood - data$AGB_median)
   )
 agb_fits |> select(-data, -fit)
 agb_fits |>
   ungroup() |>
-  summarize(across(r2:rmse, c(mean = mean, sd = sd))) |>
+  summarize(across(r2:bias, c(mean = mean, sd = sd))) |>
   pivot_longer(everything(), names_to = c("stat", ".value"), names_sep = "_")
 ```
 
@@ -306,12 +307,13 @@ allom_fits <- agb_with_allom |>
       sum((data$allom_C_2023 - data$AbvGrndWood)^2) /
         sum((data$allom_C_2023 - mean(data$allom_C_2023))^2)
     ),
-    rmse = sqrt(mean((data$allom_C_2023 - data$AbvGrndWood)^2))
+    rmse = sqrt(mean((data$allom_C_2023 - data$AbvGrndWood)^2)),
+    bias = mean(data$AbvGrndWood - data$allom_C_2023)
   )
 allom_fits |> select(-data, -fit)
 allom_fits |>
   ungroup() |>
-  summarize(across(r2:rmse, c(mean = mean, sd = sd))) |>
+  summarize(across(r2:bias, c(mean = mean, sd = sd))) |>
   pivot_longer(everything(), names_to = c("stat", ".value"), names_sep = "_")
 ```
 ```{r plot-allom}
@@ -338,3 +340,23 @@ agb_with_allom |>
     y = "Sipnet AbvGrndWood 2023, kg C/m2")
 
 ```
+
+```{r allom-by-crop}
+allom_fits_by_crop <- agb_with_allom |>
+  ungroup() |>
+  nest_by(species, ens_num) |>
+  mutate(
+    fit = list(lm(AbvGrndWood ~ allom_C_2023, data = data)),
+    r2 = summary(fit)$adj.r.squared,
+    nse = 1 - (
+      sum((data$allom_C_2023 - data$AbvGrndWood)^2) /
+        sum((data$allom_C_2023 - mean(data$allom_C_2023))^2)
+    ),
+    rmse = sqrt(mean((data$allom_C_2023 - data$AbvGrndWood)^2)),
+    bias = mean(data$AbvGrndWood - data$allom_C_2023)
+  )
+allom_fits_by_crop |> select(-data, -fit)
+allom_fits_by_crop |>
+  group_by(species) |>
+  summarize(across(r2:bias, c(mean = mean, sd = sd))) |>
+  pivot_longer(-species, names_to = c("stat", ".value"), names_sep = "_")
