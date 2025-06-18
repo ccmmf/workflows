@@ -108,9 +108,25 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
 }
 
 
+# Get results of model runs
+if (PEcAn.utils::status.check("OUTPUT") == 0) {
+  PEcAn.utils::status.start("OUTPUT")
+  runModule.get.results(settings)
+  PEcAn.utils::status.end()
+}
+
+# Run ensemble analysis on model output.
+# if ("ensemble" %in% names(settings)
+# && PEcAn.utils::status.check("ENSEMBLE") == 0) {
+#   PEcAn.utils::status.start("ENSEMBLE")
+#   runModule.run.ensemble.analysis(settings, TRUE)
+#   PEcAn.utils::status.end()
+# }
+
+
 # Run sensitivity analysis and variance decomposition on model output
-if ("sensitivity.analysis" %in% names(settings)
-&& PEcAn.utils::status.check("SENSITIVITY") == 0) {
+if ("sensitivity.analysis" %in% names(settings) &&
+      PEcAn.utils::status.check("SENSITIVITY") == 0) {
   PEcAn.utils::status.start("SENSITIVITY")
   runModule.run.sensitivity.analysis(settings)
   PEcAn.utils::status.end()
