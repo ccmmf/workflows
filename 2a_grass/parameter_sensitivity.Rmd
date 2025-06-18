@@ -27,7 +27,7 @@ theme_set(theme_bw())
 ```
 
 
-### Site selection
+## Site selection
 
 Random for now, choosing five deciduous and five grass sites.
 I'd eventually like to use anchor sites for this, but the existing design
@@ -64,7 +64,7 @@ sa_sites |>
 
 
 
-### File manipulation
+## File manipulation
 
 
 To turn on sensitivity analysis, we add a `<sensitivity.analysis>` block to the
@@ -106,9 +106,10 @@ sa_block <- c(
   " <end.year>2023</end.year>",
   "</sensitivity.analysis>"
 )
-cat(template_lines[-length(template_lines)], file = "template_sa.xml", sep = "\n")
-cat(sa_block, file = "template_sa.xml", append = TRUE, sep = "\n")
-cat(template_lines[length(template_lines)], file = "template_sa.xml", append = TRUE, sep = "\n")
+if (!dir.exists("sensitivity")) dir.create("sensitivity")
+cat(template_lines[-length(template_lines)], file = "sensitivity/template_sa.xml", sep = "\n")
+cat(sa_block, file = "sensitivity/template_sa.xml", append = TRUE, sep = "\n")
+cat(template_lines[length(template_lines)], file = "sensitivity/template_sa.xml", append = TRUE, sep = "\n")
 ```
 
 Generate a separate site info csv and settings xml for each site to be run.
@@ -124,11 +125,11 @@ and caused the XML output to wrap the entire list in an extra `<info>` element.
 build_site_sa_files <- function(site) {
   site_info <- read.csv("site_info.csv") |>
     filter(id == site)
-  write.csv(site_info, paste0("site_info_", site, ".csv"), row.names = FALSE)
+  write.csv(site_info, paste0("sensitivity/site_info_", site, ".csv"), row.names = FALSE)
 
-  s <- PEcAn.settings::read.settings("template_sa.xml")
+  s <- PEcAn.settings::read.settings("sensitivity/template_sa.xml")
 
-  site_out <- paste0("output_", site)
+  site_out <- paste0("sensitivity/output_", site)
   s$outdir <- site_out
   s$rundir <- file.path(site_out, "run")
   s$modeloutdir <- file.path(site_out, "out")
@@ -139,7 +140,7 @@ build_site_sa_files <- function(site) {
   PEcAn.settings::write.settings(
     settings = s,
     outputfile = paste0("template_", site, ".xml"),
-    outputdir = "."
+    outputdir = "sensitivity"
   )
 
   callr::rscript(
@@ -147,9 +148,9 @@ build_site_sa_files <- function(site) {
     cmdargs = c(
       "--n_ens=1",
       "--n_met=1",
-      paste0("--site_file=site_info_", site, ".csv"),
-      paste0("--template_file=template_", site, ".xml"),
-      paste0("--output_file=settings_", site, ".xml")
+      paste0("--site_file=sensitivity/site_info_", site, ".csv"),
+      paste0("--template_file=sensitivity/template_", site, ".xml"),
+      paste0("--output_file=sensitivity/settings_", site, ".xml")
     )
   )
 }
@@ -159,12 +160,13 @@ sa_sites |>
   walk(build_site_sa_files)
 ```
 
+## Run models
 
 ```{r run-sa, cache = TRUE}
 run_site_sa <- function(site) {
   callr::rscript(
     "04_run_model.R",
-    cmdargs = paste0("--settings=settings_", site, ".xml")
+    cmdargs = paste0("--settings=sensitivity/settings_", site, ".xml")
   )
 }
 
@@ -172,6 +174,8 @@ sa_sites |>
   pull(id) |>
   walk(run_site_sa)
 ```
+
+## Read outputs
 
 Each site's output contains PDFs with figures summarizing the results of the
 sensitivity analysis, but also a set of Rdata files with the computed values.
@@ -201,11 +205,13 @@ read_site_vardecomps <- function(dir) {
 }
 
 var_decomps <- sa_sites |>
-  mutate(outdir = paste0("output_", id)) |>
+  mutate(outdir = paste0("sensitivity/output_", id)) |>
   pull(outdir) |>
   map(read_site_vardecomps) |>
   list_rbind()
 ```
+
+## Inspect results
 
 Now make a multisite and multi-response-variable version of the
 variance decomposition plots that are in each site's PDF output.

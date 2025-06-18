@@ -98,6 +98,6 @@ settings <- settings |>
 
 write.settings(
   settings,
-  outputfile = args$output_file,
+  outputfile = basename(args$output_file),
   outputdir = dirname(args$output_file)
 )
