@@ -4,64 +4,93 @@
 # using values from data_dir if they are already present,
 # or looking them up and writing them to data_dir if they are not.
 
-## ---------------------------------------------------------
-# Inputs: Update these for your site(s)
-
-# Names and locations for sites of interest
-site_info_path <- "site_info.csv"
-
-# site geometries, used for extraction from rasters
-field_shape_path <- "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb"
-
-# For now, start date must be same for all sites,
-# and some download/extraction functions rely on this.
-# TODO add support for diff start dates per site
-# Workaround: Call this script separately for sites whose dates differ
-run_start_date <- "2016-01-01"
-run_LAI_date <- "2016-07-01"
-
-
-data_dir <- "data/IC_prep"
-ic_outdir <- "IC_files"
-
-# Using Landtrandr biomass requires manual download of the relevant geotiffs
-# from Kennedy group at Oregon State. Medians are available by anonymous FTP at
-#   islay.ceoas.oregonstate.edu
-# and by web (but possibly this is a different version?) from
-#   https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html
-# The uncertainty layer was formerly distributed by FTP but I cannot find it
-# on the ceoas server at the moment.
-# TODO find out whether this is available from a supported source.
-#
-# Here I am using a subset (year 2016 clipped to the CA state boundaries)
-# of the 30-m CONUS median and stdev maps that are stored on the Dietze lab
-# server.
-#
-# Code below expects exactly one "*median.tif" and one "*stdv.tif".
-landtrendr_raw_files <- file.path(
-  "data_raw/",
-  paste0("ca_biomassfiaald_2016_", c("median", "stdv"), ".tif")
+options <- list(
+  optparse::make_option("--site_info_path ",
+    default = "site_info.csv",
+    help = "CSV giving ids, locations, and PFTs for sites of interest"
+  ),
+  optparse::make_option("--field_shape_path",
+    default = "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb",
+    help = "file containing site geometries, used for extraction from rasters"
+  ),
+  optparse::make_option("--ic_ensemble_size",
+    default = 100,
+    help = "number of files to generate for each site"
+  ),
+  optparse::make_option("--run_start_date",
+    default = "2016-01-01",
+    help = paste(
+      "Date to begin simulations.",
+      "For now, start date must be same for all sites,",
+      "and some download/extraction functions rely on this.",
+      "Workaround: Call this script separately for sites whose dates differ"
+    )
+  ),
+  optparse::make_option("--run_LAI_date",
+    default = "2016-07-01",
+    help = "Date to look near (up to 30 days each direction) for initial LAI"
+  ),
+  optparse::make_option("--ic_outdir",
+    default = "IC_files",
+    help = "Directory to write completed initial conditions as nc files"
+  ),
+  optparse::make_option("--data_dir",
+    default = "data/IC_prep",
+    help = "Directory to store data retrieved/computed in the IC build process"
+  ),
+  optparse::make_option("--pft_dir",
+    default = "pfts",
+    help = paste(
+      "path to parameter distributions used for PFT-specific conversions",
+      "from LAI to estimated leaf carbon.",
+      "Must be path to a dir whose child subdirectory names match the",
+      "`site.pft` column of site_info and that contain a file",
+      "`post.distns.Rdata`"
+    )
+  ),
+  optparse::make_option("--params_read_from_pft",
+    default = "SLA,leafC", # SLA units are m2/kg, leafC units are %
+    help = "Parameters to read from the PFT file, comma separated"
+  ),
+  optparse::make_option("--landtrendr_raw_files",
+    default = paste0(
+      "data_raw/ca_biomassfiaald_2016_median.tif,",
+      "data_raw/ca_biomassfiaald_2016_stdv.tif"
+    ),
+    help = paste(
+      "Paths to two geotiffs, with a comma between them.",
+      "These should contain means and standard deviations of aboveground",
+      "biomass on the start date.",
+      "We used Landtrendr-based values from the Kennedy group at Oregon State,",
+      "which require manual download.",
+      "Medians are available by anonymous FTP at islay.ceoas.oregonstate.edu",
+      "and by web (but possibly this is a different version?) from",
+      "https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html",
+      "The uncertainty layer was formerly distributed by FTP but I cannot find",
+      "it on the ceoas server at the moment.",
+      "TODO find out whether this is available from a supported source.",
+      "",
+      "Demo used a subset (year 2016 clipped to the CA state boundaries)",
+      "of the 30-m CONUS median and stdev maps that are stored on the Dietze",
+      "lab server"
+    )
+  ),
+  optparse::make_option("--additional_params",
+    # Wood C fraction isn't in these PFTs, so just using my estimate.
+    # TODO update from a citeable source,
+    # and consider adding to PFT when calibrating
+    default =
+      "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005",
+    help = paste(
+      "Further params not available from site or PFT data,",
+      "as a comma-separated named list with names `varname`, `distn`,",
+      "`parama`, and `paramb`. Currently used only for `wood_carbon_fraction`"
+    )
+  )
 )
 
-ic_ensemble_size <- 100
-
-# path to parameter distributions used for PFT-specific conversions from LAI
-# to estimated leaf carbon
-# Must be path to a dir whose child subdirectory names match the `site.pft`
-# column of site_info and that contain a file `post.distns.Rdata`
-pft_dir <- "pfts"
-# SLA units are m2/kg, leafC units are %
-params_read_from_pft <- c("SLA", "leafC")
-
-
-# Wood C fraction isn't in these PFTs, so just using my estimate.
-# TODO update from a citeable source,
-# and consider adding to PFT when calibrating
-additional_params <- tibble::tribble(
-  ~varname, ~distn, ~parama, ~paramb,
-  "wood_carbon_fraction", "norm", 0.48, 0.005
-)
-
+args <- optparse::OptionParser(option_list = options) |>
+  optparse::parse_args()
 
 ## ---------------------------------------------------------
 # Remainder of this script should work with no edits
@@ -76,20 +105,30 @@ library(tidyverse)
 op <- options(parallelly.fork.enable = FALSE)
 on.exit(options(op))
 
-if (!dir.exists(data_dir)) dir.create(data_dir, recursive = TRUE)
+if (!dir.exists(args$data_dir)) dir.create(args$data_dir, recursive = TRUE)
+
+# split up comma-separated options
+params_read_from_pft <- strsplit(args$params_read_from_pft, ",")[[1]]
+landtrendr_raw_files <- strsplit(args$landtrendr_raw_files, ",")[[1]]
+additional_params <- args$additional_params |>
+  str_match_all("([^=]+)=([^,]+),?") |>
+  _[[1]] |>
+  (\(x) setNames(as.list(x[, 3]), x[, 2]))() |>
+  as.data.frame() |>
+  mutate(across(starts_with("param"), as.numeric))
 
 site_info <- read.csv(
-  site_info_path,
+  args$site_info_path,
   colClasses = c(field_id = "character")
 )
-site_info$start_date <- run_start_date
-site_info$LAI_date <- run_LAI_date
+site_info$start_date <- args$run_start_date
+site_info$LAI_date <- args$run_LAI_date
 
 
 PEcAn.logger::logger.info("Getting estimated soil carbon from SoilGrids 250m")
 # NB this takes several minutes to run
 # csv filename is hardcoded by fn
-soilc_csv_path <- file.path(data_dir, "soilgrids_soilC_data.csv")
+soilc_csv_path <- file.path(args$data_dir, "soilgrids_soilC_data.csv")
 if (file.exists(soilc_csv_path)) {
   PEcAn.logger::logger.info("using existing soil C file", soilc_csv_path)
   soil_carbon_est <- read.csv(soilc_csv_path, check.names = FALSE)
@@ -104,7 +143,7 @@ if (nsoilc > 0) {
   PEcAn.logger::logger.info("Retrieving soil C for", nsoilc, "sites")
   new_soil_carbon <- PEcAn.data.land::soilgrids_soilC_extract(
     sites_needing_soilc |> select(site_id = id, site_name = name, lat, lon),
-    outdir = data_dir
+    outdir = args$data_dir
   )
   soil_carbon_est <- bind_rows(soil_carbon_est, new_soil_carbon) |>
     arrange(Site_ID)
@@ -114,8 +153,8 @@ if (nsoilc > 0) {
 
 
 PEcAn.logger::logger.info("Soil moisture")
-sm_outdir <- file.path(data_dir, "soil_moisture") |> normalizePath()
-sm_csv_path <- file.path(data_dir, "sm.csv") # name is hardcorded by fn
+sm_outdir <- file.path(args$data_dir, "soil_moisture") |> normalizePath()
+sm_csv_path <- file.path(args$data_dir, "sm.csv") # name is hardcorded by fn
 if (file.exists(sm_csv_path)) {
   PEcAn.logger::logger.info("using existing soil moisture file", sm_csv_path)
   soil_moisture_est <- read.csv(sm_csv_path)
@@ -148,7 +187,7 @@ PEcAn.logger::logger.info("LAI")
 #   (filename is hardcoded inside MODIS_LAI_PREP())
 # - this path, aggregated to one row per site
 # TODO consider cleaning this up -- eg reprocess from LAI.csv on the fly?
-lai_csv_path <- file.path(data_dir, "LAI_bysite.csv")
+lai_csv_path <- file.path(args$data_dir, "LAI_bysite.csv")
 if (file.exists(lai_csv_path)) {
   PEcAn.logger::logger.info("using existing LAI file", lai_csv_path)
   lai_est <- read.csv(lai_csv_path, check.names = FALSE) # TODO edit MODIS_LAI_prep to use valid colnames?
@@ -164,7 +203,7 @@ if (nlai > 0) {
   lai_res <- PEcAn.data.remote::MODIS_LAI_prep(
     site_info = sites_needing_lai |> dplyr::select(site_id = id, lat, lon),
     time_points = as.Date(site_info$LAI_date[[1]]),
-    outdir = data_dir,
+    outdir = args$data_dir,
     export_csv = TRUE,
     skip.download = FALSE # TODO this may rename to skip_download
   )
@@ -176,7 +215,7 @@ if (nlai > 0) {
 
 PEcAn.logger::logger.info("Aboveground biomass from LandTrendr")
 
-landtrendr_agb_outdir <- data_dir
+landtrendr_agb_outdir <- args$data_dir
 
 landtrendr_csv_path <- file.path(
   landtrendr_agb_outdir,
@@ -206,7 +245,7 @@ if (nagb > 0) {
   )
   lt_med <- terra::rast(lt_med_path)
   lt_sd <- terra::rast(lt_sd_path)
-  field_shp <- terra::vect(field_shape_path)
+  field_shp <- terra::vect(args$field_shape_path)
 
   site_bnds <- field_shp[field_shp$UniqueID %in% sites_needing_agb$field_id, ] |>
     terra::project(lt_med)
@@ -298,7 +337,7 @@ initial_condition_estimated <- dplyr::bind_rows(
 )
 write.csv(
   initial_condition_estimated,
-  file.path(data_dir, "IC_means.csv"),
+  file.path(args$data_dir, "IC_means.csv"),
   row.names = FALSE
 )
 
@@ -320,7 +359,7 @@ sample_distn <- function(varname, distn, parama, paramb, ..., n) {
 
 sample_pft <- function(path,
                        vars = params_read_from_pft,
-                       n_samples = ic_ensemble_size) {
+                       n_samples = args$ic_ensemble_size) {
   e <- new.env()
   load(file.path(path, "post.distns.Rdata"), envir = e)
   e$post.distns |>
@@ -334,7 +373,7 @@ sample_pft <- function(path,
 }
 
 pft_var_samples <- site_info |>
-  mutate(pft_path = file.path(pft_dir, site.pft)) |>
+  mutate(pft_path = file.path(args$pft_dir, site.pft)) |>
   nest_by(id) |>
   mutate(samp = purrr::map(data$pft_path, sample_pft)) |>
   unnest(samp) |>
@@ -361,7 +400,7 @@ ic_sample_draws <- function(df, n = 100, ...) {
 
 ic_samples <- initial_condition_estimated |>
   dplyr::group_by(site_id, variable) |>
-  dplyr::group_modify(ic_sample_draws, n = ic_ensemble_size) |>
+  dplyr::group_modify(ic_sample_draws, n = args$ic_ensemble_size) |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
   dplyr::left_join(pft_var_samples, by = c("site_id", "replicate")) |>
   dplyr::mutate(
@@ -380,7 +419,7 @@ if (length(nonstd_names) > 0) {
   ic_samples <- ic_samples |> dplyr::select(-any_of(nonstd_names))
 }
 
-file.path(ic_outdir, site_info$id) |>
+file.path(args$ic_outdir, site_info$id) |>
   unique() |>
   purrr::walk(dir.create, recursive = TRUE)
 
@@ -388,7 +427,7 @@ ic_samples |>
   dplyr::group_by(site_id, replicate) |>
   dplyr::group_walk(
     ~ PEcAn.SIPNET::veg2model.SIPNET(
-      outfolder = file.path(ic_outdir, .y$site_id),
+      outfolder = file.path(args$ic_outdir, .y$site_id),
       poolinfo = list(
         dims = list(time = 1),
         vals = .x
@@ -398,5 +437,5 @@ ic_samples |>
     )
   )
 
-PEcAn.logger::logger.info("IC files written to", ic_outdir)
+PEcAn.logger::logger.info("IC files written to", args$ic_outdir)
 PEcAn.logger::logger.info("Done")
