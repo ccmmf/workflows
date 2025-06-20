@@ -26,14 +26,14 @@ site_vec <- site_info |>
   vect(crs = "epsg:4326") |>
   project("epsg:4269")
 
-planting_2020 <- vect("data_raw/crop_maps/i15_Crop_Mapping_2020.gdb/") |>
+planting_2020 <- vect("data_raw/dwr_map/i15_Crop_Mapping_2020.gdb/") |>
   project("epsg:4269") |>
   extract(site_vec) |>
   rename(rowid = id.y) |>
-  left_join(site_info) |>
-  filter(YR_PLANTED <= 2016, YR_PLANTED > 0)
+  left_join(site_info) #|>
+  #filter(YR_PLANTED <= 2016, YR_PLANTED > 0)
 
-planting_2023 <- vect("data_raw/crop_maps/i15_Crop_Mapping_2023_Provisional_20241127.gdb/") |>
+planting_2023 <- vect("data_raw/dwr_map/i15_Crop_Mapping_2023_Provisional_20241127.gdb/") |>
   project("epsg:4269") |>
   extract(site_vec) |>
   mutate(still_present_2023 = YR_PLANTED <= 2016 & YR_PLANTED > 0) |>

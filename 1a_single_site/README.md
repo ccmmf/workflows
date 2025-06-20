@@ -17,7 +17,7 @@
 * Analyze the results.
   - `05_validation.Rmd` shows validation comparisons between the model predictions and site-level measurements of SOC, biomass, NPP, and ET.
 * Archive run outputs.
-  - `tools/compress_output.sh` creates a compressed tarball of the `outputs/` directory, the compiled validation notebook, and any log files.
+  - `../tools/compress_output.sh` creates a compressed tarball of the `outputs/` directory, the compiled validation notebook, and any log files.
 
 
 ## System setup
@@ -44,10 +44,10 @@ Now choose _either_ Direct or Container based installation instructions below.
 
 ### Direct installation
 
-* Install SIPNET (fast; seconds): `srun ./tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
+* Install SIPNET (fast; seconds): `srun ../tools/install_sipnet.sh ~/sipnet/ ~/sipnet_binaries/ ./sipnet.git`
   - The 3 arguments are: path into which to clone the SIPNET repo, dir in which to store compiled binaries, and path for a symlink to the binary.
   - If you change the last argument, update the `<binary>sipnet.git</binary>` line of `single_site_almond.xml` to match.
-* Install PEcAn (slow; hours): `sbatch -o install_pecan.out ./tools/install_pecan.sh`
+* Install PEcAn (slow; hours): `sbatch -o install_pecan.out ../tools/install_pecan.sh`
   - Installs more than 300 R packages! On our test system this took about 2 hours
   - Defaults to using 4 CPUs to compile packages in parallel. If you have more cores, adjust `sbatch`'s `--cpus-per-task` parameter.
 
@@ -176,7 +176,7 @@ srun -n1 --mem-per-cpu=4G \
   --output=pecan_validation_"$(date +%Y%m%d%H%M%S)_%j.log" \
   Rscript -e 'rmarkdown::render("05_validation.Rmd")'
 
-sbatch ./tools/compress_output.sh
+sbatch ../tools/compress_output.sh
 
 # [copy ccmmf_output_<date>_<time>.tgz to your archive]
 ```
@@ -196,7 +196,7 @@ The apptainer workflow is _almost_ a matter of inserting `apptainer run model-si
 ```
 
 Complication one: The `model-sipnet-git` container has its own copy of Sipnet stored at a different path than the one `single_site_almond.xml` is expecting. You can edit the XML directly, or do as shown here and create a `sipnet.git` symlink in the run directory, pointing to a path that (probably) doesn't exist on your host system but that does work when apptainer is active.
-**Note:** This will overwrite any existing link created by `tools/install_sipnet.sh`, so beware if switching back and forth between native and container runs in the same directory.
+**Note:** This will overwrite any existing link created by `../tools/install_sipnet.sh`, so beware if switching back and forth between native and container runs in the same directory.
 
 ```{sh}
 APPTAINER_SIPNET_PATH=$(apptainer run model-sipnet-git_develop.sif which sipnet.git)
@@ -218,7 +218,7 @@ srun -n1 --mem-per-cpu=4G \
 ```
 
 ```{sh}
-sbatch ./tools/compress_output.sh
+sbatch ../tools/compress_output.sh
 
 # [copy ccmmf_output_<date>_<time>.tgz to your archive]
 ```
@@ -258,7 +258,7 @@ The files for this project are arranged as follows. Note that some of these are 
     * `sensitivity.output.<id>.<variable>.<years>.Rdata`: Results from the sensitivity analysis, processed and ready for visualization.
     * `sensitivity.results.<id>.<variable>.<years>.Rdata`: Results from the sensitivity simulations, extracted and set up for analysis.
     * `sensitivity.samples.<id>.Rdata`: The parameter values selected for the one-at-a-time sensitivity analysis, with each variable taken at its PFT median plus or minus the standard deviations specified in the settings XML. Note that these same values are also part of `samples.Rdata`.
-* `tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up SIPNET and PEcAn on an HPC cluster and for archiving run output; others may be added later.
+* `../tools`: Scripts for occasional use that may or may not be part of every workflow run. At this writing it contains installation scripts for setting up SIPNET and PEcAn on an HPC cluster and for archiving run output; others may be added later.
 
 
 ## References
