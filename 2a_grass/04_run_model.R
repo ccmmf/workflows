@@ -92,18 +92,8 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
       stop_on_error <- FALSE
     }
   }
-  # PEcAn.workflow::runModule_start_model_runs(settings,
-  #                                            stop.on.error = stop_on_error)
-  n_jobs <- 8 # TODO SET SOMEWHERE EDITABLE
-  run_path <- settings$host$rundir
-  system2(
-    "parallel",
-    args = c(
-      "-j", n_jobs,
-      file.path(run_path, "{}", "job.sh"),
-      "::::", file.path(run_path, "runs.txt")
-    )
-  )
+  PEcAn.workflow::runModule_start_model_runs(settings,
+                                             stop.on.error = stop_on_error)
   PEcAn.utils::status.end()
 }
 
