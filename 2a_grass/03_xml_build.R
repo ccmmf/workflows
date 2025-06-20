@@ -57,7 +57,12 @@ options <- list(
     default = "settings.xml",
     help = "path to write output XML"
   )
-)
+) |>
+  # Show default values in help message
+  purrr::modify(\(x) {
+    x@help <- paste(x@help, "[default: %default]")
+    x
+  })
 
 args <- optparse::OptionParser(option_list = options) |>
   optparse::parse_args()

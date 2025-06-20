@@ -1,9 +1,5 @@
 #!/usr/bin/env Rscript
 
-
-library("PEcAn.all")
-
-
 # --------------------------------------------------
 # Run-time parameters
 
@@ -24,7 +20,12 @@ options <- list(
       "Does not work reliably. Use at your own risk"
     )
   )
-)
+) |>
+  # Show default values in help message
+  purrr::modify(\(x) {
+    x@help <- paste(x@help, "[default: %default]")
+    x
+  })
 
 args <- optparse::OptionParser(option_list = options) |>
   optparse::parse_args()
@@ -45,6 +46,9 @@ options(error = quote({
 # ----------------------------------------------------------------------
 # PEcAn Workflow
 # ----------------------------------------------------------------------
+
+library("PEcAn.all")
+
 
 # Report package versions for provenance
 PEcAn.all::pecan_version()

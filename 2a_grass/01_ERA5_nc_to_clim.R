@@ -48,7 +48,12 @@ options <- list(
     default = "multisession",
     help = "Strategy for parallel conversion, passed to future::plan()",
   )
-)
+) |>
+  # Show default values in help message
+  purrr::modify(\(x) {
+    x@help <- paste(x@help, "[default: %default]")
+    x
+  })
 
 args <- optparse::OptionParser(option_list = options) |>
   optparse::parse_args()

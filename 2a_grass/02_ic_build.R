@@ -87,7 +87,12 @@ options <- list(
       "`parama`, and `paramb`. Currently used only for `wood_carbon_fraction`"
     )
   )
-)
+) |>
+  # Show default values in help message
+  purrr::modify(\(x) {
+    x@help <- paste(x@help, "[default: %default]")
+    x
+  })
 
 args <- optparse::OptionParser(option_list = options) |>
   optparse::parse_args()
