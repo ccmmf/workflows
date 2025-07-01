@@ -5,16 +5,7 @@
 # pulling from a combination of CRAN and R-Universe.
 # TODO: If on a clean system, need to install some system libraries first
 #  (e.g. libudunits2?)
-print("Hello world from part B!")
-# if (!requireNamespace("PEcAn.all", quietly = TRUE)) {
-#  print("Oh yes, lets get alllll hacky")
-#  options(repos = c(getOption("repos"), PEcAn = "pecanproject.r-universe.dev"))
-#  print("Hack again?")
-#  install.packages("PEcAn.all")
-#}
 
-print("loading pecan....")
-#library("PEcAn.all")
 library("PEcAn.utils")
 library("PEcAn.remote")
 library("PEcAn.settings")

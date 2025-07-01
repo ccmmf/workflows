@@ -5,15 +5,6 @@
 # pulling from a combination of CRAN and R-Universe.
 # TODO: If on a clean system, need to install some system libraries first
 #  (e.g. libudunits2?)
-print("Hello world!")
-# if (!requireNamespace("PEcAn.all", quietly = TRUE)) {
-#  print("Oh yes, lets get alllll hacky")
-#  options(repos = c(getOption("repos"), PEcAn = "pecanproject.r-universe.dev"))
-#  print("Hack again?")
-#  install.packages("PEcAn.all")
-#}
-
-print("loading pecan....")
 library("PEcAn.all")
 
 
@@ -68,7 +59,6 @@ if (args$continue && file.exists(status_file)) {
 # Write model specific configs
 if (PEcAn.utils::status.check("CONFIG") == 0) {
   PEcAn.utils::status.start("CONFIG")
-  print("I think i'll see this.")
   settings <-
     PEcAn.workflow::runModule.run.write.configs(settings)
   PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
