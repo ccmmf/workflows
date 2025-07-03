@@ -103,11 +103,16 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
 
 
 # Get results of model runs
+# this function is arguably too chatty, so we'll suppress
+# INFO-level log output for this step.
+loglevel <- PEcAn.logger::logger.setLevel("WARN")
 if (PEcAn.utils::status.check("OUTPUT") == 0) {
   PEcAn.utils::status.start("OUTPUT")
   runModule.get.results(settings)
   PEcAn.utils::status.end()
 }
+PEcAn.logger::logger.setLevel(loglevel)
+
 
 # Run ensemble analysis on model output.
 # if ("ensemble" %in% names(settings)

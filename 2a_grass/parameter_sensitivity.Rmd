@@ -231,7 +231,6 @@ base_plot +
   aes(x = coef.vars * 100, xmax = coef.vars * 100) +
   xlab("CV (%)")
 
-
 base_plot +
   aes(x = elasticities, xmax = elasticities) +
   xlab("Elasticity")
