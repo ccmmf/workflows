@@ -31,7 +31,7 @@ This will do three tasks:
 
 ### Compile Sipnet with support for irrigation events
 
-The code to simulate irrigation events has been merged into the development version of Sipnet, but is (so far) turned off by default. `tools/install_sipnet.sh` handles turning it on as part of installation, or you can manually edit `[path/to/sipnet]/src/sipnet/modelStructures.h` to define `EVENT_HANDLER` as 1 before compiling. To adjust Sipnet installation locations, edit the `SIPNET_*` variables at the top of `00_install.sh`.
+The code to simulate irrigation events has been merged into the development version of Sipnet, but is (so far) turned off by default. `../tools/install_sipnet.sh` handles turning it on as part of installation, or you can manually edit `[path/to/sipnet]/src/sipnet/modelStructures.h` to define `EVENT_HANDLER` as 1 before compiling. To adjust Sipnet installation locations, edit the `SIPNET_*` variables at the top of `00_install.sh`.
 
 ### Install or update PEcAn
 
@@ -96,7 +96,7 @@ Rscript -e 'rmarkdown::render("validate.Rmd")'
 
 ## Guide to the input files
 
-We gathered static versions of required run inputs by (first running the prep scripts documented below and then) running `tools/create_input_tarball.sh`, producing a 741 MB file with MD5 hash `72870a32c3f1fc3506c67f1405dbc022`. As detailed above, download and unpack it with
+We gathered static versions of required run inputs by (first running the prep scripts documented below and then) running `../tools/create_input_tarball.sh`, producing a 741 MB file with MD5 hash `72870a32c3f1fc3506c67f1405dbc022`. As detailed above, download and unpack it with
 
 ```{sh}
 curl -L -o cccmmf_phase_1b_input_artifacts.tgz 'https://drive.usercontent.google.com/download?id=15DVcJy-faUfLThon7ScqMwAsy_fxuLe_&export=download&confirm=t'
@@ -106,16 +106,18 @@ tar xf cccmmf_phase_1b_input_artifacts.tgz
 which should create the following files and folders:
 
 - `data/IC_prep/`: CSV files that were created by running `ic_build.R`. All can be recreated by rerunning it, but you'll need raw LandTrendr output (not provided here for space efficiency) to be present in `data_raw/`. To generate IC files for all sites from `IC_means.csv`, run `ic_build.R` again after unpacking them.
-- `data/sipnet.event`: The event file used to specify irrigation for all sites in the run, created by running `tools/write_sipnet_event_file.R`. Should be easy to recreate any time; it's included here for convenience rather than because it's troublesome to create.
-- `data_raw/ERA5_nc/`: PEcAn-formatted NetCDFs of ERA5 2016-2023 weather ensembles for each site. These were generated with `tools/prep_getERA5_met.R` and need to be converted to clim files using `tools/ERA5_nc_to_clim.R` before model run. (Why didn't we distribute the finished clim files in the input tarball? Because the netCDFs are more compact even after compression.)
+- `data/sipnet.event`: The event file used to specify irrigation for all sites in the run, created by running `../tools/write_sipnet_event_file.R`. Should be easy to recreate any time; it's included here for convenience rather than because it's troublesome to create.
+- `data_raw/ERA5_nc/`: PEcAn-formatted NetCDFs of ERA5 2016-2023 weather ensembles for each site. These were generated with `../tools/prep_getERA5_met.R` and need to be converted to clim files using `../tools/ERA5_nc_to_clim.R` before model run. (Why didn't we distribute the finished clim files in the input tarball? Because the netCDFs are more compact even after compression.)
 - `pfts/temperate/`: posterior files for temperate deciduous woody plants as calibrated in Fer et al 2018[1]. These are the same pft used in phase 1a.
 - `site_info.csv`: ID, location, and PFT assignment of each selected design point, used by all other prep scripts to find site-specific values. You can add arbitrary additional columns to track other site-level characteristics.
 
 ## Guide to the helper scripts
 
-Scripts in the root directory whose names start with a numeral are the core workflow, intended to be run in sequence once per run of the workflow.
+Scripts in the project directory whose names start with a numeral are the core workflow, intended to be run in sequence once per run of the workflow.
 
-Scripts in `tools/` are intended to do a defined task and be run whenever that task arises. For some tasks this will be << 1x per workflow run (e.g. scripts used to create the prebuilt input files), others are used multiple times (e.g. submission scripts used once for every array job submitted to the scheduler). See each script file for a more detailed description, but briefly they are:
+`slurm_array_submit.sh` Sends sets of models to the Slurm scheduler. It is called indirectly by `04_run_model.R`
+
+Scripts in `../tools/` are intended to do a defined task and be run whenever that task arises. For some tasks this will be << 1x per workflow run (e.g. scripts used to create the prebuilt input files), others are used multiple times (e.g. submission scripts used once for every array job submitted to the scheduler). See each script file for a more detailed description, but briefly they are:
 
 * `create_input_tarball.sh`: Creates `cccmmf_phase_1b_input_artifacts.tgz`. Run manually when needed
 * `extract_ERA5_met.R`: Converts raw ERA5 to PEcAn standard met files. Run manually when needed
@@ -123,7 +125,6 @@ Scripts in `tools/` are intended to do a defined task and be run whenever that t
 * `make_site_info_csv.R`: Regenerates `site_info.csv` from design points. Run manually when needed
 * `run_extract_ERA5_met.R`: Wrapper for `extract_ERA5_met.R` using BU cluster's scheduler settings. Run manually when needed
 * `read_mapped_planting_year.R`: Creates `data/site_planting_years.csv`. Run manually when needed
-* `slurm_array_submit.sh`: Sends sets of models to the Slurm scheduler. Called indirectly by `04_run_model.R`
 * `write_sipnet_event_file.R`: Creates `data/sipnet.event`. Run manually when needed
 
 

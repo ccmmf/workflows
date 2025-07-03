@@ -7,11 +7,20 @@
 # you want to propagate those changes into the run.
 
 # Note: Assumes we want all columns from the design points
-# and that all sites are woody.
-# Will need refinement for multi-PFT runs in phase 2 and beyond.
 
-read.csv("data/design_points.csv") |>
+read.csv("data/design_points.csv", colClasses = c(UniqueID = "character")) |>
   dplyr::distinct() |> # TODO dupes in design points are a bug
   # dplyr::slice_sample(n = 3) |>
-  dplyr::mutate(name = id, site.pft = "temperate.deciduous") |>
+  dplyr::mutate(
+    name = site_id,
+    pft = dplyr::case_when(
+      pft == "annual crop" ~ "grass",
+      pft == "woody perennial crop" ~ "temperate.deciduous",
+      TRUE ~ NA_character_
+    )
+  ) |>
+  dplyr::rename(
+    id = site_id,
+    field_id = UniqueID,
+    site.pft = pft) |>
   write.csv("site_info.csv", row.names = FALSE)
