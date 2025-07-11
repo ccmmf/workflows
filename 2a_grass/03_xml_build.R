@@ -74,13 +74,41 @@ args <- optparse::OptionParser(option_list = options) |>
 
 
 site_info <- read.csv(args$site_file)
-stopifnot(length(unique(site_info$id)) == nrow(site_info))
+stopifnot(
+  length(unique(site_info$id)) == nrow(site_info),
+  all(site_info$lat > 0), # just to simplify grid naming below
+  all(site_info$lon < 0)
+)
+site_info <- site_info |>
+  dplyr::mutate(
+    # match locations to half-degree ERA5 grid cell centers
+    # CAUTION: Calculation only correct when all lats are N and all lons are W!
+    ERA5_grid_cell = paste0(
+      ((lat + 0.25) %/% 0.5) * 0.5, "N_",
+      ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
+    )
+  )
 
 settings <- read.settings(args$template_file) |>
   setDates(args$start_date, args$end_date)
 
 settings$ensemble$size <- args$n_ens
 settings$run$inputs$poolinitcond$ensemble <- args$n_ens
+
+# Hack: setEnsemblePaths leaves all path components other than siteid
+# identical across sites.
+# To use site-specific grid id, I'll string-replace each siteid
+id2grid <- function(s) {
+  # replacing in place to preserve names (easier than thinking)
+  for (p in seq_along(s$run$inputs$met$path)) {
+    s$run$inputs$met$path[[p]] <- gsub(
+      pattern = s$run$site$id,
+      replacement = s$run$site$ERA5_grid_cell,
+      x = s$run$inputs$met$path[[p]]
+    )
+  }
+  s
+}
 
 settings <- settings |>
   createMultiSiteSettings(site_info) |>
@@ -94,6 +122,7 @@ settings <- settings |>
     # path_template = "{path}/{id}/caladapt.{id}.{n}.{d1}.{d2}.nc"
     path_template = "{path}/{id}/ERA5.{n}.{d1}.{d2}.clim"
   ) |>
+  papply(id2grid) |>
   setEnsemblePaths(
     n_reps = args$n_ens,
     input_type = "poolinitcond",
