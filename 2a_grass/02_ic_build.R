@@ -404,6 +404,7 @@ ic_sample_draws <- function(df, n = 100, ...) {
 }
 
 ic_samples <- initial_condition_estimated |>
+  dplyr::filter(site_id %in% site_info$id) |>
   dplyr::group_by(site_id, variable) |>
   dplyr::group_modify(ic_sample_draws, n = args$ic_ensemble_size) |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
