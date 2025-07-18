@@ -34,7 +34,46 @@ All instructions below assume you are working on a Linux cluster that uses Slurm
 
 ### Copy prebuilt input artifacts
 
-Instructions to come -- at this writing we're working on the transition from Google Drive to a more accessible file server on our own infrastructure.
+These are files that were easier to prepare from the (many terabytes of) raw
+files available on the Dietze lab's server at Boston University.
+Rather than make users copy or re-download all the raw files, we've packaged
+the inputs needed for this specific run.
+
+Specifically, the archive contains: `pfts/`, `data_raw/ERA5_nc/`,
+`data/IC_prep/*.csv`, `data/events.in` and `site_info.csv`.
+
+These data are available to anyone on request, but require a login for
+bandwidth control. If you do not yet have an access key, please contact the
+CCMMF team for credentials.
+
+The artifact tarball is available in an S3 bucket hosted by NCSA at
+`s3.garage.ccmmf.ncsa.cloud`. We recommend using
+[rclone](https://rclone.org/install/) to download it:
+
+```{sh}
+cat << EOF >> ~/.config/rclone/rclone.conf
+[ccmmf]
+type = s3
+provider = Other
+env_auth = false
+access_key_id = [your key ID]
+secret_access_key = [your secret key]
+region = garage
+endpoint = https://s3.garage.ccmmf.ncsa.cloud
+force_path_style = true
+acl = private
+bucket_acl = private
+EOF
+```
+
+```{sh}
+rclone copy ccmmf:carb/data/workflows/phase_2a/cccmmf_phase_2a_input_artifacts.tgz ./
+````
+
+You can also use other tools of your choice that speak the S3 protocol,
+including Cyberduck or the AWS cli. Note that `aws s3` calls will need to set
+`--endpoint-url https://s3.garage.ccmmf.ncsa.cloud` or equivalent.
+Details not shown here for brevity, but available on request.
 
 
 ### Create IC files
