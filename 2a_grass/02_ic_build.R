@@ -5,7 +5,7 @@
 # or looking them up and writing them to data_dir if they are not.
 
 options <- list(
-  optparse::make_option("--site_info_path ",
+  optparse::make_option("--site_info_path",
     default = "site_info.csv",
     help = "CSV giving ids, locations, and PFTs for sites of interest"
   ),
@@ -210,7 +210,7 @@ if (nlai > 0) {
     time_points = as.Date(site_info$LAI_date[[1]]),
     outdir = args$data_dir,
     export_csv = TRUE,
-    skip.download = FALSE # TODO this may rename to skip_download
+    skip_download = FALSE
   )
   lai_est <- bind_rows(lai_est, lai_res$LAI_Output) |>
     arrange(site_id)
