@@ -59,6 +59,9 @@
    <met>
     <method>sampling</method>
    </met>
+   <poolinitcond>
+    <method>sampling</method>
+   </poolinitcond>
   </samplingspace>
   <start.year>2008</start.year>
   <end.year>2012</end.year>

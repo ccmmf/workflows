@@ -1,3 +1,18 @@
+# Analysis outcomes
+**/output/**
+
+# container files
+**/**.sif
+
+# data tarballs
+**/**.tgz
+**/**.tar.gz
+
+# data files not marked test
+**/IC_files/**
+**/data/**
+**/pfts/**
+
 # R-specific files
 .Rhistory
 .RData
