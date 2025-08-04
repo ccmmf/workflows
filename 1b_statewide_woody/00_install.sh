@@ -22,9 +22,9 @@ ARTIFACT_NAME='cccmmf_phase_1b_input_artifacts.tgz'
 # --- end setup --------------------------------------------
 set -e
 
-./tools/install_sipnet.sh "$SIPNET_SRC_DIR" "$SIPNET_BIN_ARCHIVE" "$SIPNET_EXE_LINK"
+../tools/install_sipnet.sh "$SIPNET_SRC_DIR" "$SIPNET_BIN_ARCHIVE" "$SIPNET_EXE_LINK"
 
-./tools/install_pecan.sh
+../tools/install_pecan.sh
 
 curl -L -o "$ARTIFACT_NAME" "$ARTIFACT_LINK" \
 	&& tar xf "$ARTIFACT_NAME"
