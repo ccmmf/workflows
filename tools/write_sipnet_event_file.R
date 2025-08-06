@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# Write a `sipnet.event` file that declares 2.8 cm of irrigation every
+# Write a Sipnet `events.in` file that declares 2.8 cm of irrigation every
 # four days from April through October of each year,
 # for about 1500 mm of water added.
 
@@ -20,7 +20,6 @@ fixed_amount_irrigation <- function(year, cm_added,
   cm_per_event <- round(cm_added / length(irrig_days), digits = 1)
 
   data.frame(
-    loc = 0,
     year = year,
     yday = irrig_days,
     event = "irrig",
@@ -41,4 +40,4 @@ purrr::map(
   )
 ) |>
   purrr::list_rbind() |>
-  write.table("sipnet.event", row.names = FALSE, col.names = FALSE, quote = FALSE)
+  write.table("events.in", row.names = FALSE, col.names = FALSE, quote = FALSE)
