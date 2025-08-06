@@ -1,10 +1,15 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # Running PEcAn workflows on CARB with Slurm and Apptainer
 
 ## Table of contents
 1. [Introduction](#introduction)
-2. [Obtaining PEcAn resources](#obtain-resources)
-2. [Head-node installation](#Head-node-installation)
-2. [Distributed PEcAn Workflows](#distributed-pecan)
+2. [Obtaining PEcAn resources](#obtainingresources)
+2. [Head-node installation](#headnodeinstallation)
+2. [Distributed PEcAn Workflows](#distributedpecan)
 3. [Dependencies](#dependencies)
 
 ## Introduction <a name="introduction"></a>
@@ -12,11 +17,13 @@ This document is intended to help with the initial set-up and configuration need
 The system described below is intended to minimize the amount of software which must be installed on the ‘login’ or ‘head’ nodes of the CARB cluster. 
 
 This approach is intended to:
+
 - Run PEcAn workflows at-scale via Slurm & Apptainer
 - Depend directly on the containers in the PEcAn Dockerhub
 - Minimize maintenance required on installed software on the CARB cluster
 
-## Obtaining PEcAn Resources <a name="obtain-resources"></a>
+
+## Obtaining PEcAn Resources {#obtainingresources}
 The needed elements for this process are as follows:
 1. The environment tarball for head-node installation
 2. The git repository of workflows created for CARB
@@ -30,19 +37,37 @@ git clone https://github.com/ccmmf/workflows.git
 ```
 
 The environment tarball and data artifacts have been hosted by NCSA, and can be obtained via the S3 protocol from:
-```s3.garage.ccmmf.ncsa.cloud```
-(TODO: determine how we want to hand creds over to CARB folks)
+```sh
+s3.garage.ccmmf.ncsa.cloud
+```
+
+Typically, you will be able to leverage the AWS CLI toolset to access these resources.
+
+Once you enter the needed Access key and Secret Access Key, e.g.:
+```sh
+AWS Access Key ID [None]: GK8bb0d9c6b355c9a25b0b67fa
+AWS Secret Access Key [None]: <-- secret key to be passed via other method -->
+Default region name [None]: garage
+Default output format [None]: 
+```
+
+You can then identify the CARB resources by identifying the correct endpoint via the 'endpoint-url' parameter. 
+For example this command will recursively list the contents of the carb bucket:
+```sh
+aws s3 ls --recursive --endpoint-url https://s3.garage.ccmmf.ncsa.cloud s3://carb
+```
 
 
-
-## Head-Node installation: Conda & Conda Environment <a name="Head-node-installation"></a>
+## Head-Node installation: Conda & Conda Environment {#headnodeinstallation}
 If you do not already have Conda installed, a good alternative for a local user install is miniconda. Install miniconda following [these instructions](https://www.anaconda.com/docs/getting-started/miniconda/install#linux)
 
 The below commands assume you keep your conda environments in the standard location: ```{USER}/.conda/envs```
 
 The pre-packaged headnode environment can be obtained from the S3 data host with this command:
 ```sh
-rclone copy ccmmf:carb/data/env/PEcAn-head.tar.gz ./
+aws s3 cp --endpoint-url https://s3.garage.ccmmf.ncsa.cloud \
+  s3://carb/environments/PEcAn-head.tar.gz ./
+
 ```
 
 If you have not used conda before, it is suggested you unpack this environment into the standard location:
@@ -90,9 +115,9 @@ Typically, this environment can be activated via:
 conda activate PEcAn-head
 ```
 
-## Distributed PEcAn Workflows <a name="distributed-pecan"></a>
+## Distributed PEcAn Workflows {#distributedpecan}
 
-Note that the below walkthrough assumes the needed environment configuration in [Head-node installation](#Head-node-installation) has been completed.
+Note that the below walkthrough assumes the needed environment configuration in [Head-node installation](#headnodeinstallation) has been completed.
 
 If you have not already, obtain the workflow git repository from ```https://github.com/ccmmf/workflows.git```
 
@@ -117,14 +142,13 @@ conda activate PEcAn-head
 
 Then, change directory into the slurm-distributed workflow version of the phase 1a workflow:
 ```sh
-# TODO
-# this needs to be incorporated into git:
 cd ./workflows/phase_1a_single_site_almond/slurm_distributed_workflow/
 ```
 
 The input data for this workflow can be obtained from the NCSA S3 Garage location:
 ```sh
-rclone copy ccmmf:carb/data/workflows/phase_1a/00_cccmmf_phase_1a_input_artifacts.tgz ./
+aws s3 cp --endpoint-url https://s3.garage.ccmmf.ncsa.cloud \ 
+  s3://carb/data/workflows/phase_1a/00_cccmmf_phase_1a_input_artifacts.tgz ./
 ```
 validate that the download was successful:
 ```sh
@@ -138,63 +162,7 @@ Following download, unpack the data into the local directory:
 ```sh
 tar -xf 00_cccmmf_phase_1a_input_artifacts.tgz
 ```
-This unpacks into three directories with contents, pre-arranged for use with this workflow:
-```sh
-ls -lhart ./
-```
-```sh
-total 1.3G
--rw-r-----.  1 hdpriest hdpriest  42M May 30 17:11 00_cccmmf_phase_1a_input_artifacts.tgz
--rwxr-x---.  1 hdpriest hdpriest 2.5K Jun 23 15:15 04a_run_model.R
--rwxr-x---.  1 hdpriest hdpriest 4.0K Jun 23 15:15 04b_run_model.R
--rw-r-----.  1 hdpriest hdpriest 8.8K Jun 23 15:15 slurm_distributed_single_site_almond.xml
-lrwxrwxrwx.  1 hdpriest hdpriest   20 Jun 30 17:41 05_validation.Rmd -> ../05_validation.Rmd
-drwxr-x---.  3 hdpriest hdpriest   23 Jun 30 17:41 pfts
-drwxr-x---.  3 hdpriest hdpriest   38 Jun 30 17:41 data
-drwxr-x---.  3 hdpriest hdpriest   23 Jun 30 17:42 IC_files
-```
-
-pfts directory:
-```sh
-ls -lhart pfts/temperate/
-```
-```sh
-total 17M
--rw-r-----. 1 hdpriest hdpriest 17M May 31  2023 trait.mcmc.Rdata
--rw-r-----. 1 hdpriest hdpriest 854 May 31  2023 post.distns.Rdata
-```
-
-ERA5-precipitation:
-```sh
-ls -lhart data/ERA5_losthills_dailyrain/
-```
-```sh
-total 62M
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.1.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.10.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.2.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.3.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.4.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.6.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.5.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.7.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.8.1999-01-01.2012-12-31.clim
--rw-r-----. 1 hdpriest hdpriest 6.2M Jan 23 13:17 ERA5.9.1999-01-01.2012-12-31.clim
-```
-
-IC Files:
-```sh
-ls -lhart IC_files/losthills/
-```
-```sh
--rw-r-----. 1 hdpriest hdpriest  884 Feb  4 00:11 IC_site_losthills_9.nc
--rw-r-----. 1 hdpriest hdpriest  884 Feb  4 00:11 IC_site_losthills_99.nc
--rw-r-----. 1 hdpriest hdpriest  884 Feb  4 00:11 IC_site_losthills_98.nc
--rw-r-----. 1 hdpriest hdpriest  884 Feb  4 00:11 IC_site_losthills_97.nc
--rw-r-----. 1 hdpriest hdpriest  884 Feb  4 00:11 IC_site_losthills_96.nc
--rw-r-----. 1 hdpriest hdpriest  884 Feb  4 00:11 IC_site_losthills_95.nc
-#... 100 total .nc files
-```
+This unpacks into three directories with contents, pre-arranged for use with this workflow.
 
 Load the needed software modules:
 ```sh
@@ -210,7 +178,10 @@ apptainer pull docker://pecan/model-sipnet-git:latest
 With data in place, the config and scripts in place, the apptainer pulled, we are now ready to run the workflow.
 This has two steps. The first is a direct run of a method to generate the needed runtime configurations based on sipnet:
 ```sh
-sbatch -n1 --mem-per-cpu=1G --time=01:00:00 --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" apptainer run model-sipnet-git_latest.sif ./04a_run_model.R --settings=slurm_distributed_single_site_almond.xml
+sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \ 
+  --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
+  apptainer run model-sipnet-git_latest.sif ./04a_run_model.R \ 
+  --settings=slurm_distributed_single_site_almond.xml
 ```
 This is a pre-step to running the distributed workflow. This command runs the script ('04a_run_model.R') within the indicated apptainer. This is a required step, as each PEcAn model is responsible for creating its own run-steps. 
 
@@ -220,27 +191,35 @@ This command will need to be run as part of each new compute run of the workflow
 
 With the above first step complete, we can now run the main compute job of the workflow:
 ```sh
-sbatch -n1 --mem-per-cpu=1G --time=01:00:00 --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" ./04b_run_model.R --settings=slurm_distributed_single_site_almond.xml
+sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
+  --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
+  ./04b_run_model.R \
+  --settings=slurm_distributed_single_site_almond.xml
 ```
 
 This submits a number of jobs to slurm, one job for each of the directories within the output/run directory.
 
-## Dependencies
+## Dependencies {#dependencies}
 ### CARB-HPC Head-node
 
 #### Environment Modules
+
 This guide and related files expect that the [Environment Modules](https://modules.sourceforge.net/) system is available on the CARB HPC cluster.
 
-#### rclone
-As written, this guide uses 'rclone' to move files between the remote NCSA S3 data host and the local CARB head-node. 
+#### AWS S3 CLI
+
+As written, this guide uses the AWS S3 CLI tools to move files between the remote NCSA S3 data host and the local CARB head-node. 
 
 #### Conda
+
 This guide and the files provided with it leverage Conda for environment management. [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main) is an excellent alternative to a full Conda installation.
 
 #### Slurm
+
 This guide and provided files have been constructed with the intention of running distributed workflows via the Slurm job scheduling system. It is assumed that the user leveraging this workflow will have a working knowledge of Slurm, but no elevated permissions will be required for interacting with Slurm resources and commands.
 
 #### Apptainer
+
 This guide and related files are based on the [PEcAn Docker container stacks](https://hub.docker.com/u/pecan), and are instantiated in an HPC environment via [Apptainer](https://apptainer.org/). This enables changes made to the Docker images by the PEcan community to be directly available to CARB, while also ensuring that the containers generated are compatible with the HPC environment.
 
 
