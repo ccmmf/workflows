@@ -194,7 +194,7 @@ With the above first step complete, we can now run the main compute job of the w
 sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
   --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
   ./04b_run_model.R \
-  --settings=slurm_distributed_single_site_almond.xml
+  --settings=output/pecan.CONFIGS.xml
 ```
 
 This submits a number of jobs to slurm, one job for each of the directories within the output/run directory.
