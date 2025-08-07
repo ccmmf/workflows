@@ -35,7 +35,7 @@ options(error = quote({
 # ----------------------------------------------------------------------
 
 # Report package versions for provenance
-# PEcAn.all::pecan_version()
+PEcAn.all::pecan_version()
 
 # Open and read in settings file for PEcAn run.
 settings <- PEcAn.settings::read.settings(args$settings)
