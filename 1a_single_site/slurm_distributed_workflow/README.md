@@ -113,6 +113,21 @@ If you have not already, obtain the workflow git repository from ```https://gith
 
 This walkthrough leverages the 'phase_1a' workflow from this git repository.
 
+### Differences between distributed and base workflows
+
+While both the base Phase 1A workflow and its distributed version accomplish the same goal, there are key differences in how the compute work is undertaken between the workflows. The distributed workflow (described below) is intended to enable scalability across an HPC of arbitrary size, leveraging the advantages of workflow containerization to protect against compute node & environment heterogeneity.
+
+#### Note regarding Slurm and Containers
+While executing this workflow, and in constructing custom or altered workflows, it is important to keep in mind that using apptainers to launch slurm jobs is __not__ a supported use-case of apptainers. OCI Containers are used herein to encapsulate execution environments (i.e., workers), but interactions with slurm for job launching and monitoring must be done from non-containerized processes on head or login nodes.
+
+The single-step model run from the Phase 1A workflow (1a_single_site/04_run_model.R) is split into a two-step process for the purposes of distribution.
+
+The first step is executed via the script '04a_set_up_runs.R'. This step constructs the run and output directories, and populates run configs for each individual computational job. This single slurm-submitted process is executed from within a container providing the PEcAn and Sipnet runtimes, to ensure easy & reproducible execution. Notably, because submission of new jobs from containerized processes is not supported, this process cannot actually launch the model workflow itself.
+
+Perforce, The second step is the actual execution of the model workflows, mediated by slurm and containerized by apptainers. Each individual job is distributed to a compute worker node, and invoked therein within a container.
+
+### Distributed workflow
+
 ```sh
 git clone https://github.com/ccmmf/workflows.git
 ```
@@ -170,10 +185,10 @@ This has two steps. The first is a direct run of a method to generate the needed
 ```sh
 sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \ 
   --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
-  apptainer run model-sipnet-git_latest.sif ./04a_run_model.R \ 
+  apptainer run model-sipnet-git_latest.sif ./04a_set_up_runs.R \ 
   --settings=slurm_distributed_single_site_almond.xml
 ```
-This is a pre-step to running the distributed workflow. This command runs the script ('04a_run_model.R') within the indicated apptainer. This is a required step, as each PEcAn model is responsible for creating its own run-steps. 
+This is a pre-step to running the distributed workflow. This command runs the script ('04a_set_up_runs.R') within the indicated apptainer. This is a required step, as each PEcAn model is responsible for creating its own run-steps. 
 
 This command therefore generates the output directory, with various run directories contained therein. 
 
@@ -183,7 +198,7 @@ With the above first step complete, we can now run the main compute job of the w
 ```sh
 sbatch -n1 --mem-per-cpu=1G --time=01:00:00 \
   --output=pecan_workflow_runlog_"$(date +%Y%m%d%H%M%S)_%j.log" \
-  ./04b_run_model.R \
+  ./04b_run_sipnet.R \
   --settings=output/pecan.CONFIGS.xml
 ```
 
