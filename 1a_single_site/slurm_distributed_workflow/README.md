@@ -72,18 +72,8 @@ aws s3 cp --endpoint-url https://s3.garage.ccmmf.ncsa.cloud \
 
 If you have not used conda before, it is suggested you unpack this environment into the standard location:
 ```sh
-mkdir ~/.conda
-```
-```sh
-mkdir ~/.conda/envs
-```
-```sh
-mkdir ~/.conda/envs/PEcAn-head
-```
-```sh
+mkdir -p ~/.conda/envs/PEcAn-head
 tar -xzf PEcAn-head.tar.gz -C ~/.conda/envs/PEcAn-head
-```
-```sh
 source ~/.conda/envs/PEcAn-head/bin/activate
 ```
 ```sh
