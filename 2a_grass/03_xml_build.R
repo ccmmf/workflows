@@ -22,7 +22,7 @@ options <- list(
     )
   ),
   optparse::make_option("--end_date",
-    default = "2023-12-31", # TODO add 2024 when met avail
+    default = "2024-12-31",
     help = "Date to end simulations"
   ),
   optparse::make_option("--ic_dir",
@@ -33,7 +33,7 @@ options <- list(
     )
   ),
   optparse::make_option("--met_dir",
-    default = "data/ERA5_SIPNET",
+    default = "data/ERA5_CA_SIPNET",
     help = paste(
       "Directory containing climate data.",
       "Should contain subdirs named by site id"
