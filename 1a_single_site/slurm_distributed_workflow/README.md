@@ -126,6 +126,7 @@ To accomplish this, the base workflow was modified by dividing step 4 into two s
 
 All other workflow scripts work the same as in the base workflow and do not use any distributed steps.
 
+
 #### Note regarding Slurm and Containers
 While executing this workflow, and in constructing custom or altered workflows, it is important to keep in mind that using apptainers to launch slurm jobs is __not__ a supported use-case of apptainers. OCI Containers are used herein to encapsulate execution environments (i.e., workers), but interactions with slurm for job launching and monitoring must be done from non-containerized processes on head or login nodes.
 
