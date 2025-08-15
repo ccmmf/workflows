@@ -117,6 +117,14 @@ This walkthrough leverages the 'phase_1a' workflow from this git repository.
 
 While both the base Phase 1A workflow and its distributed version accomplish the same goal, there are key differences in how the compute work is undertaken between the workflows. The distributed workflow (described below) is intended to enable scalability across an HPC of arbitrary size, leveraging the advantages of workflow containerization to protect against compute node & environment heterogeneity.
 
+To accomplish this, the base workflow was modified by dividing step 4 into two separate scripts for file setup and model execution, and by editing the settings XML file as follows:
+
+* `model$binary` is set to match the path to Sipnet as seen from inside the model container
+* `host$qsub` is  the `sbatch` invocation needed for Slurm to run everything. It includes both any system-specific Slurm job configurations and the path to the correct container for model execution.
+* `host$qsub.jobid` is the pattern to match a Slurm job ID in the system-specific submission confirmation message.
+* `host$qstat` is the `squeue` invocation to check status of a submitted job (probably not system-specific)
+
+All other workflow scripts work the same as in the base workflow and do not use any distributed steps.
 #### Note regarding Slurm and Containers
 While executing this workflow, and in constructing custom or altered workflows, it is important to keep in mind that using apptainers to launch slurm jobs is __not__ a supported use-case of apptainers. OCI Containers are used herein to encapsulate execution environments (i.e., workers), but interactions with slurm for job launching and monitoring must be done from non-containerized processes on head or login nodes.
 
