@@ -1,24 +1,3 @@
-get_data <- function(file) {
-  read_csv(file, col_types = cols()) %>%
-    filter(!is.na(Ozone))
-}
-
-fit_model <- function(data) {
-  lm(Ozone ~ Temp, data) %>%
-    coefficients()
-}
-
-plot_model <- function(model, data) {
-  ggplot(data) +
-    geom_point(aes(x = Temp, y = Ozone)) +
-    geom_abline(intercept = model[1], slope = model[2])
-}
-
-exec_step_double <- function(file) {
-    read_csv(file, col_types = cols()) %>%
-    filter(!is.na(Ozone))
-}
-
 check_run_object <- function(workflow_run, required_fields) {
     for (field in required_fields) {
         if (!is.null(workflow_run$field)) {
@@ -31,6 +10,15 @@ check_run_object <- function(workflow_run, required_fields) {
 
 print_object <- function(object) {
     print(object)
+}
+
+load_data_csv <- function(file) {
+  read_csv(file, col_types = cols())
+}
+
+download_ccmmf_data <- function(prefix_url, local_path, prefix_filename) {
+    system2("aws", args = c("s3", "cp", "--endpoint-url", "https://s3.garage.ccmmf.ncsa.cloud", paste0(prefix_url, "/", prefix_filename), local_path))
+    return(file.path(local_path, prefix_filename))
 }
 
 prepare_run_directory <- function(workflow_run, run_directory, step_name="prepare_run_directory") {
@@ -46,83 +34,6 @@ prepare_run_directory <- function(workflow_run, run_directory, step_name="prepar
     return(workflow_run)
 }
 
-#' Localize Data Resources for Workflow Step
-#'
-#' Copies data resource files to a workflow-specific directory structure and updates
-#' the workflow run object with the localized file paths. This function ensures that
-#' data resources are organized within the workflow's run directory and accessible
-#' to subsequent workflow steps.
-#'
-#' @param workflow_run A list object containing workflow run information, including
-#'   a required 'run_directory' field that specifies the base directory for the workflow.
-#' @param data_resource_file_path Character string specifying the path to the data
-#'   resource file that should be localized. Must not be NULL.
-#' @param step_name Character string specifying the name of the workflow step for
-#'   which the data resource is being localized. Must not be NULL and must not
-#'   already exist in the workflow's data resources.
-#'
-#' @return A list object (the updated workflow_run) with the data resource
-#'   information added to the 'data_resources' field. The localized file path
-#'   is stored as `workflow_run$data_resources$step_name$file_path`.
-#'
-#' @details
-#' The function performs the following operations:
-#' \itemize{
-#'   \item Validates that the workflow run object contains a 'run_directory' field
-#'   \item Creates a target directory structure: `{run_directory}/data/{step_name}/`
-#'   \item Copies the data resource file to the target directory
-#'   \item Updates the workflow run object with the localized file path
-#'   \item Prevents duplicate data resource entries for the same step
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' # Example usage
-#' workflow_run <- list(run_directory = "/path/to/workflow/run")
-#' updated_run <- localize_data_resources(
-#'   workflow_run = workflow_run,
-#'   data_resource_file_path = "/path/to/input/data.csv",
-#'   step_name = "data_preparation"
-#' )
-#' }
-#'
-#' @seealso \code{\link{prepare_run_directory}}, \code{\link{check_run_object}}
-#'
-localize_data_resources <- function(workflow_run, data_resource_file_paths, step_name) {
-    check_run_object(workflow_run=workflow_run, required_fields=c("run_directory"))
-    run_directory = workflow_run$"run_directory"
-    if (is.null(data_resource_file_paths)) {
-        print(data_resource_file_paths)
-        stop("Data resource file paths are required")
-    }
-    if (is.null(step_name)) {
-        stop("Step name is required")
-    }
-    if (!is.null(workflow_run$data_resources) && !is.null(workflow_run$data_resources$step_name)) {
-        print(paste("Data resource for step", step_name, "already exists"))
-        print(workflow_run)
-        stop(paste("Error in workflow run configuration."))
-    }
-    target_step_directory = file.path(run_directory, step_name)
-    target_data_resource_directory = file.path(target_step_directory, "data")
-    if (is.null(workflow_run$data_resources)) {
-        workflow_run$data_resources = list ()
-    } 
-
-    if (!dir.exists(target_step_directory)) {
-        dir.create(target_step_directory, recursive = TRUE)
-        dir.create(target_data_resource_directory, recursive = TRUE)
-    }
-    workflow_run$data_resources[[step_name]] = c()
-    for (i in 1:length(data_resource_file_paths)){
-        data_resource_file_path = data_resource_file_paths[i]
-        target_data_resource_file_path = file.path(target_data_resource_directory, basename(data_resource_file_path))
-        file.copy(data_resource_file_path, target_data_resource_directory)
-        workflow_run$data_resources[[step_name]] = c(workflow_run$data_resources[[step_name]], target_data_resource_file_path)
-    }    
-    return(workflow_run)
-}
-
 check_data_path_in_run_directory <- function(workflow_run, data_resource_file_path) {
     if (is.null(workflow_run$run_directory)) {
         stop("Workflow run object does not have a run directory")
@@ -131,6 +42,79 @@ check_data_path_in_run_directory <- function(workflow_run, data_resource_file_pa
         return(TRUE)
     }
     return(FALSE)
+}
+
+prepare_pecan_run_directory <- function(pecan_settings) {
+    pecan_run_directory = pecan_settings$outdir
+    if (!dir.exists(file.path(pecan_run_directory))) {
+        dir.create(file.path(pecan_run_directory), recursive = TRUE)
+    } else {
+        stop(paste("Run directory", file.path(pecan_run_directory), "already exists"))
+    }
+    return(pecan_settings)
+}
+
+check_pecan_continue_directive <- function(pecan_settings, continue=FALSE) {
+    status_file <- file.path(pecan_settings$outdir, "STATUS")
+    if (continue && file.exists(status_file)) {
+        file.remove(status_file)
+    }
+    return(continue)
+}
+
+pecan_write_configs <- function(pecan_settings) {
+    # if (PEcAn.utils::status.check("CONFIG") == 0) {
+    #     PEcAn.utils::status.start("CONFIG")
+    #     settings <- PEcAn.workflow::runModule.run.write.configs(settings)
+    #     PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
+    #     PEcAn.utils::status.end()
+    # } else if (file.exists(file.path(settings$outdir, "pecan.CONFIGS.xml"))) {
+    #     settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.CONFIGS.xml"))
+    # }
+    if (status.check("CONFIG") == 0) {
+        status.start("CONFIG")
+        pecan_settings <- runModule.run.write.configs(pecan_settings)
+        write.settings(pecan_settings, outputfile = "pecan.CONFIGS.xml")
+        status.end()
+    } else if (file.exists(file.path(pecan_settings$outdir, "pecan.CONFIGS.xml"))) {
+        pecan_settings <- read.settings(file.path(pecan_settings$outdir, "pecan.CONFIGS.xml"))
+    }
+    return(pecan_settings)
+}
+
+
+get_ERA5_met <- function(pecan_settings, raw_era5_path, site_era5_path, site_sipnet_met_path) {
+    library("PEcAn.settings")
+    library("PEcAn.data.atmosphere")
+    site_info <- list(
+        site_id = pecan_settings$run$site$name, # "losthills",
+        lat = pecan_settings$run$site$lat, # 35.5103,
+        lon = pecan_settings$run$site$lon, # -119.6675,
+        start_date = pecan_settings$run$site$met.start, # "1999-01-01",
+        end_date = pecan_settings$run$site$met.end # "2012-12-31"
+    )
+    PEcAn.data.atmosphere::extract.nc.ERA5(
+    slat = site_info$lat,
+    slon = site_info$lon,
+    in.path = raw_era5_path,
+    start_date = site_info$start_date,
+    end_date = site_info$end_date,
+    outfolder = site_era5_path,
+    in.prefix = "ERA5_",
+    newsite = site_info$site_id
+    )
+
+    purrr::walk(
+    1:10, # ensemble members
+    ~PEcAn.SIPNET::met2model.SIPNET(
+        in.path = file.path(site_era5_path,
+                            paste("ERA5", site_info$site_id, ., sep = "_")),
+        start_date = site_info$start_date,
+        end_date = site_info$end_date,
+        in.prefix = paste0("ERA5.", .),
+        outfolder = site_sipnet_met_path
+    )
+    )
 }
 
 register_data_resource <- function(workflow_run, data_resource_file_path, step_name) {

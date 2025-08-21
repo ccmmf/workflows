@@ -6,14 +6,7 @@ tar_source()
 tar_option_set(packages = c("readr", "dplyr"))
 # tar_option_set(packages = c("readr", "dplyr", "PEcAn.all", "PEcAn.SIPNET"))
 
-workflow_run_directory = file.path("./workflow_runs")
-# note: this needs a different call on a per-system basis, and is therefore not a good approach in the final construction
-# consider either identifying the correct call to the system
-# or using a package within R.
-this_run_directory = file.path(workflow_run_directory, uuid::UUIDgenerate())
-data1 = c(file.path("./data.csv"))
-data2 = c(file.path("./data_2.csv"))
-workflow_run = list()
+
 
 # ok, so here is where we left this off.
 # this pipeline will create a run directory.
@@ -38,10 +31,19 @@ workflow_run = list()
 
 # once everything is localized, we can run stuff in an apptainer
 
+# list(
+#   tar_target(workflow_run_01, prepare_run_directory(workflow_run=workflow_run, run_directory=this_run_directory)),
+#   tar_target(workflow_run_02, localize_data_resources(workflow_run=workflow_run_01, data_resource_file_paths=data1, step_name="step1")),
+#   tar_target(workflow_run_03, localize_data_resources(workflow_run=workflow_run_02, data_resource_file_paths=data2, step_name="step2")),
+#   tar_target(workflow_run_04, localize_data_resources(workflow_run=workflow_run_03, data_resource_file_paths=c(workflow_run_03$data_resources$step2, workflow_run_02$data_resources$step1), step_name="step3")),
+#   tar_target(workflow_run_04_print, print_object(workflow_run_04))
+# )
+
 list(
-  tar_target(workflow_run_01, prepare_run_directory(workflow_run=workflow_run, run_directory=this_run_directory)),
-  tar_target(workflow_run_02, localize_data_resources(workflow_run=workflow_run_01, data_resource_file_paths=data1, step_name="step1")),
-  tar_target(workflow_run_03, localize_data_resources(workflow_run=workflow_run_02, data_resource_file_paths=data2, step_name="step2")),
-  tar_target(workflow_run_04, localize_data_resources(workflow_run=workflow_run_03, data_resource_file_paths=c(workflow_run_03$data_resources$step2, workflow_run_02$data_resources$step1), step_name="step3")),
-  tar_target(workflow_run_04_print, print_object(workflow_run_04))
+  tar_target(data_file_01, "./data.csv", format = "file"),
+  tar_target(data_file_02, "./data_2.csv", format = "file"),
+  tar_target(data_01, load_data(data_file_01)),
+  tar_target(data_02, load_data(data_file_02)),
+  tar_target(data_03, c(data_01, data_02)),
+  tar_target(data_03_print, print_object(data_03))
 )
