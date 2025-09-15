@@ -1,12 +1,3 @@
-check_run_object <- function(workflow_run, required_fields) {
-    for (field in required_fields) {
-        if (!is.null(workflow_run$field)) {
-            print(paste("Workflow run object is missing required field:", field))
-            print(workflow_run)
-            stop(paste("Error in workflow run configuration."))
-        }
-    }
-}
 
 print_object <- function(object) {
     print(object)
@@ -19,29 +10,6 @@ load_data_csv <- function(file) {
 download_ccmmf_data <- function(prefix_url, local_path, prefix_filename) {
     system2("aws", args = c("s3", "cp", "--endpoint-url", "https://s3.garage.ccmmf.ncsa.cloud", paste0(prefix_url, "/", prefix_filename), local_path))
     return(file.path(local_path, prefix_filename))
-}
-
-prepare_run_directory <- function(workflow_run, run_directory, step_name="prepare_run_directory") {
-    if (!is.null(workflow_run$run_directory)) {
-        stop(paste("Workflow run object already has a run directory: ", workflow_run$run_directory))
-    }
-    if (!dir.exists(run_directory)) {
-        dir.create(run_directory, recursive = TRUE)
-    } else {
-        stop(paste("Run directory", run_directory, "already exists"))
-    }
-    workflow_run[["run_directory"]] = run_directory
-    return(workflow_run)
-}
-
-check_data_path_in_run_directory <- function(workflow_run, data_resource_file_path) {
-    if (is.null(workflow_run$run_directory)) {
-        stop("Workflow run object does not have a run directory")
-    }
-    if (workflow_run$run_directory %in% data_resource_file_path) {
-        return(TRUE)
-    }
-    return(FALSE)
 }
 
 prepare_pecan_run_directory <- function(pecan_settings) {
@@ -63,14 +31,6 @@ check_pecan_continue_directive <- function(pecan_settings, continue=FALSE) {
 }
 
 pecan_write_configs <- function(pecan_settings) {
-    # if (PEcAn.utils::status.check("CONFIG") == 0) {
-    #     PEcAn.utils::status.start("CONFIG")
-    #     settings <- PEcAn.workflow::runModule.run.write.configs(settings)
-    #     PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
-    #     PEcAn.utils::status.end()
-    # } else if (file.exists(file.path(settings$outdir, "pecan.CONFIGS.xml"))) {
-    #     settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.CONFIGS.xml"))
-    # }
     if (status.check("CONFIG") == 0) {
         status.start("CONFIG")
         pecan_settings <- runModule.run.write.configs(pecan_settings)
@@ -82,6 +42,37 @@ pecan_write_configs <- function(pecan_settings) {
     return(pecan_settings)
 }
 
+reference_external_data_entity <- function(external_workflow_directory, external_name, localized_name){
+    local_link_path = file.path(paste0(tar_path_store(), "/",localized_name))
+    external_link_path = file.path(paste0(external_workflow_directory, "/",external_name))
+    if (!dir.exists(external_link_path)){
+        stop(paste("External link path", external_link_path, "does not exist"))
+        return(NULL)
+    }
+    if (dir.exists(local_link_path)){
+        stop(paste("Local link path", local_link_path, "already exists"))
+    }
+    file.symlink(from=external_link_path, to=local_link_path)
+    # first, synthesize the local directory string
+    # execute the link
+    # return the local directory string
+    return(local_link_path)
+}
+
+localize_data_resources <- function(resource_list, this_run_directory, data_resource_directory) {
+    for (resource in resource_list) {
+        resource = trimws(resource)
+        this_run_directory = trimws(this_run_directory)
+        print(paste(resource))
+        source_path = normalizePath(file.path(paste0(data_resource_directory, "/",resource)))
+        destination_path = normalizePath(file.path(paste0(this_run_directory, "/",resource)))
+        # destination_path = file.path(paste0(this_run_directory, "/"))
+        print(paste("Copying data resource from", source_path, "to", destination_path))
+        # print(paste("Copying data resource from", source_path, "to", destination_path))
+        # file.copy(source_path, destination_path, recursive=TRUE)
+    }
+    return(resource_list)
+}
 
 get_ERA5_met <- function(pecan_settings, raw_era5_path, site_era5_path, site_sipnet_met_path) {
     library("PEcAn.settings")
@@ -117,24 +108,10 @@ get_ERA5_met <- function(pecan_settings, raw_era5_path, site_era5_path, site_sip
     )
 }
 
-register_data_resource <- function(workflow_run, data_resource_file_path, step_name) {
-    if (!check_data_path_in_run_directory(workflow_run, data_resource_file_path)) {
-        stop(paste("Data resource file path", data_resource_file_path, "is not in the run directory", workflow_run$run_directory, ". Please localize the data resource file path using the localize_data_resources function."))
-    }
-    if (is.null(workflow_run$data_resources)) {
-        workflow_run$data_resources = list ()
-    }
-    if (is.null(workflow_run$data_resources$step_name)) {
-        workflow_run$data_resources$step_name = list(data_resource_file_path)
-    } else {
-        stop(paste("Cannot add data resource under step_name:", step_name, "because that name is already in use by another data resource."))
-    }
-    return(workflow_run)
-}
 
-exec_system_command <- function(command, step_name=NULL) {
-    system(command)
-    # oh, yeah, that's safe.
+exec_system_command <- function(command) {
+    system2(command)
+    return(TRUE)
 }
 
 exec_step_01_ph <- function() {

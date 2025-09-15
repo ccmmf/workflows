@@ -1,6 +1,9 @@
 # Analysis outcomes
 **/output/**
 
+# Workflow runs
+**/workflow_runs/**
+
 # container files
 **/**.sif
 

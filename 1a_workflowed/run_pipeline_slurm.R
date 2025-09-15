@@ -24,27 +24,17 @@ args = get_workflow_args()
 # note: if this_run_directory exists already, and we specify the _targets script within it, targets will evaluate the pipeline already run
 # if the pipeline has not changed, the pipeline will not run. This extends to the targeted functions, their arguments, and their arguments values. 
 # thus, as long as the components of the pipeline run are kept in the functions, the data entities, and the arguments, we can have smart re-evaluation.
-workflow_run_directory = normalizePath(file.path("./workflow_runs"))
+workflow_run_directory = file.path("./workflow_runs")
 if (is.null(args$run_id)) {
     run_id = uuid::UUIDgenerate() # future: optional provision by user.
 } else {
     print(paste("Run id specified:", args$run_id))
     run_id = args$run_id
 }
-
-# adding a cut-in
-run_id = "workflow_run_A"
-run_id_B = "workflow_run_B"
-
 this_run_directory = file.path(workflow_run_directory, run_id)
 if (!dir.exists(this_run_directory)) {
     dir.create(this_run_directory, recursive = TRUE)
 } 
-
-this_run_directory_B = file.path(workflow_run_directory, run_id_B)
-if (!dir.exists(this_run_directory_B)) {
-  dir.create(this_run_directory_B, recursive = TRUE)
-}
 
 # note: this allows the functions and code supporting this run to be switchable: I.e., we can do A/B testing on the code state.
 function_path = normalizePath(file.path("../tools/workflow_functions.R"))
@@ -66,6 +56,8 @@ tar_script({
   library(targets)
   library(tarchetypes)
   library(uuid)
+  library(crew)
+  library(crew.cluster)
 
   pecan_xml_path = "@PECANXML@"
   ccmmf_data_tarball_url = "@CCMMFDATAURL@"
@@ -79,8 +71,6 @@ tar_script({
     # source data handling
     tar_target(ccmmf_data_tarball, download_ccmmf_data(prefix_url=ccmmf_data_tarball_url, local_path=tar_path_store(), prefix_filename=ccmmf_data_filename)),
     tar_target(workflow_data_paths, untar(ccmmf_data_tarball, exdir = tar_path_store())),
-    tar_target(obtained_resources_untar, untar(ccmmf_data_tarball, list = TRUE)),
-    tar_target(print_workflow_data_paths, print(workflow_data_paths)),
     # XML sourcing
     tar_target(pecan_xml_file, pecan_xml_path, format = "file"),
     tar_target(pecan_settings, read.settings(pecan_xml_file)),
@@ -88,7 +78,9 @@ tar_script({
     tar_target(pecan_settings_prepared, prepare_pecan_run_directory(pecan_settings=pecan_settings)),
     # check for continue; then write configs
     tar_target(pecan_continue, check_pecan_continue_directive(pecan_settings=pecan_settings_prepared, continue=FALSE)), 
-    tar_target(pecan_settings_configs, pecan_write_configs(pecan_settings=pecan_settings_prepared))
+    tar_target(pecan_settings_configs, pecan_write_configs(pecan_settings=pecan_settings_prepared))  # this step is submitted as a containerized step
+    # run model
+    tar_target(pecan_model_run, pecan_run_model(pecan_settings=pecan_settings_configs)) # this is submitted as a slurm job which spawns containerized steps from within the called pecan method
   )
 }, ask = FALSE, script = tar_script_path)
 
