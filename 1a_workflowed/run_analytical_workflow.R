@@ -67,7 +67,8 @@ if (!dir.exists(analysis_run_directory)) {
 function_path = normalizePath(file.path("../tools/workflow_functions.R"))
 
 # variables specific to this pipeline iteration
-pecan_xml_path = normalizePath(file.path("single_site_almond.xml"))
+# pecan_xml_path = normalizePath(file.path("single_site_almond.xml"))
+pecan_xml_path = normalizePath(file.path("slurm_distributed_single_site_almond.xml"))
 
 print(paste("Starting workflow run in directory:", analysis_run_directory))
 setwd(analysis_run_directory)
@@ -81,9 +82,12 @@ tar_script({
   pecan_xml_path = "@PECANXML@"
   workflow_data_source = "@WORKFLOWDATASOURCE@"
   tar_source("@FUNCTIONPATH@")
+  # tar_option_set(
+  #   packages = c("PEcAn.settings", "PEcAn.utils", "PEcAn.workflow", "readr", "dplyr"),
+  #   imports = c("PEcAn.settings", "PEcAn.utils", "PEcAn.workflow")
+  # )
   tar_option_set(
-    packages = c("PEcAn.settings", "PEcAn.utils", "PEcAn.workflow", "readr", "dplyr"),
-    imports = c("PEcAn.settings", "PEcAn.utils", "PEcAn.workflow")
+    packages = c("PEcAn.settings", "PEcAn.utils", "PEcAn.workflow", "readr", "dplyr")
   )
   list(
     # Config XML and source data handling
@@ -99,8 +103,8 @@ tar_script({
     tar_target(pecan_settings_prepared, prepare_pecan_run_directory(pecan_settings=pecan_settings)),
     #
     # check for continue; then write configs
-    tar_target(pecan_continue, check_pecan_continue_directive(pecan_settings=pecan_settings_prepared, continue=FALSE)), 
-    tar_target(pecan_settings_configs, pecan_write_configs(pecan_settings=pecan_settings_prepared))
+    # tar_target(pecan_continue, check_pecan_continue_directive(pecan_settings=pecan_settings_prepared, continue=FALSE)), 
+    tar_target(pecan_settings_configs, pecan_write_configs(pecan_settings=pecan_settings_prepared, xml_file=pecan_xml_file))
   )
 }, ask = FALSE, script = analysis_tar_script_path)
 

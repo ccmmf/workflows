@@ -53,15 +53,12 @@ ccmmf_data_tarball_url = "s3://carb/data/workflows/phase_1a"
 ccmmf_data_filename = "00_cccmmf_phase_1a_input_artifacts.tgz"
 
 print(paste("Starting workflow run in directory:", this_run_directory))
-# setwd(this_run_directory)
-# tar_config_set(store = this_run_directory)
-# tar_script_path = file.path(paste0(this_run_directory,"/executed_pipeline.R"))
+
 setwd(this_run_directory)
 tar_config_set(store = "./")
 tar_script_path = file.path("./executed_pipeline.R")
-#### Pipeline definition ####
-# ok, here it is. This is a script that creates the targets pipeline exactly as below.
 
+#### Pipeline definition ####
 tar_script({
   library(targets)
   library(tarchetypes)
