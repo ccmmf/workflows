@@ -44,7 +44,7 @@
   <id>99000000003</id>
   <type>SIPNET</type>
   <revision>git</revision>
-  <delete.raw>FALSE</delete.raw>
+  <delete.raw>TRUE</delete.raw>
   <binary>sipnet.git</binary>
   <prerun>cp data/events.in @RUNDIR@</prerun>
  </model>
@@ -69,12 +69,12 @@
   <name>localhost</name>
   <outdir>output/out</outdir>
   <rundir>output/run</rundir>
-  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub>
-  <qsub.jobid>.*job ([0-9]+).*</qsub.jobid>
+  <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
+  <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>
   <modellauncher>
-    <binary>slurm_array_submit.sh</binary>
-    <qsub.extra>-a 1-@NJOBS@</qsub.extra>
+    <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
+    <!-- <qsub.extra>-a 1-@NJOBS@</qsub.extra> -->
     <Njobmax>1000</Njobmax>
   </modellauncher>
  </host>
