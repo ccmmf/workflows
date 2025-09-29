@@ -50,29 +50,7 @@ write.csv(
 )
 ```
 
-To generate new IC files taking new draws from all estimated distributions
-
-Note we only regenerate for grass -- tree runs keep using orig file.
-Note also that this adds new entries to the IC data dir (`data/IC_prep/`) for
-all `<id>_grass` sites. You can verify in `data/IC_prep/IC_means.csv` that the
-estimated distributions are the same as for the tree sites -- we change the draws,
-not the distributions of estimated true state.
-
-```{sh}
-./02_ic_build.R --site_info_path=site_info_tree_as_grass.csv \
-	--ic_outdir=IC_nowood_newdraws \
-	--additional_params='varname=wood_carbon_fraction,distn=norm,parama=0.0001,paramb=0.00001'
-mkdir IC_mix_newdraws
-cp IC_files/* IC_mix_newdraws
-cp IC_nowood_newdraws/* IC_mix_newdraws
-```
-
-The big caveat here is that is generates new draws of soilC and initial soil water for each ensemble member.
-
-
-
-
-To generate IC files that maintain the same soil C and water values:
+To generate IC files that maintain the same soil C and water values: Rewrite each netCDF file
 * set aboveground wood and wood carbon content to 0
 * Scale LAI:
 	- Existing files calculated leaf carbon content as `LAI / SLA * (leafC /100)` = `LAI * (leafC/100)/SLA`
@@ -84,40 +62,37 @@ To generate IC files that maintain the same soil C and water values:
 		~= `LAI * 1.57`
 	- I say "first-order" correction because each IC file used its own draws of SLA and leafC
 
-```{sh}
-mkdir IC_nowood_samedraws
+```{bash, cache=TRUE}
 cd IC_files
-find . -name '*.nc' -exec \
-	ncap2 -s 'AbvGrndWood=0;wood_carbon_content=0;leaf_carbon_content=leaf_carbon_content*1.57' \
-		{} ../IC_nowood_samedraw/{} \;
-cd ../IC_nowood_samedraw
-find . -type d -exec mv {} {}_grass \;
-find . -name '*.nc' -exec bash -c 'mv {} $(echo {} | sed -E "s/(.*)_([0-9]+.nc)/\1_grass_\2/")' \;
-mkdir IC_mix_samedraws
-cp IC_files/* IC_mix_newdraws
-cp IC_nowood_newdraws/* IC_mix_newdraws
+find . -type d -exec mkdir -p ../IC_mix/{} \;
+find . -type d -exec mkdir -p ../IC_mix/{}_grass \;
+find . -name '*.nc' -exec bash -c '
+	ncap_cmd="AbvGrndWood=0;wood_carbon_content=0;leaf_carbon_content=leaf_carbon_content*1.57"
+	insert_pftname() {
+		pth=$(dirname "${1}")_grass
+		fil=$(basename "${1}" | sed -E "s!(.*)_([0-9]+.nc)!\1_grass_\2!")
+		echo "$pth/$fil"
+	}
+	cp {} ../IC_mix/{}
+	ncap2 -s  "$ncap_cmd" {} ../IC_mix/$(insert_pftname {})
+' \;
+cd ..
 ```
 
+[Note: An older version of this notebook called this the "same draws" approach to generating IC files, and also tested a second "new draws" approach that generated IC files for the second PFT by fully rerunning the IC generation script, therefore assigning different draws from the same distribution to _every_ IC variable including soil C and moisture. We ultimately concluded this was adding artificial variability in the places it's most important to keep the simulations from different PFTs on the same site paired with each other, so deleted the "new draws" section and added this note in case you're wondering what `_newdraws` and `_samedraws` mean in the 2025-07-21 output files.]
 
-```{sh}
-# NB this relies on knowing template.xml had all output paths, and no others,
-# beginning with `output`
-sed 's!>output!>output_mix_samedraws!' template.xml > template_mix_samedraws.xml
-sed 's!>output!>output_mix_newdraws!' template.xml > template_mix_newdraws.xml
+```{bash}
+# NB this relies on knowing that all the output paths in template.xml,
+# and no other paths, begin with `output`
+sed 's!>output!>output_mix!' template.xml > template_mix.xml
 
 ./03_xml_build.R \
-	--site_file=site_info_tree_as_grass.csv \
-	--ic_dir=IC_mix_samedraws \
-	--template_file=template_samedraws.xml \
-	--output_file=mix_samedraws.xml
-./03_xml_build.R \
-	--site_file=site_info_tree_as_grass.csv \
-	--ic_dir=IC_mix_newdraws \
-	--template_file=template_newdraws.xml \
-	--output_file=mix_newdraws.xml
+	--site_file=site_info_tree_as_both.csv \
+	--ic_dir=IC_mix \
+	--template_file=template_mix.xml \
+	--output_file=mix.xml
 
-./04_run_model.R --settings=mix_samedraws.xml
-./04_run_model.R --settings=mix_newdraws.xml
+./04_run_model.R --settings=mix.xml
 ```
 
 
