@@ -37,8 +37,9 @@ site_info <- read.csv("site_info.csv", colClasses = c(field_id = "character"))
 tree_sites <- site_info |>
 	filter(site.pft == "temperate.deciduous")
 tree_sites_as_grass <- tree_sites |>
-	mutate(site.pft == "grass",
-	id = paste0(id, "_grass")
+	mutate(
+		site.pft = "grass",
+		id = paste0(id, "_grass"))
 
 write.csv(tree_sites, "site_info_tree.csv", row.names = FALSE)
 write.csv(tree_sites_as_grass, "site_info_tree_as_grass.csv", row.names = FALSE)
