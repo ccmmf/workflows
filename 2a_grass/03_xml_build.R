@@ -130,6 +130,14 @@ settings <- settings |>
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
   )
 
+# Hack: Work around a regression in PEcAn.uncertainty 1.8.2 by specifying
+# PFT outdirs explicitly (even though they go unused in this workflow)
+settings$pfts <- settings$pfts |>
+  lapply(\(x) {
+    x$outdir <- file.path(settings$outdir, "pfts", x$name)
+    x
+  })
+
 write.settings(
   settings,
   outputfile = basename(args$output_file),
