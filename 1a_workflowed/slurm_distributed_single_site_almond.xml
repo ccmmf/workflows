@@ -192,7 +192,7 @@
  </run>
  <host>
   <name>localhost</name>
-  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./model-sipnet-git_latest.sif </qsub>
+  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./sipnet-carb_latest.sif </qsub>
   <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
   <!-- <qstat>squeue -h -j  @JOBID@ || echo "DONE"</qstat> -->
   <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
