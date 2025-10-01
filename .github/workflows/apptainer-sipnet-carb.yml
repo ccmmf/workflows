@@ -1,0 +1,62 @@
+name: Apptainer GHA CARB
+
+env:
+  DEFAULT_R_VERSION: 4.4
+  R_VERSION: 4.4
+  GITHUB_PAT: ${{ secrets.GH_TOKEN }}
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+    inputs:
+      r_version:
+        description: 'R version to use'
+        required: true
+        type: choice
+        default: "$DEFAULT_R_VERSION"
+        options:
+          - 4.1
+          - 4.2
+          - 4.3
+          - 4.4
+          - devel
+
+jobs:
+  # ----------------------------------------------------------------------
+  # Set R version.
+  # This is a hack: We really just want a global env var here, but it seems
+  # `env:` values can't be passed into a `jobs.<jobid>.with` context
+  # (see https://github.com/actions/runner/issues/2372).
+  # As an ugly workaround, we assign it to a job output instead.
+  # ----------------------------------------------------------------------
+  rversion:
+    runs-on: ubuntu-latest
+    steps:
+      - id: default
+        if: github.event_name != 'schedule'
+        run: echo "R_VERSION=4.4" >> "$GITHUB_OUTPUT"
+    outputs:
+      # Note: "steps.*" seems to mean "all step ids", not "all steps"
+      # If seeing weird results here, check that all steps above have an id set.
+      R_VERSION: 4.4
+
+# ----------------------------------------------------------------------
+# Next are images that have specific layers added 
+# ----------------------------------------------------------------------
+  sipnet-carb:
+      needs: [rversion]
+      uses: ./.github/workflows/apptainer-build-image.yml
+      with:
+        image-name: sipnet-carb
+        build-context: tools/apptainer-sipnet-carb
+        dockerfile: tools/apptainer-sipnet-carb/Dockerfile
+        r-version: ${{ needs.rversion.outputs.R_VERSION }}
+        parent-image: "base"
+      secrets: inherit
+
