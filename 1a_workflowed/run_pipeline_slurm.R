@@ -43,10 +43,11 @@ function_path = normalizePath(file.path("../tools/workflow_functions.R"))
 pecan_xml_path = normalizePath(file.path("slurm_distributed_single_site_almond.xml"))
 ccmmf_data_tarball_url = "s3://carb/data/workflows/phase_1a"
 ccmmf_data_filename = "00_cccmmf_phase_1a_input_artifacts.tgz"
+# obtained via: apptainer pull docker://hdpriest0uiuc/sipnet-carb:latest
 apptainer_source_dir = normalizePath(file.path("/home/hdpriest/Projects/workflows_distributed/1a_workflowed"))
 # apptainer_name = "none"
 remote_conda_env = "none"
-apptainer_name = "model-sipnet-git_latest.sif"
+apptainer_name = "sipnet-carb_latest.sif"
 # remote_conda_env = "pecan-all"
 
 print(paste("Starting workflow run in directory:", this_run_directory))
