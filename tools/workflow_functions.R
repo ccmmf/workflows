@@ -1,6 +1,6 @@
 ##################
 # workflow functions for targets-based PEcAn workflows
-# Note that variably, some of these functions will be executed within the namespace of the calling namespace's environment
+# Note that these functions will be executed in different environments depending on the context, so it is not safe to assume that dependencies are always present in the namespace from which the function is called.
 # other functions will be abstracted by the targets framework, and loaded into a novel namespace on a different node.
 # function authors are encouraged to think carefully about the dependencies of their functions.
 # if dependencies are not present, it would be ideal for functions to error informatively rather than fail on imports.
