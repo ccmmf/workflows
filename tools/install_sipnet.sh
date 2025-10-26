@@ -3,13 +3,26 @@
 #SBATCH -n1
 #SBATCH --time=00:10:00
 
-# Compiles Sipnet with support for management events,
+# Compiles the latest version of Sipnet,
 # adds revision hash to the binary name,
 # and creates a symlink to it in your workdir or bindir of choice.
+#
+# The script will:
+# - Clone the repo if it doesn't exist, or update it via git pull
+# - Fail if the repo contains uncommitted changes
+# - Run 'make clean' and 'make' to build a fresh binary
+# - Move the binary to BIN_DIR with git hash appended to filename
+# - Create/overwrite a symlink at LINK_DEST pointing to the binary
 
 # Usage:
-#  install_sipnet.sh path/to/repo/ path/to/bin/ path/to/symlinked/sipnet
-# All paths will be created if needed; link will be overwritten if extant
+# install_sipnet.sh [path/to/repo/] [path/to/bin/] [path/to/symlinked/sipnet]
+#
+# Arguments (all optional, with defaults):
+# - SIPNET_DIR  - directory for sipnet repository (default: ~/sipnet)
+# - BIN_DIR     - directory for versioned binaries (default: ~/sipnet_binaries)
+# - LINK_DEST   - path where symlink will be created (default: ./sipnet.git)
+#
+# All paths will be created if needed; link will be overwritten if it exists
 
 set -e
 
@@ -18,7 +31,7 @@ BIN_DIR=${2:-~/sipnet_binaries}
 LINK_DEST=${3:-./sipnet.git}
 
 # I think git and gcc are available by default here
-# If not true on other sytems, might need e.g `module load gcc`
+# If not true on other systems, might need e.g `module load gcc`
 mkdir -p "$BIN_DIR"
 BIN_DIR=$(realpath "$BIN_DIR")
 
