@@ -54,4 +54,4 @@ cd "$SIPNET_DIR" \
 	&& cd -
 
 cd $(dirname $(realpath "$LINK_DEST"))
-ln -s "$BIN_DIR"/sipnet_"$GIT_REV" $(basename "$LINK_DEST")
+ln -sf "$BIN_DIR"/sipnet_"$GIT_REV" $(basename "$LINK_DEST")
