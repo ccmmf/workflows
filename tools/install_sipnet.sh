@@ -23,22 +23,20 @@ mkdir -p "$BIN_DIR"
 BIN_DIR=$(realpath "$BIN_DIR")
 
 if [[ -d "$SIPNET_DIR" ]]; then
-	if [[ ! -z $(git status -s) ]]; then
+	if [[ ! -z $(git -C "$SIPNET_DIR" status -s) ]]; then
 		echo "Sipnet repo contains uncommited changes, so not updating."
 		echo "Please commit or stash your work before rerunning."
 		exit 1
 	fi
-	cd $("$SIPNET_DIR") && git checkout master && git pull && cd -
+	cd "$SIPNET_DIR" && git checkout master && git pull && cd -
 else
 	git clone https://github.com/PecanProject/sipnet.git "$SIPNET_DIR"
 fi
 
 cd "$SIPNET_DIR" \
 	&& GIT_REV=$(git rev-parse --short HEAD) \
-	&& sed -i'' -e \
-		's/#define EVENT_HANDLER 0/#define EVENT_HANDLER 1/' \
-		src/sipnet/modelStructures.h \
-	&& make sipnet \
+  && make clean \
+	&& make \
 	&& mv sipnet "$BIN_DIR"/sipnet_"$GIT_REV" \
 	&& cd -
 
