@@ -67,7 +67,8 @@ EOF
 ```
 
 ```{sh}
-rclone copy ccmmf:carb/data/workflows/phase_2a/cccmmf_phase_2a_input_artifacts.tgz ./
+rclone copy ccmmf:carb/data/workflows/phase_2a/ccmmf_phase_2a_input_artifacts.tgz ./
+tar -xzf ccmmf_phase_2a_input_artifacts.tgz
 ````
 
 You can also use other tools of your choice that speak the S3 protocol,
@@ -107,7 +108,7 @@ of all parameters specified for each PFT (28 parameters for woody crops,
 22 for nonwoody) on modeled aboveground biomass, NPP, evapotranspiration,
 soil moisture, and soil carbon across the whole 2016-2023 simulation period. The analysis was repeated at each of 5 locations for each PFT.
 
-The major takeaway from the sensitivity analysis is that leaf growth and specific leaf area account for a large fraction of the observed model response across sites, PFTs, and response variables, while photosynthetic rate parameters such as half-saturation PAR, Amax, and `Vm_low_temp` explain much of the productivity and water use response in woody plants but are less important for the nonwoody PFT. Parameters related to the temperature sensitivity of photosythesis (`Vm_low_temp`, `PsnTOpt`) were considerably more elastic (i.e. larger proportional change in model output per unit change in parameter value) than other parameters this was variable from site to site while most other responses were broadly similar across sites.
+The major takeaway from the sensitivity analysis is that leaf growth and specific leaf area account for a large fraction of the observed model response across sites, PFTs, and response variables, while photosynthetic rate parameters such as half-saturation PAR, Amax, and `Vm_low_temp` explain much of the productivity and water use response in woody plants but are less important for the nonwoody PFT. Parameters related to the temperature sensitivity of photosynthesis (`Vm_low_temp`, `PsnTOpt`) were considerably more elastic (i.e. larger proportional change in model output per unit change in parameter value) than other parameters this was variable from site to site while most other responses were broadly similar across sites.
 
 Note that this analysis considers parameter sensitivity only and not uncertainty around initial conditions, management, or environmental drivers.
 
