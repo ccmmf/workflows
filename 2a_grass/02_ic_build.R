@@ -158,7 +158,8 @@ if (nsoilc > 0) {
 
 
 PEcAn.logger::logger.info("Soil moisture")
-sm_outdir <- file.path(args$data_dir, "soil_moisture") |> normalizePath()
+sm_outdir <- file.path(args$data_dir, "soil_moisture") |>
+  normalizePath(mustWork = FALSE)
 sm_csv_path <- file.path(args$data_dir, "sm.csv") # name is hardcorded by fn
 if (file.exists(sm_csv_path)) {
   PEcAn.logger::logger.info("using existing soil moisture file", sm_csv_path)
