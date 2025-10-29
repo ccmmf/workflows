@@ -77,7 +77,10 @@ to create `validation_site_info.csv`.
 
 ### 1. Convert climate driver files
 
-TODO show how to pass n_cores from host_args
+TODO 1: current development version of PEcAn.sipnet still writes 13-col
+	clim files with constants for grid index and soil water. Document which version writes correctly.
+
+TODO 2: show how to pass n_cores from host_args
 (NSLOTS? SLURM_CPUS_PER_TASK?)
 
 ```{sh}
@@ -114,6 +117,31 @@ It would also be fine to put both together in the same input and run it once.
 	--site_file=validation_site_info.csv \
 	--output_file=validation_settings.xml \
 	--output_dir_name=val_out
+```
+
+### 4. Set up model run directories
+
+TODO: Yes, it's unintuitive that we can't rename the output dir at this
+stage instead of in xml_build.
+
+```{sh}
+[host_args] ./04_set_up_runs.R --settings=validation_settings.xml
+```
+
+### 5. Run model
+
+```{sh}
+export NCPUS=8
+ln -s [your/path/to]/sipnet/sipnet sipnet.git
+[host_args] ./05_run_model.R --settings=val_out/pecan.CONFIGS.xml
+
+
+### 6. Validate
+
+```{sh}
+[host_args] ./validate.R \
+	--model_dir=val_out \
+	--output_dir=validation_results_$(date'+%s')
 ```
 
 
