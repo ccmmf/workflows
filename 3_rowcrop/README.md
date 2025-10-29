@@ -63,9 +63,9 @@ TODO show how to pass n_cores from host_args
 
 ```{sh}
 [host_args] ./01_ERA5_nc_to_clim.R \
-	--site-era5-path="data_raw/ERA5_CA_nc" \
+	--site_era5_path="data_raw/ERA5_CA_nc" \
 	--site_sipnet_met_path="data/ERA5_CA_SIPNET" \
-	--site-info-file="data/ca_half_degree_grid.csv" \
+	--site_info_file="data_raw/ca_half_degree_grid.csv" \
 	--start_date="2016-01-01" \
 	--end_date="2025-12-31" \
 	--n_cores=7
