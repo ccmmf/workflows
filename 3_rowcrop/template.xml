@@ -42,7 +42,7 @@
     <method>sampling</method>
    </poolinitcond>
    <events>
-     <method>sampling</method>
+    <method>sampling</method>
    </events>
    <!-- TODO soil physics here when ready -->
   </samplingspace>

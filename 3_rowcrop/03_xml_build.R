@@ -46,7 +46,6 @@ options <- list(
       "Should contain subdirs named by site id"
     )
   ),
-
   optparse::make_option("--site_file",
     default = "site_info.csv",
     help = paste(

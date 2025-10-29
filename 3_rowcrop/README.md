@@ -49,6 +49,7 @@ TODO. Should include:
 	- PFT definitions including new row crop PFT
 	- ERA5 data as nc (clim conversion runs locally)
 	- ca_half_degree_grid.csv too
+	- data/events/
 	- DWR map?
 	- initial conditions
 		- Decide: deliver full files, site-level mean/sd, or other?
