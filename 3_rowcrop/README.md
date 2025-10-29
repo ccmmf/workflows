@@ -43,7 +43,7 @@ work on HPC by "just" adding a system-specific prefix, e.g.
 
 ## Running the workflow
 
-### 0. Copy prebuilt artifacts
+### 0. Copy prebuilt artifacts and set up validation data
 
 TODO. Should include:
 	- PFT definitions including new row crop PFT
@@ -56,6 +56,24 @@ TODO. Should include:
 		probably need a "drop into this directory with this format"
 		step.
 
+#### Validation data
+
+To set up validation runs, you need access to the cropland soil carbon data
+files `Harmonized_SiteMngmt_Croplands.csv` and `Harmonized_Data_Croplands.csv`.
+
+These were shared for this project by CARB and CDFA, who in turn obtained them
+from stakeholders (primarily Healthy Soils Program grant recipients) who
+consented to use of their data for internal research purposes but explicitly
+did not consent to public distribution of the data.
+Contact chelsea.carey@arb.ca.gov for more information about the dataset.
+
+Once obtained, place them in `data_raw/private/HSP` and run
+```{sh}
+./build_validation_siteinfo.R
+```
+to create `validation_site_info.csv`.
+
+
 ### 1. Convert climate driver files
 
 TODO show how to pass n_cores from host_args
@@ -63,18 +81,28 @@ TODO show how to pass n_cores from host_args
 
 ```{sh}
 [host_args] ./01_ERA5_nc_to_clim.R \
-	--site_era5_path="data_raw/ERA5_CA_nc" \
-	--site_sipnet_met_path="data/ERA5_CA_SIPNET" \
-	--site_info_file="data_raw/ca_half_degree_grid.csv" \
-	--start_date="2016-01-01" \
-	--end_date="2025-12-31" \
+	--site_era5_path=data_raw/ERA5_CA_nc \
+	--site_sipnet_met_path=data/ERA5_CA_SIPNET \
+	--site_info_file=data_raw/ca_half_degree_grid.csv \
+	--start_date=2016-01-01 \
+	--end_date=2025-12-31 \
 	--n_cores=7
 ```
 
 ### 2. Generate initial site conditions
 
+We'll run this twice, once for validation sites and once for statewide.
+It would also be fine to put both together in the same input and run it once.
+
 ```{sh}
-[host_args] ./02_ic_build.R
+[host_args] ./02_ic_build.R \
+	--site_info_path=validation_site_info.csv \
+	--pft_dir=data_raw/pfts \
+	--ic_outdir=data/IC_files
+[host_args] ./02_ic_build.R \
+	--site_info_path=site_info.csv \
+	--pft_dir=data_raw/pfts \
+	--ic_outdir=data/IC_files
 ```
 
 ### 3. generate settings file
