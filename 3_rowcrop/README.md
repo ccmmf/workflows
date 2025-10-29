@@ -48,13 +48,14 @@ work on HPC by "just" adding a system-specific prefix, e.g.
 TODO. Should include:
 	- PFT definitions including new row crop PFT
 	- ERA5 data as nc (clim conversion runs locally)
-		- ca_half_degree_grid.csv too?
+	- ca_half_degree_grid.csv too
+	- DWR map?
 	- initial conditions
 		- Decide: deliver full files, site-level mean/sd, or other?
 	- site_info.csv
 	- validation info. Key constraint: datapoints are private,
 		probably need a "drop into this directory with this format"
-		step.
+		step. do NOT include validation_site_info.csv
 
 #### Validation data
 
@@ -99,16 +100,19 @@ It would also be fine to put both together in the same input and run it once.
 	--site_info_path=validation_site_info.csv \
 	--pft_dir=data_raw/pfts \
 	--ic_outdir=data/IC_files
-[host_args] ./02_ic_build.R \
-	--site_info_path=site_info.csv \
-	--pft_dir=data_raw/pfts \
-	--ic_outdir=data/IC_files
+#[host_args] ./02_ic_build.R \
+#	--site_info_path=site_info.csv \
+#	--pft_dir=data_raw/pfts \
+#	--ic_outdir=data/IC_files
 ```
 
 ### 3. generate settings file
 
 ```{sh}
-[host_args] ./03_xml_build.R
+[host_args] ./03_xml_build.R \
+	--ic_dir=data/IC_files \
+	--site_file=validation_site_info.csv \
+	--output_file=validation_settings.xml
 ```
 
 
