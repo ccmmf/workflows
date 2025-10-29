@@ -112,7 +112,8 @@ It would also be fine to put both together in the same input and run it once.
 [host_args] ./03_xml_build.R \
 	--ic_dir=data/IC_files \
 	--site_file=validation_site_info.csv \
-	--output_file=validation_settings.xml
+	--output_file=validation_settings.xml \
+	--output_dir_name=val_out
 ```
 
 

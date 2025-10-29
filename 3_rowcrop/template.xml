@@ -5,9 +5,9 @@
   <userid>-1</userid>
   <username></username>
  </info>
- <outdir>output</outdir>
- <modeloutdir>output/out</modeloutdir>
- <rundir>output/run</rundir>
+ <outdir><!-- altered at config time -->output</outdir>
+ <modeloutdir><!-- altered at config time -->output/out</modeloutdir>
+ <rundir><!-- altered at config time -->output/run</rundir>
  <pfts>
   <pft>
    <name>temperate.deciduous</name>
@@ -67,8 +67,8 @@
  </run>
  <host>
   <name>localhost</name>
-  <outdir>output/out</outdir>
-  <rundir>output/run</rundir>
+  <outdir><!-- altered at config time -->output/out</outdir>
+  <rundir><!-- altered at config time -->output/run</rundir>
   <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
   <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>

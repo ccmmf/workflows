@@ -56,6 +56,15 @@ options <- list(
   optparse::make_option("--output_file",
     default = "settings.xml",
     help = "path to write output XML"
+  ),
+  optparse::make_option("--output_dir_name",
+    default = "output",
+    help = paste(
+      "Path the settings should declare as output directory.",
+      "This will be inserted replacing [out] in all of the following places:",
+      "`outdir` = [out] ; `modeloutdir` = [out]/out; `rundir` = [out]/run;",
+      "`host$outdir`: [out]/out; `host$rundir`: [out]/run."
+    )
   )
 ) |>
   # Show default values in help message
@@ -129,6 +138,23 @@ settings <- settings |>
     path = args$ic_dir,
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
   )
+
+# Update just the first component of the output directory,
+# in all four places it's used.
+# Note: It feels a bit odd to directly replace the word "output"
+# rather than fill a blank or use a @placeholder@, but since existing template
+# already passes @placeholder@'s on to be processed in PEcAn I didn't want
+# to introduce confusion by making some be replaced at a different stage.
+settings$outdir <- sub("^output", args$output_dir_name,
+                       settings$outdir)
+settings$modeloutdir <- sub("^output", args$output_dir_name,
+                            settings$modeloutdir)
+settings$rundir <- sub("^output", args$output_dir_name,
+                       settings$rundir)
+settings$host$outdir <- sub("^output", args$output_dir_name,
+                            settings$host$outdir)
+settings$host$rundir <- sub("^output", args$output_dir_name,
+                            settings$host$rundir)
 
 # Hack: Work around a regression in PEcAn.uncertainty 1.8.2 by specifying
 # PFT outdirs explicitly (even though they go unused in this workflow)
