@@ -11,11 +11,11 @@
  <pfts>
   <pft>
    <name>temperate.deciduous</name>
-   <posterior.files>pfts/temperate.deciduous/post.distns.Rdata</posterior.files>
+   <posterior.files>data_raw/pfts/temperate.deciduous/post.distns.Rdata</posterior.files>
   </pft>
   <pft>
    <name>grass</name>
-   <posterior.files>pfts/grass/post.distns.Rdata</posterior.files>
+   <posterior.files>data_raw/pfts/grass/post.distns.Rdata</posterior.files>
   </pft>
  </pfts>
  <ensemble>
