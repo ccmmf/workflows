@@ -14,23 +14,26 @@ data_dir <- "data_raw/private/HSP/"
 soc_file <- "Harmonized_Data_Croplands.csv"
 mgmt_file <- "Harmonized_SiteMngmt_Croplands.csv"
 
+# can't use datapoints from before our simulations start
+min_yr <- 2016
+
 # TODO using 2018 for compatibility with field ids used in IC script;
 # still need to harmonize IDs with those in data_raw/crop_map/ca_fields.gpkg
 field_map <- "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb"
 
 # For first pass, selecting only the control/no-treatment plots.
-# At some experiments all treatments have the same location (ie lat/lon is site
-# centroid), at others they are distinct and this filter drops treatment plots.
 # TODO: revisit this as we build more management into the workflow.
 site_ids <- read.csv(file.path(data_dir, mgmt_file)) |>
   filter(Treatment_Control %in% c("Control", "None")) |>
   distinct(ProjectName, BaseID)
 
 site_locs <- read.csv(file.path(data_dir, soc_file)) |>
-  # some IDs have spaces between words here but none in site_id
+  filter(Year >= min_yr) |>
+  # some IDs in site_locs contain spaces stripped in site_id; let's match
   mutate(BaseID = gsub("\\s+", "", BaseID)) |>
   distinct(ProjectName, BaseID, Latitude, Longitude) |>
-  rename(lat = Latitude, lon = Longitude)
+  rename(lat = Latitude, lon = Longitude) |>
+  inner_join(site_ids)
 
 dwr_fields <- terra::vect(field_map)
 site_dwr_ids <- site_locs |>
@@ -46,8 +49,7 @@ site_dwr_ids <- site_locs |>
   )
 stopifnot(nrow(site_dwr_ids) == nrow(site_locs))
 
-site_ids |>
-  left_join(site_locs, by = c("ProjectName", "BaseID")) |>
+site_locs |>
   left_join(site_dwr_ids, by = c("ProjectName", "BaseID")) |>
   mutate(
     id = paste(ProjectName, BaseID, lat, lon) |>
@@ -59,14 +61,14 @@ site_ids |>
       TRUE ~ NA_character_
     )
   ) |>
-  # Temporary hack:
-  # For a smaller test dataset, pick just a few locations from each project
-  # TODO remove this for more complete validation when ready
-  # dropping empty PFTs is also a hack -- in production,
-  # want to know if there's no match and complain
+  # TODO is this desirable?
+  # In production, may be better to complain if no PFT match
   drop_na(pft) |>
-  group_by(ProjectName, pft) |>
-  slice_sample(n = 3) |>
+  # Temporary hack:
+  # Where multiple treatments share a location,
+  # use only one of them
+  group_by(lat, lon, pft) |>
+  slice_sample(n = 1) |>
   ungroup() |>
   select(id, field_id, lat, lon, site.pft = pft, name = BaseID) |>
   write.csv("validation_site_info.csv", row.names = FALSE)
