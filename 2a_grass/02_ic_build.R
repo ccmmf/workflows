@@ -158,7 +158,8 @@ if (nsoilc > 0) {
 
 
 PEcAn.logger::logger.info("Soil moisture")
-sm_outdir <- file.path(args$data_dir, "soil_moisture") |> normalizePath()
+sm_outdir <- file.path(args$data_dir, "soil_moisture") |>
+  normalizePath(mustWork = FALSE)
 sm_csv_path <- file.path(args$data_dir, "sm.csv") # name is hardcorded by fn
 if (file.exists(sm_csv_path)) {
   PEcAn.logger::logger.info("using existing soil moisture file", sm_csv_path)
@@ -404,6 +405,7 @@ ic_sample_draws <- function(df, n = 100, ...) {
 }
 
 ic_samples <- initial_condition_estimated |>
+  dplyr::filter(site_id %in% site_info$id) |>
   dplyr::group_by(site_id, variable) |>
   dplyr::group_modify(ic_sample_draws, n = args$ic_ensemble_size) |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>

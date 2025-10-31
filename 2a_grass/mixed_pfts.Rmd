@@ -1,0 +1,111 @@
+# Modify initial pools for mixed-PFT simulations
+
+Context: To test approaches to simulating mixed PFT management using the
+(single-PFT-at-a-time) Sipnet model, we want to generate simulations of the
+same site using two different PFTS, then experiment with post-processing them
+in different ratios.
+
+One challenge is that initial site conditions are set using remote sensed
+observations that are converted to estimates of pool size using PFT-specific
+assumptions. To convert an IC file to one for a different PFT, we also need
+to begin a switch from setting ICs based on remote sensing to setting them
+based on counterfactual assumptions of what remote sensing _would_ show if
+this site were actually mixed PFTs.
+
+Here I mostly do not address the need for counterfactuals and try to convert
+very simply by starting from sites known to be woody and then converting them
+to grass by:
+
+* Keeping soil C and initial soil water identical
+* Treating sensed LAI as if it were 100% from the PFT to be simulated
+	(this will probably overestimate LAI for all PFTs)
+* Setting sensed woody biomass to zero when simulating a nonwoody PFT
+
+which fields of the IC file to alter?
+	- abvGrdWood and wood_carbon_content = 0 for nonwoody pfts
+	- LAI two options:
+		- leave as-is, accept all PFTs start with too many leaves
+		- scale to area coverage (need to know area coverage at IC setup time)
+		==> I'm leaving as-is
+	- leaf carbon: rescale from LAI using PFT-specific SLA and leafC
+
+To generate site info:
+
+```{r}
+library(tidyverse)
+site_info <- read.csv("site_info.csv", colClasses = c(field_id = "character"))
+tree_sites <- site_info |>
+	filter(site.pft == "temperate.deciduous")
+tree_sites_as_grass <- tree_sites |>
+	mutate(
+		site.pft = "grass",
+		id = paste0(id, "_grass"))
+
+write.csv(tree_sites, "site_info_tree.csv", row.names = FALSE)
+write.csv(tree_sites_as_grass, "site_info_tree_as_grass.csv", row.names = FALSE)
+write.csv(
+	bind_rows(tree_sites, tree_sites_as_grass),
+	"site_info_tree_as_both.csv",
+	row.names = FALSE
+)
+```
+
+To generate IC files that maintain the same soil C and water values: Rewrite each netCDF file
+* set aboveground wood and wood carbon content to 0
+* Scale LAI:
+	- Existing files calculated leaf carbon content as `LAI / SLA * (leafC /100)` = `LAI * (leafC/100)/SLA`
+	- PFT means for SLA: deciduous 15.179 +/- 0.97, grass 10.0 +/- 5.0
+	- PFT means for leafC: deciduous 46.6 +/- 0.088, grass 48.3 +/- 4.0
+	- so first-order correction from woody to grass leaf carbon content is
+		`LAI * ( (48.3/100)/10) / ((46.6/100)/15.179) )`
+		~= `LAI * 0.0483/0.0307`
+		~= `LAI * 1.57`
+	- I say "first-order" correction because each IC file used its own draws of SLA and leafC
+
+```{bash, cache=TRUE}
+cd IC_files
+find . -type d -exec mkdir -p ../IC_mix/{} \;
+find . -type d -exec mkdir -p ../IC_mix/{}_grass \;
+find . -name '*.nc' -exec bash -c '
+	ncap_cmd="AbvGrndWood=0;wood_carbon_content=0;leaf_carbon_content=leaf_carbon_content*1.57"
+	insert_pftname() {
+		pth=$(dirname "${1}")_grass
+		fil=$(basename "${1}" | sed -E "s!(.*)_([0-9]+.nc)!\1_grass_\2!")
+		echo "$pth/$fil"
+	}
+	cp {} ../IC_mix/{}
+	ncap2 -s  "$ncap_cmd" {} ../IC_mix/$(insert_pftname {})
+' \;
+cd ..
+```
+
+[Note: An older version of this notebook called this the "same draws" approach to generating IC files, and also tested a second "new draws" approach that generated IC files for the second PFT by fully rerunning the IC generation script, therefore assigning different draws from the same distribution to _every_ IC variable including soil C and moisture. We ultimately concluded this was adding artificial variability in the places it's most important to keep the simulations from different PFTs on the same site paired with each other, so deleted the "new draws" section and added this note in case you're wondering what `_newdraws` and `_samedraws` mean in the 2025-07-21 output files.]
+
+```{bash}
+# NB this relies on knowing that all the output paths in template.xml,
+# and no other paths, begin with `output`
+sed 's!>output!>output_mix!' template.xml > template_mix.xml
+
+./03_xml_build.R \
+	--site_file=site_info_tree_as_both.csv \
+	--ic_dir=IC_mix \
+	--template_file=template_mix.xml \
+	--output_file=mix.xml
+
+./04_run_model.R --settings=mix.xml
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

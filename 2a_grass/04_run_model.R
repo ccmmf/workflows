@@ -71,8 +71,7 @@ if (args$continue && file.exists(status_file)) {
 # Write model specific configs
 if (PEcAn.utils::status.check("CONFIG") == 0) {
   PEcAn.utils::status.start("CONFIG")
-  settings <-
-    PEcAn.workflow::runModule.run.write.configs(settings)
+  settings <- PEcAn.workflow::runModule.run.write.configs(settings)
   PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
   PEcAn.utils::status.end()
 } else if (file.exists(file.path(settings$outdir, "pecan.CONFIGS.xml"))) {
@@ -80,7 +79,6 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
     file.path(settings$outdir, "pecan.CONFIGS.xml")
   )
 }
-
 
 # Start ecosystem model runs
 if (PEcAn.utils::status.check("MODEL") == 0) {
