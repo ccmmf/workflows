@@ -70,7 +70,7 @@ Contact chelsea.carey@arb.ca.gov for more information about the dataset.
 
 Once obtained, place them in `data_raw/private/HSP` and run
 ```{sh}
-./build_validation_siteinfo.R
+../tools/build_validation_siteinfo.R
 ```
 to create `validation_site_info.csv`.
 
