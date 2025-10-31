@@ -454,6 +454,14 @@ sbatch_header_standard <- function(apptainer=NULL) {
     return(header_string)
 }
 
+pull_apptainer_container <- function(apptainer_url_base=NULL, apptainer_image_name=NULL, apptainer_disk_sif=NULL, apptainer_tag="latest") {
+    # TODO: handle nulls and non-passes. validate url/names,
+    apptainer_output_sif = paste0(apptainer_image_name,"_",apptainer_tag,".sif")
+    out = system2("apptainer", c(paste0("pull ", apptainer_output_sif ," ", apptainer_url_base,apptainer_image_name,":",apptainer_tag)), stdout = TRUE, stderr = TRUE)
+    return(apptainer_output_sif)
+}
+
+
 #' Targets Function Abstraction
 #'
 #' Retrieves a function by name and returns it as a targets object for remote execution.
@@ -590,11 +598,49 @@ targets_abstract_sbatch_exec <- function(pecan_settings, function_artifact, args
 #' }
 #'
 #' @export
-targets_based_local_exec <- function(function_artifact, args_artifact, task_id, dependencies = NULL) {
-    # this function is silly. really just the analogous execution method as slurm.
+targets_based_containerized_local_exec <- function(pecan_settings, function_artifact, args_artifact, task_id, apptainer=NULL, dependencies = NULL, conda_env=NULL) {
+    # this function is NOT silly. It allows us to execute code on the local node, but within an apptainer!
+    if (!is.character(function_artifact) || !is.character(args_artifact)) {
+        print("Remember - function_artifact and/or args_artifact should be the string name of a targets object of a function entity, not the function entity itself")
+        return(FALSE)
+    }
     local_output_file = paste0("local_command_", task_id, ".sh")
-    file_content = paste0('Rscript -e "library(targets)" -e "abstract_function=targets::tar_read(', function_artifact, ')" -e "abstract_args=targets::tar_read(', args_artifact, ')" -e "do.call(abstract_function, abstract_args)"')
+    file_content=""
+    if (!is.null(apptainer)) {
+        file_content = paste0(file_content, ' apptainer run ', apptainer)
+    }
+    file_content = paste0(file_content, ' Rscript -e "library(targets)" -e "abstract_function=targets::tar_read(', function_artifact, ')" -e "abstract_args=targets::tar_read(', args_artifact, ')" -e "do.call(abstract_function, abstract_args)"')
     writeLines(file_content, local_output_file)
     system(paste0("bash ", local_output_file))
     return(TRUE)
+}
+
+check_directory_exists <- function(directory_path, stop_on_nonexistent=FALSE) {
+    if (!dir.exists(directory_path)) {
+        if (stop_on_nonexistent) {
+            print(paste0("Directory: ", directory_path, " doesn't exist."))
+            stop("This path is required to proceed. Exiting.")
+        }
+        return(FALSE)
+    }
+    return(TRUE)
+}
+
+
+workflow_run_directory_setup <- function(run_identifier=NULL, workflow_run_directory=NULL) {
+    if(is.null(workflow_run_directory)){
+        stop("Cannot continue without a workflow run directory - check XML configuration.")
+    }
+    analysis_run_id = paste0("analysis_run_", uuid::UUIDgenerate() )
+    if (is.null(run_identifier)) {
+        print(paste("Analysis run id specified:", analysis_run_id))
+    } else {
+        print(paste("Analysis run id specified:", run_identifier))
+        analysis_run_id = run_identifier
+    }
+    analysis_run_directory = file.path(workflow_run_directory, analysis_run_id)
+    if (!check_directory_exists(analysis_run_directory, stop_on_nonexistent=FALSE)) {
+        dir.create(analysis_run_directory, recursive = TRUE)
+    }
+    return(list(run_dir=analysis_run_directory, run_id=analysis_run_id))
 }
