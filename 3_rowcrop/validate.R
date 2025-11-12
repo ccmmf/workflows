@@ -119,6 +119,12 @@ ggsave(
   width = 8
 )
 
+ggsave(
+  file.path(args$output_dir, "SOC_scatter_by_ens.png"),
+  plot = soc_lm_plot + facet_wrap(~ens_num),
+  height = 8,
+  width = 8
+)
 
 
 soc_fits <- soc_compare |>
