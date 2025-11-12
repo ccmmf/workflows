@@ -146,8 +146,11 @@ if (file.exists(soilc_csv_path)) {
 nsoilc <- nrow(sites_needing_soilc)
 if (nsoilc > 0) {
   PEcAn.logger::logger.info("Retrieving soil C for", nsoilc, "sites")
+  # soilgrids fn expects a site name col but does not use it; OK if empty
+  sites_needing_soilc$name <- sites_needing_soilc$name %||% ""
   new_soil_carbon <- PEcAn.data.land::soilgrids_soilC_extract(
-    sites_needing_soilc |> select(site_id = id, site_name = name, lat, lon),
+    sites_needing_soilc |>
+      select(site_id = id, site_name = name, lat, lon),
     outdir = args$data_dir
   )
   soil_carbon_est <- bind_rows(soil_carbon_est, new_soil_carbon) |>

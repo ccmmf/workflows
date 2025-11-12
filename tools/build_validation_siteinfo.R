@@ -70,5 +70,5 @@ site_locs |>
   group_by(lat, lon, pft) |>
   slice_sample(n = 1) |>
   ungroup() |>
-  select(id, field_id, lat, lon, site.pft = pft, name = BaseID) |>
+  select(id, field_id, lat, lon, site.pft = pft) |>
   write.csv("validation_site_info.csv", row.names = FALSE)
