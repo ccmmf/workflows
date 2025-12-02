@@ -119,6 +119,11 @@ id2grid <- function(s) {
   s
 }
 
+add_soil_pft <- function(s) {
+  s$run$site$site.pft <- list(veg = s$run$site$site.pft, soil = "soil")
+  s
+}
+
 settings <- settings |>
   createMultiSiteSettings(site_info) |>
   setEnsemblePaths(
@@ -137,7 +142,8 @@ settings <- settings |>
     input_type = "poolinitcond",
     path = args$ic_dir,
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
-  )
+  ) |>
+  papply(add_soil_pft)
 
 # Update just the first component of the output directory,
 # in all four places it's used.
@@ -155,14 +161,6 @@ settings$host$outdir <- sub("^output", args$output_dir_name,
                             settings$host$outdir)
 settings$host$rundir <- sub("^output", args$output_dir_name,
                             settings$host$rundir)
-
-# Hack: Work around a regression in PEcAn.uncertainty 1.8.2 by specifying
-# PFT outdirs explicitly (even though they go unused in this workflow)
-settings$pfts <- settings$pfts |>
-  lapply(\(x) {
-    x$outdir <- file.path(settings$outdir, "pfts", x$name)
-    x
-  })
 
 write.settings(
   settings,

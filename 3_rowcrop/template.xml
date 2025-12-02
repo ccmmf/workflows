@@ -12,10 +12,16 @@
   <pft>
    <name>temperate.deciduous</name>
    <posterior.files>data_raw/pfts/temperate.deciduous/post.distns.Rdata</posterior.files>
+   <outdir>data_raw/pfts/temperate.deciduous/</outdir>
   </pft>
   <pft>
    <name>grass</name>
    <posterior.files>data_raw/pfts/grass/post.distns.Rdata</posterior.files>
+   <outdir>data_raw/pfts/grass</outdir>
+  </pft>
+  <pft>
+   <name>soil</name>
+   <outdir>data_raw/pfts/soil/</outdir>
   </pft>
  </pfts>
  <ensemble>
