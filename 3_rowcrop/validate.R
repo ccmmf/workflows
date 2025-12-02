@@ -98,8 +98,12 @@ soc_sim <- sim_files_wanted |>
 
 soc_compare <- soc_sim |>
   left_join(soc_obs) |>
-  # ??
-  drop_na(obs_SOC)
+  # TODO these filters need refinement --
+  # eg Are NAs actually expected or should they trigger complaints?
+  drop_na(obs_SOC) |>
+  # TODO excluded as surprisingly high
+  # May want to re-include after inspecting data for individual sites
+  filter(obs_SOC < 20)
   # TODO will eventually want to have PFTs labeled here
 
 if (!dir.exists(args$output_dir)) dir.create(args$output_dir, recursive = TRUE)
@@ -192,3 +196,7 @@ soc_fits |>
     file.path(args$output_dir, "SOC_fit_summary.csv"),
     row.names = FALSE
   )
+
+pdf(file.path(args$output_dir, "SOC_fit_diagnostic_plots.pdf"))
+soc_fits |> pwalk(\(fit, ens_num, ...) plot(fit, which = 1:6, main = ens_num))
+dev.off()
