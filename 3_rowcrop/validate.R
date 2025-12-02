@@ -28,59 +28,8 @@ args <- optparse::OptionParser(option_list = options) |>
 
 library(tidyverse)
 
-read_ncdir <- function(path, start, end, vars = NULL) {
-  path |>
-    list.files(pattern = "ENS-", full.names = TRUE) |>
-    data.frame(path = _) |>
-    separate_wider_regex(
-      cols = path,
-      patterns = c(
-        ".*/ENS-",
-        ens_num = "\\d+",
-        "-",
-        site = ".*?"
-      ),
-      cols_remove = FALSE
-    ) |>
-    mutate(ens_num = as.numeric(ens_num)) |>
-    nest_by(ens_num, site, .key = "path") |>
-    mutate(
-      contents = map(
-        path,
-        ~ PEcAn.utils::read.output(
-          outdir = .x,
-          runid = "", # included in outdir already
-          dataframe = TRUE,
-          variables = vars,
-          print_summary = FALSE,
-          verbose = FALSE,
-          start.year = start,
-          end.year = end
-        )
-      )
-    ) |>
-    unnest(contents)
-}
 
-
-## Read model output, summarize to end-of-year values
-## (SOC doesn't change very fast)
-
-# read.output is FAR too chatty; suppress info-level messages
-logger_level <- PEcAn.logger::logger.setLevel("WARN")
-
-
-soc_sim <- read_ncdir(
-  file.path(args$model_dir, "out"),
-  start = 2016,
-  end = 2024,
-  vars = "TotSoilCarb"
-) |>
-  group_by(ens_num, site, year) |>
-  slice_max(posix)
-
-
-## Read validation data, align with sims
+## Read validation data, identify target years from each site
 
 soc_obs <- read.csv(args$val_data_path) |>
   # recreate hashes used in site_info
@@ -93,6 +42,59 @@ soc_obs <- read.csv(args$val_data_path) |>
     obs_SOC = PEcAn.utils::ud_convert(SOC_stock_0_30, "tonne/ha", "kg/m2")
   ) |>
   select(site, BaseID, year = Year, obs_SOC)
+
+obs_sites_yrs <- soc_obs |>
+  distinct(site, year)
+
+## Read model output, summarize to end-of-year values
+## (SOC doesn't change very fast)
+
+sim_files_wanted <- file.path(args$model_dir, "out") |>
+  list.files(
+    pattern = "\\d\\d\\d\\d.nc",
+    full.names = TRUE,
+    recursive = TRUE
+  ) |>
+  data.frame(path = _) |>
+  separate_wider_regex(
+    cols = path,
+    patterns = c(
+      ".*/ENS-",
+      ens_num = "\\d+",
+      "-",
+      site = ".*?",
+      "/",
+      year = "\\d+",
+      ".nc"
+    ),
+    cols_remove = FALSE
+  ) |>
+  mutate(across(c("ens_num", "year"), as.numeric)) |>
+  inner_join(obs_sites_yrs)
+
+# read.output is FAR too chatty; suppress info-level messages
+logger_level <- PEcAn.logger::logger.setLevel("WARN")
+
+soc_sim <- sim_files_wanted |>
+  nest_by(ens_num, site, year, .key = "path") |>
+  mutate(
+    contents = map(
+      path,
+      ~ PEcAn.utils::read.output(
+        ncfiles = .x,
+        dataframe = TRUE,
+        variables = "TotSoilCarb",
+        print_summary = FALSE,
+        verbose = FALSE
+      ) |>
+        select(-year) # already present outside nested cols
+    )
+  ) |>
+  unnest(contents) |>
+  group_by(ens_num, site, year) |>
+  slice_max(posix)
+
+## Combine and align obs + sim
 
 soc_compare <- soc_sim |>
   left_join(soc_obs) |>
