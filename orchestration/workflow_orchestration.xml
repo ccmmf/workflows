@@ -3,6 +3,12 @@
     <orchestration>
         <workflow.base.run.directory>/project/60007/hpriest/data/workflow_runs_devel</workflow.base.run.directory>
         <functions.source>../tools/workflow_functions.R</functions.source>
+        <distributed.compute.adapter>
+            <name>localhost</name>
+            <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./sipnet-carb_develop.sif </qsub>
+            <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+            <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
+        </distributed.compute.adapter>
         <workflow.get.base.data>
             <run.identifier>base_data_01</run.identifier>
             <pecan.xml.path>./pecan_workflow_with_orchestration.xml</pecan.xml.path>
@@ -10,6 +16,10 @@
             <ccmmf.s3.artifact.01.filename>00_cccmmf_phase_1a_input_artifacts.tgz</ccmmf.s3.artifact.01.filename>
             <ccmmf.s3.artifact.02.url>s3://carb/data/workflows/phase_2a</ccmmf.s3.artifact.02.url>
             <ccmmf.s3.artifact.02.filename>ccmmf_phase_2a_input_artifacts.tgz</ccmmf.s3.artifact.02.filename>
+            <ccmmf.s3.median_tif.url>s3://carb/data_raw</ccmmf.s3.median_tif.url>
+            <ccmmf.s3.median_tif.filename>ca_biomassfiaald_2016_median.tif</ccmmf.s3.median_tif.filename>
+            <ccmmf.s3.stdv_tif.url>s3://carb/data_raw</ccmmf.s3.stdv_tif.url>
+            <ccmmf.s3.stdv_tif.filename>ca_biomassfiaald_2016_stdv.tif</ccmmf.s3.stdv_tif.filename>
             <apptainer>
                 <remote.url>docker://hdpriest0uiuc/</remote.url>
                 <container.name>sipnet-carb</container.name>
@@ -23,19 +33,33 @@
             <pecan.xml.path>./pecan_base_config.xml</pecan.xml.path>
             <n.workers>1</n.workers>
             <site.info.file>site_info.csv</site.info.file>
-            <site.sipnet.met.path>data/ERA5_SIPNET</site.sipnet.met.path>
+            <site.sipnet.met.path>data_prepared/ERA5_SIPNET</site.sipnet.met.path>
             <site.era5.path>data_raw/ERA5_nc</site.era5.path>
+            <ic.ensemble.size>100</ic.ensemble.size>
+            <field.shape.path>data_raw/dwr_map/i15_Crop_Mapping_2018.gdb</field.shape.path>
+            <ic.outdir>IC_files</ic.outdir>
+            <data.dir>data/IC_prep</data.dir>
+            <pft.dir>pfts</pft.dir>
+            <params.from.pft>SLA,leafC</params.from.pft>
+            <landtrendr.raw.files>data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif</landtrendr.raw.files>
+            <additional.params>varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005</additional.params>
             <parallel.strategy>multisession</parallel.strategy>
             <start.date>2016-01-01</start.date>
             <end.date>2023-12-31</end.date>
+            <run_LAI.date>2016-07-01</run_LAI.date>
             <apptainer>
+                <remote.url>docker://hdpriest0uiuc/</remote.url>
+                <container.name>sipnet-carb</container.name>
+                <tag>develop</tag>
                 <sif>sipnet-carb_develop.sif</sif>
             </apptainer>
         </workflow.create.clim.files>
         <workflow.build.xml>
             <run.identifier>build_xml_03</run.identifier>
             <data.download.reference>base_data_01</data.download.reference>
-            <pecan.xml.template>../2a_grass/template.xml</pecan.xml.template>
+            <data.clim.reference>clim_run_01</data.clim.reference>
+            <pecan.xml.template>../grass_template.xml</pecan.xml.template>
+            <pecan.xml.path>./pecan_base_config.xml</pecan.xml.path>
             <site.info.file>site_info.csv</site.info.file>
             <n.met>10</n.met>
             <n.ens>20</n.ens>
@@ -44,6 +68,12 @@
             <start.date>2016-01-01</start.date>
             <end.date>2023-12-31</end.date>
             <output.xml>pecan_built_config.xml</output.xml>
+            <apptainer>
+                <remote.url>docker://hdpriest0uiuc/</remote.url>
+                <container.name>sipnet-carb</container.name>
+                <tag>develop</tag>
+                <sif>sipnet-carb_develop.sif</sif>
+            </apptainer>
         </workflow.build.xml>
         <workflow.data.prep.1>
             <run.identifier>data_prep_run_01</run.identifier>
@@ -70,6 +100,9 @@
             <data.source.01.reference>data_prep_run_01</data.source.01.reference>
             <apptainer.source.reference>data_reference_run_02</apptainer.source.reference>
             <apptainer>
+                <remote.url>docker://hdpriest0uiuc/</remote.url>
+                <container.name>sipnet-carb</container.name>
+                <tag>develop</tag>
                 <sif>sipnet-carb_develop.sif</sif>
             </apptainer>
         </workflow.analysis.03>

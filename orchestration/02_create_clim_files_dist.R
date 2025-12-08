@@ -82,58 +82,30 @@ tar_script({
 
   list(
     tar_target(pecan_xml_file, pecan_xml_path, format = "file"),
-    tar_target(
-      reference_era5_path, 
-      reference_external_data_entity(external_workflow_directory=data_download_directory, external_name="data_raw/ERA5_nc", localized_name="ERA5_nc")
-    ),
-    tar_target(
-      site_info_file, 
-      reference_external_data_entity(external_workflow_directory=data_download_directory, external_name=site_info_filename, localized_name="site_info.csv")
-    ),
-    tar_target(
-      apptainer_reference, 
-      reference_external_data_entity(external_workflow_directory=data_download_directory, external_name=apptainer_sif, localized_name=apptainer_sif)
-    ),
     tar_target(pecan_settings, PEcAn.settings::read.settings(pecan_xml_file)),
-    tar_target(
-      era5_site_combinations,
-      build_era5_site_combinations_args(
-        site_info_file = site_info_file,
-        start_date = start_date,
-        end_date = end_date,
-        reference_path = reference_era5_path,
-        sipnet_met_path = site_sipnet_met_path,
-        dependencies = c()
-      )
+
+    step__link_data_by_name(
+      workflow_data_source_directory = data_download_directory, 
+      target_artifact_names = c("reference_era5_path", "data_raw", "site_info_file", "data", "pfts"), 
+      external_name_list = c("data_raw/ERA5_nc", "data_raw", site_info_filename, "data", "pfts"),
+      localized_name_list = c("ERA5_nc", "data_raw", "site_info.csv", "data", "pfts")
     ),
-    tar_target(
-      era5_clim_create_args,
-      targets_argument_abstraction(
-        argument_object = list(
-          site_combinations = era5_site_combinations,
-          site_era5_path = reference_era5_path,
-          site_sipnet_met_path = site_sipnet_met_path,
-          n_workers = 1,
-          dependencies=c()
-        )
-      )
+    step__resolve_apptainer(apptainer_source_directory=data_download_directory, workflow_xml=workflow_settings),
+    
+    step__create_clim_files(
+      pecan_settings=quote(pecan_settings), 
+      container=quote(apptainer_reference), 
+      workflow_settings=workflow_settings, 
+      reference_path = quote(reference_era5_path),
+      data_raw = quote(data_raw),
+      site_info = quote(site_info_file),
+      dependencies = c("pecan_settings", "apptainer_reference", "site_info_file", "reference_era5_path", "data_raw", "data")
     ),
-    # tar_target(printed_thing, print(era5_site_combinations)),
-    tar_target(
-      era5_clim_output,
-      targets_abstract_args_sbatch_exec(
-        pecan_settings=pecan_settings,
-        function_artifact="convert_era5_nc_to_clim", 
-        args_artifact="era5_clim_create_args", 
-        task_id=uuid::UUIDgenerate(), , 
-        apptainer=apptainer_reference, 
-        dependencies = era5_clim_create_args,
-        functional_source = function_sourcefile
-      )
-    ),
-    tar_target(
-      settings_job_outcome,
-      pecan_monitor_cluster_job(pecan_settings=pecan_settings, job_id_list=era5_clim_output)
+    step__build_ic_files(
+      workflow_settings = workflow_settings, 
+      orchestration_settings = orchestration_settings, 
+      container = quote(apptainer_reference), 
+      dependencies = c("era5_clim_conversion", "apptainer_reference")
     )
   )
 }, ask = FALSE, script = tar_script_path)

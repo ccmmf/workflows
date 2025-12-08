@@ -111,30 +111,11 @@ tar_script({
     #### This throws an error about not finding uniform:
     # tar_target(pecan_settings_configs, pecan_write_configs(pecan_settings=pecan_settings_prepared, xml_file=pecan_xml_file))
 
-    # now we get into the abstract functions. 
-    # create the abstraction of pecan write configs.
-    # tar_target(
-    #     pecan_write_configs_function,
-    #     targets_function_abstraction(function_name = "pecan_write_configs")
-    # ),
-    # create the abstraction of the pecan write configs arguments
     tar_target(
       pecan_write_configs_arguments,
       targets_argument_abstraction(argument_object = list(pecan_settings=pecan_settings_prepared, xml_file=pecan_xml_file))
     ),
 
-    # run the abstracted function on the abstracted arguments via slurm
-    # tar_target(
-    #   pecan_settings_job_submission, 
-    #   targets_abstract_sbatch_exec(
-    #     pecan_settings=pecan_settings,
-    #     function_artifact="pecan_write_configs_function", 
-    #     args_artifact="pecan_write_configs_arguments", 
-    #     task_id=uuid::UUIDgenerate(), 
-    #     apptainer=apptainer_reference, 
-    #     dependencies=c(pecan_continue)
-    #   )
-    # ),
     tar_target(
       pecan_settings_job_submission, 
       targets_abstract_args_sbatch_exec(

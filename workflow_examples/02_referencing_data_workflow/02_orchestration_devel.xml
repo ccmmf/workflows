@@ -3,6 +3,12 @@
  <orchestration>
     <workflow.base.run.directory>/project/60007/hpriest/data/workflow_runs_devel</workflow.base.run.directory>
     <functions.source>../../tools/workflow_functions.R</functions.source>
+    <distributed.compute.adapter>
+        <name>localhost</name>
+        <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./sipnet-carb_develop.sif </qsub>
+        <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+        <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
+    </distributed.compute.adapter>
     <workflow.data.prep.1>
         <run.identifier>data_prep_run_01</run.identifier>
         <pecan.xml.path>./01_pecan_config_devel.xml</pecan.xml.path>

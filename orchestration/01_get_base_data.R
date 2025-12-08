@@ -33,8 +33,12 @@ source(workflow_function_source)
 
 ret_obj <- workflow_run_directory_setup(orchestration_settings=settings, workflow_name=this_workflow_name)
 
+
+
 analysis_run_directory = ret_obj$run_dir
 run_id = ret_obj$run_id
+
+dir.create(paste0(analysis_run_directory,"/data_raw"), recursive = TRUE)
 
 message(sprintf("Starting workflow run '%s' in directory: %s", run_id, analysis_run_directory))
 
@@ -70,18 +74,21 @@ tar_script({
   artifact1_filename <- workflow_settings$ccmmf.s3.artifact.01.filename
   artifact2_url <- workflow_settings$ccmmf.s3.artifact.02.url
   artifact2_filename <- workflow_settings$ccmmf.s3.artifact.02.filename
+  median_tif_url <- workflow_settings$ccmmf.s3.median_tif.url
+  median_tif_filename <- workflow_settings$ccmmf.s3.median_tif.filename
+  stdv_tif_filename <- workflow_settings$ccmmf.s3.stdv_tif.filename
 
   tar_option_set(packages = character(0))
 
   list(
-    tar_target(
-      ccmmf_artifact_01_file, 
-      download_ccmmf_data(prefix_url = artifact1_url, local_path = tar_path_store(), prefix_filename = artifact1_filename)
-    ),
-    tar_target(
-      ccmmf_artifact_01_contents,
-      untar(ccmmf_artifact_01_file, exdir = tar_path_store())
-    ),
+    # tar_target(
+    #   ccmmf_artifact_01_file, 
+    #   download_ccmmf_data(prefix_url = artifact1_url, local_path = tar_path_store(), prefix_filename = artifact1_filename)
+    # ),
+    # tar_target(
+    #   ccmmf_artifact_01_contents,
+    #   untar(ccmmf_artifact_01_file, exdir = tar_path_store())
+    # ),
     tar_target(
       ccmmf_artifact_02_file,
       download_ccmmf_data(prefix_url = artifact2_url,local_path = tar_path_store(),prefix_filename = artifact2_filename)
@@ -89,6 +96,14 @@ tar_script({
     tar_target(
       ccmmf_artifact_02_contents,
       untar(ccmmf_artifact_02_file, exdir = tar_path_store())
+    ),
+    tar_target(
+      ccmmf_median_tif_file,
+      download_ccmmf_data(prefix_url = median_tif_url, local_path = paste0(tar_path_store(),"data_raw/"), prefix_filename = median_tif_filename)
+    ),
+    tar_target(
+      ccmmf_stdv_tif_file,
+      download_ccmmf_data(prefix_url = median_tif_url, local_path = paste0(tar_path_store(),"data_raw/"), prefix_filename = stdv_tif_filename)
     ),
     tar_target(
       apptainer_reference, 

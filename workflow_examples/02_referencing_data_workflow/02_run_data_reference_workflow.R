@@ -86,66 +86,24 @@ tar_script({
     packages = c("PEcAn.settings", "readr", "dplyr")
   )
   list(
-    # Config XML and source data handling
-    # obviously, if at any time we need to alter the content of the reference data, we're going to need to do more than link to it.
-    # doesn't copy anything; also doesn't check content - if the content of the source is changed, this is unaware.
-    tar_target(reference_IC_directory, reference_external_data_entity(external_workflow_directory=workflow_data_source, external_name="IC_files", localized_name="IC_files")),
-    tar_target(reference_data_entity, reference_external_data_entity(external_workflow_directory=workflow_data_source, external_name="data", localized_name="data")),
-    tar_target(reference_pft_entity, reference_external_data_entity(external_workflow_directory=workflow_data_source, external_name="pfts", localized_name="pfts")),
-
-    # pull down the apptainer from remote
-    # we could do this in the prior step. 
-    # doing it here in this example allows the next step to reference two different data sources    
-    tar_target(apptainer_reference, pull_apptainer_container(apptainer_url_base=apptainer_url, apptainer_image_name=apptainer_name, apptainer_tag=apptainer_tag, apptainer_disk_sif=apptainer_sif)),
+    step__link_data_by_name(
+      workflow_data_source_directory = workflow_data_source, 
+      target_artifact_names = c("reference_IC_directory", "reference_data_entity", "reference_pft_entity"), 
+      external_name_list = c("IC_files", "data", "pfts"),
+      localized_name_list = c("IC_files", "data", "pfts")
+    ),
+    # how does the user either specify what vars are populated, or clarify what vars are populated by a func call
+    step__resolve_apptainer(apptainer_source_directory=NULL, workflow_xml=workflow_settings),
 
     # Prep run directory & check for continue
     tar_target(pecan_xml_file, pecan_xml_path, format = "file"),
     tar_target(pecan_settings, PEcAn.settings::read.settings(pecan_xml_file)),
     tar_target(pecan_settings_prepared, prepare_pecan_run_directory(pecan_settings=pecan_settings)),
-
     # check for continue; then write configs
     tar_target(pecan_continue, check_pecan_continue_directive(pecan_settings=pecan_settings_prepared, continue=FALSE)), 
 
-    # now we get into the abstract functions. 
-    # create the abstraction of pecan write configs.
-    tar_target(
-        pecan_write_configs_function,
-        targets_function_abstraction(function_name = "pecan_write_configs")
-    ),
-    # create the abstraction of the pecan write configs arguments
-    tar_target(
-      pecan_write_configs_arguments,
-      targets_argument_abstraction(argument_object = list(pecan_settings=pecan_settings_prepared, xml_file=pecan_xml_file))
-    ),
-
-    # run the abstracted function on the abstracted arguments via slurm
-    tar_target(
-      pecan_settings_job_submission, 
-      targets_abstract_sbatch_exec(
-        pecan_settings=pecan_settings,
-        function_artifact="pecan_write_configs_function", 
-        args_artifact="pecan_write_configs_arguments", 
-        task_id=uuid::UUIDgenerate(), 
-        apptainer=apptainer_reference, 
-        dependencies=c(pecan_continue, apptainer_reference)
-      )
-    ),
-    # tar_target(
-    #   pecan_settings_job_submission,
-    #   targets_based_containerized_local_exec(
-    #     pecan_settings=pecan_settings,
-    #     function_artifact="pecan_write_configs_function", 
-    #     args_artifact="pecan_write_configs_arguments", 
-    #     task_id=uuid::UUIDgenerate(), 
-    #     apptainer=apptainer_reference, 
-    #     dependencies=c(pecan_continue, apptainer_reference)
-    #   )
-    # ),
-    # block and wait until dist. job is done
-    tar_target(
-      settings_job_outcome,
-      pecan_monitor_cluster_job(pecan_settings=pecan_settings, job_id_list=pecan_settings_job_submission)
-    )
+    # TODO: find a method which allows passing of non-quoted vars
+    step__run_distributed_write_configs(container=quote(apptainer_reference), pecan_settings=quote(pecan_settings_prepared), use_abstraction=TRUE)
   )
 }, ask = FALSE, script = tar_script_path)
 

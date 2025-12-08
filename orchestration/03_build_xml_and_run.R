@@ -33,6 +33,7 @@ source(workflow_function_source)
 
 # hopefully can find a more elegant way to do this
 pecan_template_path = normalizePath(file.path(settings$orchestration[[workflow_name]]$pecan.xml.template))
+pecan_config_path = normalizePath(file.path(settings$orchestration[[workflow_name]]$pecan.xml.path))
 
 ret_obj <- workflow_run_directory_setup(orchestration_settings=settings, workflow_name=workflow_name)
 
@@ -56,6 +57,7 @@ tar_script({
 
   orchestration_settings = parse_orchestration_xml("@ORCHESTRATIONXML@")
   pecan_template_path = "@PECANTEMPLATEPATH@"
+  pecan_xml_path = "@PECANXMLPATH@"
   workflow_name = "@WORKFLOWNAME@"
   workflow_settings = orchestration_settings$orchestration[[workflow_name]]
   base_workflow_directory = orchestration_settings$orchestration$workflow.base.run.directory
@@ -66,31 +68,49 @@ tar_script({
   site_info_filename = workflow_settings$site.info.file
   start_date <- workflow_settings$start.date
   end_date <- workflow_settings$end.date
-  data_download_directory = file.path(base_workflow_directory, workflow_settings$data.download.reference)
+  data_download_directory = normalizePath(file.path(base_workflow_directory, workflow_settings$data.download.reference))
+  clim_data_directory = normalizePath(file.path(base_workflow_directory, workflow_settings$data.clim.reference))
+
+  check_orchestration_keys(orchestration_xml = workflow_settings$apptainer, key_list = c("sif"))
+  apptainer_sif = workflow_settings$apptainer$sif
 
   tar_option_set(
     packages = c()
   )
 
   list(
+    step__resolve_apptainer(apptainer_source_directory=data_download_directory, workflow_xml=workflow_settings),
+
     tar_target(pecan_template_file, pecan_template_path, format = "file"),
-    tar_target(
-      reference_era5_path, 
-      reference_external_data_entity(external_workflow_directory=data_download_directory, external_name="data_raw/ERA5_nc", localized_name="ERA5_nc")
+
+    step__link_data_by_name(
+      workflow_data_source_directory = data_download_directory, 
+      target_artifact_names = c("site_info_file", "pfts"), 
+      external_name_list = c(site_info_filename, "pfts"),
+      localized_name_list = c("site_info.csv", "pfts")
     ),
-    tar_target(
-      site_info_file, 
-      reference_external_data_entity(external_workflow_directory=data_download_directory, external_name=site_info_filename, localized_name="site_info.csv")
+    step__link_data_by_name(
+      workflow_data_source_directory = clim_data_directory, 
+      target_artifact_names = c("IC_files","ERA5"), 
+      external_name_list = c("IC_files","data_prepared/ERA5_SIPNET"),
+      localized_name_list = c("IC_files","ERA5_SIPNET")
     ),
-    tar_target(
-      IC_files, 
-      reference_external_data_entity(external_workflow_directory=data_download_directory, external_name="IC_files", localized_name="IC_files")
+
+    step__build_pecan_xml(),
+    tar_target(pecan_settings_prepared, prepare_pecan_run_directory(pecan_settings=pecan_built_xml)),
+
+    step__run_distributed_write_configs(
+      container=quote(apptainer_reference), 
+      pecan_settings=quote(pecan_built_xml), 
+      use_abstraction=TRUE, 
+      dependencies=c("apptainer_reference", "pecan_settings", "pecan_built_xml", "IC_files","ERA5", "site_info_file", "pfts")
     ),
-    tar_target(
-        built_xml,
-        build_pecan_xml(orchestration_xml=workflow_settings, template_file=pecan_template_file, dependencies=c(reference_era5_path, site_info_file, IC_files))
+    step__run_model_2a(
+      container=quote(apptainer_reference), 
+      pecan_settings=quote(pecan_built_xml), 
+      use_abstraction=TRUE, 
+      dependencies=c("apptainer_reference", "settings_job_outcome", "pecan_built_xml", "IC_files","ERA5", "site_info_file", "pfts")
     )
-    
   )
 }, ask = FALSE, script = tar_script_path)
 
@@ -99,6 +119,7 @@ script_content <- gsub("@FUNCTIONPATH@", workflow_function_path, script_content,
 script_content <- gsub("@ORCHESTRATIONXML@", settings_path, script_content, fixed = TRUE)
 script_content <- gsub("@WORKFLOWNAME@", workflow_name, script_content, fixed=TRUE)
 script_content <- gsub("@PECANTEMPLATEPATH@", pecan_template_path, script_content, fixed=TRUE)
+script_content <- gsub("@PECANXMLPATH@", pecan_config_path, script_content, fixed=TRUE)
 writeLines(script_content, tar_script_path)
 
 tar_make(script = tar_script_path)
