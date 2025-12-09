@@ -41,7 +41,10 @@
    <poolinitcond>
     <method>sampling</method>
    </poolinitcond>
-   <!-- TODO soil init cond here when ready -->
+   <events>
+     <method>sampling</method>
+   </events>
+   <!-- TODO soil physics here when ready -->
   </samplingspace>
   <start.year><!-- inserted at config time --></start.year>
   <end.year><!-- inserted at config time --></end.year>
@@ -52,7 +55,6 @@
   <revision>git</revision>
   <delete.raw>TRUE</delete.raw>
   <binary>sipnet.git</binary>
-  <prerun>cp data/events.in @RUNDIR@</prerun>
  </model>
  <run>
   <site><!-- inserted at config time --></site>
@@ -67,6 +69,10 @@
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
    </poolinitcond>
+   <events>
+     <ensemble><!-- inserted at config time --></ensemble>
+     <path><!-- inserted at config time --></path>
+   </events>
   </inputs>
   <start.date><!-- inserted at config time --></start.date>
   <end.date><!-- inserted at config time --></end.date>

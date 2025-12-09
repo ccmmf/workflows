@@ -39,6 +39,14 @@ options <- list(
       "Should contain subdirs named by site id"
     )
   ),
+  optparse::make_option("--event_dir",
+    default = "data/events",
+    help = paste(
+      "Directory containing Sipnet `events.in` files.",
+      "Should contain subdirs named by site id"
+    )
+  ),
+
   optparse::make_option("--site_file",
     default = "site_info.csv",
     help = paste(
@@ -103,6 +111,7 @@ settings <- read.settings(args$template_file) |>
 
 settings$ensemble$size <- args$n_ens
 settings$run$inputs$poolinitcond$ensemble <- args$n_ens
+# TODO do we need to set settings$run$inputs$events$ensemble too?
 
 # Hack: setEnsemblePaths leaves all path components other than siteid
 # identical across sites.
@@ -142,6 +151,12 @@ settings <- settings |>
     input_type = "poolinitcond",
     path = args$ic_dir,
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
+  ) |>
+  setEnsemblePaths(
+    n_reps = args$n_ens,
+    input_type = "events",
+    path = args$event_dir,
+    path_template = "{path}/events-{id}.in"
   ) |>
   papply(add_soil_pft)
 
