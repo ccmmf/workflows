@@ -32,7 +32,7 @@ jobs:
   # This is the first workflow that prepares the base data
   # ----------------------------------------------------------------------
   workflow_01_data_prep:
-    runs-on: ccmmf-test
+    runs-on: [self-hosted, ccmmf-test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
   # ----------------------------------------------------------------------
   workflow_02_data_reference:
     needs: [workflow_01_data_prep]
-    runs-on: ccmmf-test
+    runs-on: [self-hosted, ccmmf-test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
   # ----------------------------------------------------------------------
   workflow_03_distributed:
     needs: [workflow_02_data_reference]
-    runs-on: ccmmf-test
+    runs-on: [self-hosted, ccmmf-test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
