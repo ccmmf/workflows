@@ -1,0 +1,103 @@
+name: Run Workflow Examples
+
+env:
+  GITHUB_PAT: ${{ secrets.GH_TOKEN }}
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'workflow_examples/**'
+      - '.github/workflows/run-workflow-examples.yml'
+  pull_request:
+    paths:
+      - 'workflow_examples/**'
+      - '.github/workflows/run-workflow-examples.yml'
+  workflow_dispatch:
+    inputs:
+      orchestration_version:
+        description: 'Orchestration XML version to use (devel or latest)'
+        required: true
+        type: choice
+        default: 'devel'
+        options:
+          - devel
+          - latest
+
+jobs:
+  # ----------------------------------------------------------------------
+  # Workflow 01: Data Prep Workflow
+  # This is the first workflow that prepares the base data
+  # ----------------------------------------------------------------------
+  workflow_01_data_prep:
+    runs-on: ccmmf-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set orchestration XML version
+        id: orchestration
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.orchestration_version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=devel" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run 01_data_prep_workflow
+        working-directory: workflow_examples/01_simple_data_workflow
+        run: |
+          Rscript 01_data_prep_workflow.R -s 01_orchestration_${{ steps.orchestration.outputs.version }}.xml
+
+  # ----------------------------------------------------------------------
+  # Workflow 02: Data Reference Workflow
+  # This workflow references data from workflow 01
+  # ----------------------------------------------------------------------
+  workflow_02_data_reference:
+    needs: [workflow_01_data_prep]
+    runs-on: ccmmf-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set orchestration XML version
+        id: orchestration
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.orchestration_version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=devel" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run 02_run_data_reference_workflow
+        working-directory: workflow_examples/02_referencing_data_workflow
+        run: |
+          Rscript 02_run_data_reference_workflow.R -s 02_orchestration_${{ steps.orchestration.outputs.version }}.xml
+
+  # ----------------------------------------------------------------------
+  # Workflow 03: Distributed Workflow
+  # This workflow runs the distributed analysis workflow
+  # ----------------------------------------------------------------------
+  workflow_03_distributed:
+    needs: [workflow_02_data_reference]
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set orchestration XML version
+        id: orchestration
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.orchestration_version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=devel" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run 03_run_distributed_workflow
+        working-directory: workflow_examples/03_distributed_workflow
+        run: |
+          Rscript 03_run_distributed_workflow.R -s 03_orchestration_${{ steps.orchestration.outputs.version }}.xml
+

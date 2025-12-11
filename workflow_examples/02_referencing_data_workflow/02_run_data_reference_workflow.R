@@ -86,11 +86,12 @@ tar_script({
     packages = c("PEcAn.settings", "readr", "dplyr")
   )
   list(
-    step__link_data_by_name(
+    step__resolve_data_routing(
       workflow_data_source_directory = workflow_data_source, 
       target_artifact_names = c("reference_IC_directory", "reference_data_entity", "reference_pft_entity"), 
       external_name_list = c("IC_files", "data", "pfts"),
-      localized_name_list = c("IC_files", "data", "pfts")
+      localized_name_list = c("IC_files", "data", "pfts"),
+      action_list = c("reference", "reference", "reference")
     ),
     # how does the user either specify what vars are populated, or clarify what vars are populated by a func call
     step__resolve_apptainer(apptainer_source_directory=NULL, workflow_xml=workflow_settings),

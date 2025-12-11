@@ -84,11 +84,12 @@ tar_script({
     tar_target(pecan_xml_file, pecan_xml_path, format = "file"),
     tar_target(pecan_settings, PEcAn.settings::read.settings(pecan_xml_file)),
 
-    step__link_data_by_name(
+    step__resolve_data_routing(
       workflow_data_source_directory = data_download_directory, 
-      target_artifact_names = c("reference_era5_path", "data_raw", "site_info_file", "data", "pfts"), 
-      external_name_list = c("data_raw/ERA5_nc", "data_raw", site_info_filename, "data", "pfts"),
-      localized_name_list = c("ERA5_nc", "data_raw", "site_info.csv", "data", "pfts")
+      target_artifact_names = c("reference_era5_path", "data_raw", "site_info_file", "pfts", "data"), 
+      external_name_list = c("data_raw/ERA5_nc", "data_raw", site_info_filename,  "pfts", "data"),
+      localized_name_list = c("ERA5_nc", "data_raw", "site_info.csv", "pfts", "data"),
+      action_list = c("reference","reference","reference","reference", "copy")
     ),
     step__resolve_apptainer(apptainer_source_directory=data_download_directory, workflow_xml=workflow_settings),
     

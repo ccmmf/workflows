@@ -83,17 +83,19 @@ tar_script({
 
     tar_target(pecan_template_file, pecan_template_path, format = "file"),
 
-    step__link_data_by_name(
+    step__resolve_data_routing(
       workflow_data_source_directory = data_download_directory, 
       target_artifact_names = c("site_info_file", "pfts"), 
       external_name_list = c(site_info_filename, "pfts"),
-      localized_name_list = c("site_info.csv", "pfts")
+      localized_name_list = c("site_info.csv", "pfts"),
+      action_list = c("reference", "reference")
     ),
-    step__link_data_by_name(
+    step__resolve_data_routing(
       workflow_data_source_directory = clim_data_directory, 
-      target_artifact_names = c("IC_files","ERA5"), 
-      external_name_list = c("IC_files","data_prepared/ERA5_SIPNET"),
-      localized_name_list = c("IC_files","ERA5_SIPNET")
+      target_artifact_names = c("IC_files", "ERA5"), 
+      external_name_list = c( "IC_files", "data"),
+      localized_name_list = c( "IC_files", "data"),
+      action_list = c("reference", "copy")
     ),
 
     step__build_pecan_xml(),

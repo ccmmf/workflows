@@ -525,6 +525,59 @@ pecan_write_configs <- function(pecan_settings, xml_file) {
     return(pecan_settings)
 }
 
+#' Resolve Data Routing
+#'
+#' Routes external data resources to local targets store using either symbolic links
+#' (reference) or file/directory copying based on the specified action.
+#'
+#' @param external_workflow_directory Character string specifying the directory containing the external data resource.
+#' @param external_name Character string specifying the name of the external data file or directory.
+#' @param localized_name Character string specifying the name for the local file or directory.
+#' @param action Character string specifying the routing action. Must be either "reference" (creates symbolic link) or "copy" (copies the resource). Default is "reference".
+#'
+#' @return Character string containing the path to the localized resource (symbolic link or copied file/directory), or NULL if external_name is NULL.
+#'
+#' @details
+#' This function provides a unified interface for routing external data resources to the
+#' targets store. It supports two modes:
+#' \itemize{
+#'   \item \code{"reference"}: Creates a symbolic link to the external resource using \code{reference_external_data_entity()}
+#'   \item \code{"copy"}: Copies the external resource to the targets store using \code{localize_data_resource()}
+#' }
+#' The function automatically detects whether the resource is a file or directory when using
+#' the "copy" action. If an invalid action is specified, the function will throw an error.
+#'
+#' @examples
+#' \dontrun{
+#' # Create a symbolic link to external data
+#' link_path <- resolve_data_routing("/external/path", "data.nc", "local_data.nc", action="reference")
+#' 
+#' # Copy external data to targets store
+#' copy_path <- resolve_data_routing("/external/path", "data_dir", "local_data_dir", action="copy")
+#' }
+#'
+#' @export
+resolve_data_routing <- function(external_workflow_directory, external_name, localized_name, action="reference"){
+    final_path = NULL
+    if(action=="reference"){
+        final_path = reference_external_data_entity(
+            external_workflow_directory = external_workflow_directory,
+            external_name = external_name,
+            localized_name = localized_name
+        )
+    } else if (action=="copy"){
+        final_path = localize_data_resource(
+            external_workflow_directory = external_workflow_directory,
+            external_name = external_name,
+            localized_name = localized_name
+        )
+    } else {
+        stop(paste0("Could not determine action for data routing. Passed action must be 'reference' or 'copy'. Passed action: ", action))
+    }
+    return(final_path)
+}
+
+
 #' Reference External Data Entity
 #'
 #' Creates a symbolic link to an external data entity within the targets store.
@@ -563,43 +616,95 @@ reference_external_data_entity <- function(external_workflow_directory, external
     return(local_link_path)
 }
 
-#' Localize Data Resources
+#' Localize Data Resource (File or Directory)
 #'
-#' Copies data resources from a central directory to a local run directory.
-#' Currently non-functional and returns FALSE.
+#' Copies a data file or directory from a central location to a local targets store location.
+#' Automatically detects whether the resource is a file or directory and handles it appropriately.
 #'
-#' @param resource_list Character vector of resource names to copy.
-#' @param this_run_directory Character string specifying the destination directory.
-#' @param data_resource_directory Character string specifying the source directory.
+#' @param external_workflow_directory Character string specifying the directory containing the external data resource.
+#' @param external_name Character string specifying the name of the external data file or directory.
+#' @param localized_name Character string specifying the name for the local file or directory.
 #'
-#' @return Logical FALSE (function is not yet implemented).
+#' @return Character string containing the path to the copied resource, or NULL if external_name is NULL.
 #'
 #' @details
-#' This function is currently not functional and will return FALSE with a warning message.
-#' The commented code shows the intended functionality for copying data resources.
+#' This function automatically detects whether the external resource is a file or directory
+#' and copies it to the targets store. For files, it ensures the parent directory exists.
+#' For directories, it copies recursively. If the local path already exists, the function
+#' will throw an error as this indicates a pipeline configuration error.
 #'
 #' @examples
 #' \dontrun{
-#' # This function is not yet implemented
-#' result <- localize_data_resources(c("data1.nc", "data2.nc"), "/run/dir", "/data/dir")
+#' # Copy a file
+#' file_path <- localize_data_resource("/external/path", "data.nc", "local_data.nc")
+#' # Copy a directory
+#' dir_path <- localize_data_resource("/external/path", "data_dir", "local_data_dir")
 #' }
 #'
 #' @export
-localize_data_resources <- function(resource_list, this_run_directory, data_resource_directory) {
-    cat("function not functional yet. don't do that.\n")
-    return(FALSE)
-    for (resource in resource_list) {
-        resource = trimws(resource)
-        this_run_directory = trimws(this_run_directory)
-        print(paste(resource))
-        source_path = normalizePath(file.path(paste0(data_resource_directory, "/",resource)))
-        destination_path = normalizePath(file.path(paste0(this_run_directory, "/",resource)))
-        # destination_path = file.path(paste0(this_run_directory, "/"))
-        print(paste("Copying data resource from", source_path, "to", destination_path))
-        # print(paste("Copying data resource from", source_path, "to", destination_path))
-        # file.copy(source_path, destination_path, recursive=TRUE)
+localize_data_resource <- function(external_workflow_directory, external_name, localized_name) {
+    if (is.null(external_name)){
+        return(NULL)
     }
-    return(resource_list)
+    local_path = file.path(paste0(tar_path_store(), localized_name))
+    external_path = file.path(paste0(external_workflow_directory, "/", external_name))
+    
+    # Determine if resource is a file or directory
+    is_directory = dir.exists(external_path)
+    is_file = file.exists(external_path)
+    
+    if (!is_directory && !is_file){
+        stop(paste("External resource path", external_path, "does not exist"))
+        return(NULL)
+    }
+    
+    # Check if local path already exists - this indicates a pipeline configuration error
+    if (file.exists(local_path) || dir.exists(local_path)){
+        stop(paste("Local path", local_path, "already exists. This indicates a pipeline configuration error."))
+    }
+    
+    # Ensure parent directory exists for the local path
+    local_path_parent = dirname(local_path)
+    if (!dir.exists(local_path_parent)){
+        dir.create(local_path_parent, recursive = TRUE)
+    }
+    
+    # Copy the resource
+    if (is_directory){
+        # For directories: copy to parent directory, which creates the directory with source name
+        # Then rename if the source name doesn't match the desired target name
+        copied_path = file.path(local_path_parent, basename(external_path))
+        file.copy(external_path, local_path_parent, recursive = TRUE)
+        
+        # If the copied directory name doesn't match the desired name, rename it
+        if (copied_path != local_path){
+            if (!dir.exists(copied_path)){
+                stop(paste("Failed to copy directory. Expected", copied_path, "but it was not created as a directory."))
+            }
+            file.rename(copied_path, local_path)
+        }
+    } else {
+        print(paste0("Copying file: ", external_path, " to: ", local_path))
+        file.copy(external_path, local_path, overwrite = FALSE)
+    }
+    
+    return(local_path)
+}
+
+#' Localize Data Resource Directory
+#'
+#' @inheritParams localize_data_resource
+#' @export
+localize_data_resource_directory <- function(external_workflow_directory, external_name, localized_name) {
+    localize_data_resource(external_workflow_directory, external_name, localized_name)
+}
+
+#' Localize Data Resource File
+#'
+#' @inheritParams localize_data_resource
+#' @export
+localize_data_resource_file <- function(external_workflow_directory, external_name, localized_name) {
+    localize_data_resource(external_workflow_directory, external_name, localized_name)
 }
 
 #' Generate Standard SLURM Batch Header
@@ -904,11 +1009,6 @@ targets_based_containerized_local_exec <- function(pecan_settings, function_arti
     return(TRUE)
 }
 
-targets_sourcing_test <- function(string_to_print="DefaultString") {
-    print(paste0(string_to_print))
-    return(string_to_print)
-}
-
 targets_sourcing_test_encapsulate <- function(func_name=NULL, string_to_print=NULL, task_id, targets_code_file_obj_name=NULL, apptainer=NULL, dependencies = NULL) {
 
     local_output_file = paste0("local_command_", task_id, ".sh")
@@ -1016,6 +1116,7 @@ run_model_2a <- function(settings = NULL){
     library(PEcAn.settings)
     library(PEcAn.workflow)
     library(PEcAn.logger)
+    library(PEcAn.uncertainty)
     # Write model specific configs
     stop_on_error = TRUE
     PEcAn.workflow::runModule_start_model_runs(settings,
@@ -1027,7 +1128,7 @@ run_model_2a <- function(settings = NULL){
     # INFO-level log output for this step.
     loglevel <- PEcAn.logger::logger.setLevel("WARN")
     
-    runModule.get.results(settings)
+    PEcAn.uncertainty::runModule.get.results(settings)
 
     PEcAn.logger::logger.setLevel(loglevel)
 
@@ -1121,7 +1222,7 @@ build_pecan_xml <- function(orchestration_xml = NULL, template_file = NULL, depe
     settings <- settings |>
     createMultiSiteSettings(site_info) |>
     setEnsemblePaths(
-        n_reps = orchestration_xml$n.met,
+        n_reps = as.numeric(orchestration_xml$n.met),
         input_type = "met",
         path = orchestration_xml$met.dir,
         d1 = orchestration_xml$start.date,
@@ -1132,7 +1233,7 @@ build_pecan_xml <- function(orchestration_xml = NULL, template_file = NULL, depe
     ) |>
     papply(id2grid) |>
     setEnsemblePaths(
-        n_reps = orchestration_xml$n.ens,
+        n_reps = as.numeric(orchestration_xml$n.ens),
         input_type = "poolinitcond",
         path = orchestration_xml$ic.dir,
         path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
@@ -1690,6 +1791,28 @@ step__link_data_by_name <- function(workflow_data_source_directory = NULL, targe
     # print(target_list)
     target_list
 }
+
+step__resolve_data_routing <- function(workflow_data_source_directory = NULL, target_artifact_names = c(), localized_name_list = c(), external_name_list = c(), action_list = c()){
+    target_list = list()
+    if((length(localized_name_list) != length(target_artifact_names)) || (length(localized_name_list) != length(external_name_list))){
+        stop("Cannot link internal names to external link targets with unequal length lists")
+    }
+    for(i in seq_along(localized_name_list)){
+        target_list = append(target_list, 
+            tar_target_raw(substitute(target_name, env = list(target_name = target_artifact_names[i])), 
+                resolve_data_routing(
+                    external_workflow_directory=substitute(raw_data_source, env = list(raw_data_source = workflow_data_source_directory)),
+                    external_name=substitute(external_name, env = list(external_name = external_name_list[i])),
+                    localized_name=substitute(localized_name, env = list(localized_name = localized_name_list[i])),
+                    action=substitute(action, env = list(action = action_list[i]))
+                )
+            )
+        )
+    }
+    # print(target_list)
+    target_list
+}
+
 
 step__run_distributed_write_configs <- function(pecan_settings=NULL, container=NULL, use_abstraction=TRUE, dependencies = NULL) {
     # note on substitution: when substitutions are needed inside of functions that must also be quoted, 

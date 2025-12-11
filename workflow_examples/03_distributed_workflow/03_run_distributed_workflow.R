@@ -85,11 +85,12 @@ tar_script({
   list(
     # we can reference data products in an external directory
     # here, we can call this once per directory, and identify the components of that directory we want to reference
-    step__link_data_by_name(
+    step__resolve_data_routing(
       workflow_data_source_directory = workflow_data_source, 
       target_artifact_names = c("reference_IC_directory", "reference_data_entity", "reference_pft_entity"), 
       external_name_list = c("IC_files", "data", "pfts"),
-      localized_name_list = c("IC_files", "data", "pfts")
+      localized_name_list = c("IC_files", "data", "pfts"),
+      action_list = c("reference", "reference", "reference")
     ),
     # this is still a little chunky; workflow steps referencing these target names do so invisibily at the moment.
 
@@ -105,57 +106,12 @@ tar_script({
     # check for continue; then write configs
     tar_target(pecan_continue, check_pecan_continue_directive(pecan_settings=pecan_settings_prepared, continue=FALSE)), 
     
-    ####  no more abstraction - or at least, not where the user has to do it. We do the abstraction in the background
-    # instead of:
-    # tar_target(
-    #   pecan_write_configs_function,
-    #   targets_function_abstraction(function_name = "pecan_write_configs"),
-    # ),
-    # tar_target(
-    #   pecan_write_configs_arguments,
-    #   targets_argument_abstraction(argument_object = list(pecan_settings=pecan_settings_prepared, xml_file=pecan_xml_file))
-    # ),
-    # tar_target(
-    #   pecan_settings_job_submission, 
-    #   targets_abstract_args_sbatch_exec(
-    #     pecan_settings=pecan_settings,
-    #     function_artifact="pecan_write_configs", 
-    #     args_artifact="pecan_write_configs_arguments", 
-    #     task_id=uuid::UUIDgenerate(), 
-    #     functional_source=functions_source,
-    #     apptainer=apptainer_reference, 
-    #     dependencies=c(pecan_continue)
-    #   )
-    # ),
-
     # we write:
     step__run_distributed_write_configs(container=quote(apptainer_reference), pecan_settings=quote(pecan_settings), use_abstraction=TRUE, 
           dependencies=c("apptainer_reference", "pecan_settings")),
 
     # we can do this:
     step__run_pecan_workflow()
-
-    # not this:
-    # tar_target(
-    #   ecosystem_settings,
-    #   pecan_start_ecosystem_model_runs(pecan_settings=pecan_settings, dependencies=c(settings_job_outcome))
-    # ), 
-    # tar_target(
-    #   model_results_settings,
-    #   pecan_get_model_results(pecan_settings=ecosystem_settings)
-    # ),
-    # tar_target(
-    #   ensembled_results_settings, ## the sequential settings here serve to ensure these are run in sequence, rather than in parallel
-    #   pecan_run_ensemble_analysis(pecan_settings=model_results_settings)
-    # ),
-    # tar_target(
-    #   sensitivity_settings,
-    #   pecan_run_sensitivity_analysis(pecan_settings=ensembled_results_settings)
-    # ),
-    # tar_target(
-    #   complete_settings,
-    #   pecan_workflow_complete(pecan_settings=sensitivity_settings)
-    # )
   )
 }, ask = FALSE, script = tar_script_path)
 
