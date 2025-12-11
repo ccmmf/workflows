@@ -49,7 +49,7 @@ jobs:
       - name: Run 01_data_prep_workflow
         working-directory: workflow_examples/01_simple_data_workflow
         run: |
-          Rscript 01_data_prep_workflow.R -s 01_orchestration_${{ steps.orchestration.outputs.version }}.xml
+          Rscript 01_data_prep_workflow.R -s ../../.github/workflows/workflows_resources/01_orchestration_${{ steps.orchestration.outputs.version }}.xml
 
   # ----------------------------------------------------------------------
   # Workflow 02: Data Reference Workflow
@@ -74,7 +74,7 @@ jobs:
       - name: Run 02_run_data_reference_workflow
         working-directory: workflow_examples/02_referencing_data_workflow
         run: |
-          Rscript 02_run_data_reference_workflow.R -s 02_orchestration_${{ steps.orchestration.outputs.version }}.xml
+          Rscript 02_run_data_reference_workflow.R -s ../../.github/workflows/workflows_resources/02_orchestration_${{ steps.orchestration.outputs.version }}.xml
 
   # ----------------------------------------------------------------------
   # Workflow 03: Distributed Workflow
@@ -99,5 +99,5 @@ jobs:
       - name: Run 03_run_distributed_workflow
         working-directory: workflow_examples/03_distributed_workflow
         run: |
-          Rscript 03_run_distributed_workflow.R -s 03_orchestration_${{ steps.orchestration.outputs.version }}.xml
+          Rscript 03_run_distributed_workflow.R -s ../../.github/workflows/workflows_resources/03_orchestration_${{ steps.orchestration.outputs.version }}.xml
 
