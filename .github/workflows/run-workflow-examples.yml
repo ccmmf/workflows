@@ -82,7 +82,7 @@ jobs:
   # ----------------------------------------------------------------------
   workflow_03_distributed:
     needs: [workflow_02_data_reference]
-    runs-on: self-hosted
+    runs-on: ccmmf-test
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
