@@ -30,12 +30,39 @@ ln -s "$EXISTING_WORKFLOW"/sipnet.git sipnet.git
 
 ## Fetch event files from BU server
 
-Note that the versions available today all start in 2018 instead of 2016, to avoid fighting format differences between the 2016 and 2018 DWR crop maps.
+Note: The filenames are a bit confusing because of some rapid updates while iterating. As of 2025-12-11, _most_ event types in these files start in 2018. `anchors_combinedEvents_2018-2023.csv` has irrigation starting in 2016 and other events still starting in 2018, while `anchors_irrigation_events_2018-2023.csv` is also still 2018-2023 as labeled.
+
+Why do most events start in 2018 instead of 2016? To avoid fighting format differences between the 2016 and 2018 DWR crop maps. Sarah plans to extend all event types to 2016 soon and we will edit this pipeline when that's complete.
 
 ```{sh}
 scp -r \
 	cblack1@geo.bu.edu:/projectnb/dietzelab/ccmmf/management/event_files/ \
 	data_raw/kanee_anchor_event_files/
+```
+
+Recording the versions used on 2025-12-11:
+
+```{sh}
+mv anchors_harvestEvents_2018-2023 anchors_harvestEvents_2018-2023.csv
+shasum data_raw/kanee_anchor_event_files/*
+```
+
+Which produces:
+
+```
+cb911f85a9847738b0ff0b1bd5b4f38edbfbfde4  data_raw/kanee_anchor_event_files/anchors_combinedEvents_2018-2023.csv
+07dd633b71bbc5588d5a85050f44accd5f8efb07  data_raw/kanee_anchor_event_files/anchors_combinedEvents_2018-2023.json
+bc189100778219743dc92f738739589a394c4bb7  data_raw/kanee_anchor_event_files/anchors_event_overlap_2018-2023.csv
+e226c31f7cf6bd20963868fb34427291f6946d01  data_raw/kanee_anchor_event_files/anchors_harvestEvents_2018-2023.csv
+501876a53a16b44e46591b8a342a1aca0932bb92  data_raw/kanee_anchor_event_files/anchors_harvestEvents_2018-2023.json
+82680206b2bfb6cd21c0c6272a2084bd39119388  data_raw/kanee_anchor_event_files/anchors_irrigation_events_2018-2023.csv
+abe53309470576582d87d137189ca85fd32aed53  data_raw/kanee_anchor_event_files/anchors_irrigation_events_2018-2023.json
+62a758fba1946ba1bf9d40ded0f3d1db6e84d4a0  data_raw/kanee_anchor_event_files/anchors_phenoParams_2018-2023.csv
+f95878325d53f37838e7d3ae8086e5bcca571222  data_raw/kanee_anchor_event_files/anchors_phenoParams_2018-2023.json
+5c70b67312f7be594d44bd8622e939ba9a683257  data_raw/kanee_anchor_event_files/anchors_plantingEvents_2018-2023.csv
+50f31594d27b1e2cfb4099c301b7af043816899e  data_raw/kanee_anchor_event_files/anchors_plantingEvents_2018-2023.json
+451f69136e0d022db41b5d1c961da0878c7c2c4b  data_raw/kanee_anchor_event_files/anchors_tillageEvents_2018-2023.csv
+b3bea17a301001038fc7fb0997b56071df91fa24  data_raw/kanee_anchor_event_files/anchors_tillageEvents_2018-2023.json
 ```
 
 
@@ -63,7 +90,7 @@ sed -e 's/leafOnDay/leafonday/g' \
 
 ## Set up management event files
 
-As with phenology, these files contain no events in 2016 or 2017. For this experiment the model will run unmanaged for these years -- this is probably not ideal and we should revisit it if not adding events for these years soon.
+As noted above, these files contain only irrigation in 2016 or 2017 -- planting/harvest/tillage start in 2018. Since all sites are treated as woody this won't make a huge difference, but we should revisit it if not adding events for these years soon.
 
 The currently available JSON files do not follow the PEcAn events schema (they are lists of events each with its own site_id; the events schema calls for lists of sites each with its own block of events), so first convert to the PEcan events standard. TODO: upstream tools ought to generate this in the first place.
 
@@ -192,17 +219,6 @@ TODO: It's a little inelegant that phenology gets set and unset in the template 
 ```
 
 
-## Further setup TK
-
-TODO not implemented yet.
-
-Likely needs to include:
-
-* Adjust PFTs. existing PFT files are already linked from `$EXISTING_WORKFLOW` above, but need to adjust leafOn and leafOff settings to make sure they get used right (and maybe take model out of GDD mode?).
-* Add soil_physics files?
-* 17 sites includes no row crops. OK?
-
-
 ## Run model
 
 ```{sh}
@@ -269,7 +285,7 @@ vars <- c("LAI", "SoilMoist", "GPP", "SoilResp", "AGB", "NEE")
 results <- output_files |>
   nest_by(condition, ens_num, site, year, .key = "path") |>
   mutate(contents = map(path, \(x) read_daymeans(x, vars))) |>
-  select(-path)
+  select(-path) |>
   unnest(contents)
 
 save(results, file="results_daily_means.Rdata")
@@ -339,4 +355,15 @@ by_var |>
 by_var |>
   group_by(variable) |>
   group_walk(~plot_by_site(df = .x, title = .y$variable))
+
+lai_doy <- result_ci |>
+  ggplot() +
+  aes(doy, LAI_mean, color = condition, group = paste(condition, year)) +
+  geom_ribbon(aes(ymin=LAI_q5, ymax = LAI_q95, fill = condition), alpha = 0.01, lty = "dotted") +
+  geom_line() +
+  facet_wrap(~site) +
+  theme_bw() +
+  ylab("LAI") +
+  xlab("DOY") +
+save_gg(lai_doy, "LAI by day")
 ```
