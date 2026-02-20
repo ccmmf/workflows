@@ -1,0 +1,29 @@
+# Example user-facing config for 2a_grass workflows.
+# Pass with: ./magic-ensemble <command> --config workflows/2a_grass/example_user_config.yaml
+#
+# This file contains only overridable settings. Fixed paths, S3 resources, and
+# step I/O are defined in workflow_manifest.yaml (do not put those here).
+
+# Run directory: where outputs and run-specific data live.
+# Relative to the CWD where you invoke the CLI, unless you use an absolute path.
+run_dir: "2a_grass/run"
+
+# Dates used by prepare and run-ensembles.
+start_date: "2016-01-01"
+end_date: "2023-12-31"
+run_LAI_date: "2016-07-01"
+
+# Ensemble sizes.
+n_ens: 20
+n_met: 10
+ic_ensemble_size: 100
+
+# Parallelism (e.g. for step 01 --n_cores).
+n_workers: 1
+
+# Optional: distributed compute adapter (for future use with Slurm/Apptainer).
+# distributed_compute_adapter:
+#   name: "localhost"
+#   qsub: "sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./sipnet-carb_develop.sif"
+#   qsub_jobid: "Submitted batch job ([0-9]+)"
+#   qstat: 'if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi'
