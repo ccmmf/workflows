@@ -65,9 +65,12 @@ landtrendr_segment_2="${landtrendr_paths_raw#*,}"
 # Output path keys for this step: create these dirs (from manifest step.outputs)
 output_keys=$(yq eval '.steps["'"$COMMAND"'"] | .['"$STEP_INDEX"'].outputs | .[]' "$MANIFEST" 2>/dev/null || true)
 
+# --- Resolve absolute run directory (for downloads and extract) ---
+RUN_DIR_ABS=$(if [[ "$RUN_DIR" = /* ]]; then echo "$RUN_DIR"; else echo "$REPO_ROOT/$RUN_DIR"; fi)
+
 # --- Create run directory and output dirs from manifest ---
 echo "00_fetch_s3_and_prepare_run_dir: Creating run directory and output dirs from manifest"
-mkdir -p "$RUN_DIR"
+mkdir -p "$RUN_DIR_ABS"
 
 while IFS= read -r path_key; do
   [[ -z "$path_key" ]] && continue
@@ -77,17 +80,16 @@ while IFS= read -r path_key; do
   mkdir -p "$resolved"
 done <<< "$output_keys"
 
-# --- Download and extract artifact ---
-if [[ -f "$artifact_filename" ]]; then
-  echo "00_fetch_s3_and_prepare_run_dir: Artifact tarball already present: $artifact_filename"
+# --- Download artifact tarball into run directory and extract ---
+artifact_local="${RUN_DIR_ABS}/${artifact_filename}"
+if [[ -f "$artifact_local" ]]; then
+  echo "00_fetch_s3_and_prepare_run_dir: Artifact tarball already present in run dir: $artifact_local"
 else
-  echo "00_fetch_s3_and_prepare_run_dir: Downloading artifact from S3"
-  aws s3 cp --endpoint-url "$s3_endpoint" "$artifact_s3_uri" "./$artifact_filename"
+  echo "00_fetch_s3_and_prepare_run_dir: Downloading artifact from S3 into run directory"
+  aws s3 cp --endpoint-url "$s3_endpoint" "$artifact_s3_uri" "$artifact_local"
 fi
-
-RUN_DIR_ABS=$(if [[ "$RUN_DIR" = /* ]]; then echo "$RUN_DIR"; else echo "$REPO_ROOT/$RUN_DIR"; fi)
 echo "00_fetch_s3_and_prepare_run_dir: Extracting artifact into run directory"
-tar -xzf "$artifact_filename" -C "$RUN_DIR_ABS"
+tar -xzf "$artifact_local" -C "$RUN_DIR_ABS"
 
 # --- Download LandTrendr TIFs if not present (paths from manifest: first=median, second=stdv) ---
 seg1=$(echo "$landtrendr_segment_1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')

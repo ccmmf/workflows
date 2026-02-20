@@ -214,6 +214,7 @@ check_r_libs_for_step() {
 # --- Dry-run: print scripts and optionally run checks ---
 do_dry_run() {
   echo "magic-ensemble: dry-run for command: $COMMAND"
+  echo "Run directory (for this execution): $run_dir"
   echo "Would run the following scripts (CWD = $REPO_ROOT):"
   while IFS= read -r script; do
     [[ -z "$script" ]] && continue
