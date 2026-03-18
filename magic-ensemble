@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # magic-ensemble: minimal CLI for workflows (2a_grass).
-# Usage: ./magic-ensemble <command> [--dry-run] [--verbose] [--config <path>]
+# Usage: ./magic-ensemble <command> [--verbose] --config <path>
 # Commands: help | get-demo-data | prepare | run-ensembles
 
 set -euo pipefail
@@ -18,18 +18,17 @@ Usage: ./magic-ensemble <command> [global options]
 Commands:
   help            Print this usage and help (no scripts run).
   get-demo-data   Fetch demo data from S3 and create run directory (for users without local data).
-  prepare         Run preparation steps: 01 (ERA5→clim), 02 (IC build), 03 (XML build).
+  prepare         Run preparation steps: 00 (stage external inputs), 01 (ERA5→clim), 02 (IC build), 03 (XML build).
   run-ensembles   Run step 04 (run model) using existing settings.xml and prepared inputs.
 
 Global options (after command):
-  --dry-run       Do not run R scripts; print what would be run and run pre-execution checks.
-  --verbose       Echo each Rscript command before running.
-  --config <path> Path to user YAML config (overridable keys only; fixed paths are in workflow manifest).
+  --verbose       Echo each command before running (including apptainer run when use_apptainer is true).
+  --config <path> REQUIRED. Path to user YAML config (overridable scalar keys only; fixed paths are in workflow manifest).
+                  Config may set use_apptainer: true to run prepare inside Apptainer (pull-if-not-present; apptainer only).
 
 Examples:
   ./magic-ensemble help
   ./magic-ensemble get-demo-data --config my_config.yaml
-  ./magic-ensemble prepare --dry-run
   ./magic-ensemble prepare --config my_config.yaml --verbose
   ./magic-ensemble run-ensembles --config my_config.yaml
 EOF
@@ -49,7 +48,6 @@ require_yq() {
 
 # --- Parse arguments: command first, then global options ---
 COMMAND=""
-DRY_RUN=0
 VERBOSE=0
 CONFIG_FILE=""
 while [[ $# -gt 0 ]]; do
@@ -57,7 +55,6 @@ while [[ $# -gt 0 ]]; do
     help|get-demo-data|prepare|run-ensembles)
       if [[ -z "$COMMAND" ]]; then COMMAND="$1"; shift; continue; fi
       ;;
-    --dry-run)   DRY_RUN=1; shift; continue ;;
     --verbose)   VERBOSE=1; shift; continue ;;
     --config)
       if [[ $# -lt 2 ]]; then echo "magic-ensemble: --config requires <path>." >&2; usage >&2; exit 1; fi
@@ -73,6 +70,11 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+# Resolve paths passed on the command line relative to CWD (use actual pwd so config is found)
+if [[ -n "$CONFIG_FILE" && "$CONFIG_FILE" != /* ]]; then
+  CONFIG_FILE="$(pwd)/${CONFIG_FILE}"
+fi
 
 # --- Help or no command ---
 if [[ -z "$COMMAND" || "$COMMAND" == "help" ]]; then
@@ -92,23 +94,37 @@ if [[ ! -f "$MANIFEST" ]]; then
   exit 1
 fi
 
+if [[ -z "$CONFIG_FILE" ]]; then
+  echo "magic-ensemble: --config <path> is required for command '$COMMAND'." >&2
+  usage >&2
+  exit 1
+fi
+
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "magic-ensemble: Config file not found: $CONFIG_FILE" >&2
+  exit 1
+fi
+
 # --- Load effective config: manifest + optional user overrides ---
-# User config may contain: run_dir, start_date, end_date, run_LAI_date, n_ens, n_met, ic_ensemble_size, n_workers
+# User config may contain: run_dir, start_date, end_date, run_LAI_date, n_ens, n_met, ic_ensemble_size, n_workers, pecan_dispatch
 get_val() {
   local key="$1"
   local from_manifest="$2"
   if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
     local u
-    u=$(yq eval ".$key // .paths.$key // .dates.$key // .ensemble.$key // empty" "$CONFIG_FILE" 2>/dev/null)
-    if [[ -n "$u" && "$u" != "null" ]]; then
-      echo "$u"
-      return
+    u=$(yq eval ".$key" "$CONFIG_FILE" 2>/dev/null)
+    if [[ -z "$u" || "$u" == "null" ]]; then
+      echo "magic-ensemble: Config key '$key' is missing or empty in $CONFIG_FILE" >&2
+      exit 1
     fi
+    echo "$u"
+    return
   fi
   echo "$from_manifest"
 }
 
 # Read manifest paths and fixed values
+# Manifest paths are internal-workflow I/O connections. they should not be altered.
 p_site_info_file=$(yq eval '.paths.site_info_file' "$MANIFEST")
 p_site_sipnet_met_path=$(yq eval '.paths.site_sipnet_met_path' "$MANIFEST")
 p_site_era5_path=$(yq eval '.paths.site_era5_path' "$MANIFEST")
@@ -135,12 +151,22 @@ n_ens_default="20"
 n_met_default="10"
 ic_ensemble_size_default="100"
 n_workers_default="1"
+use_apptainer_default="false"
 
 run_dir=$(get_val "run_dir" "$run_dir_default")
+
+if [[ "$run_dir" == "/" ]]; then
+  echo "magic-ensemble: run_dir cannot be the root directory (/)." >&2
+  exit 1
+fi
+
 # If run_dir is not absolute, resolve relative to CWD where the CLI was invoked
 if [[ "$run_dir" != /* ]]; then
   run_dir="${INVOCATION_CWD}/${run_dir}"
 fi
+# Normalize run_dir to avoid trailing slashes so joined paths do not contain "//"
+run_dir="${run_dir%/}"
+
 start_date=$(get_val "start_date" "$start_date_default")
 end_date=$(get_val "end_date" "$end_date_default")
 run_LAI_date=$(get_val "run_LAI_date" "$run_LAI_date_default")
@@ -148,10 +174,20 @@ n_ens=$(get_val "n_ens" "$n_ens_default")
 n_met=$(get_val "n_met" "$n_met_default")
 ic_ensemble_size=$(get_val "ic_ensemble_size" "$ic_ensemble_size_default")
 n_workers=$(get_val "n_workers" "$n_workers_default")
+use_apptainer_raw=$(get_val "use_apptainer" "$use_apptainer_default")
+# Normalize: true/yes/1 (case-insensitive) => 1; else 0
+use_apptainer=0
+case "$(echo "$use_apptainer_raw" | tr '[:upper:]' '[:lower:]')" in
+  true|yes|1) use_apptainer=1 ;;
+esac
 
-# Resolve manifest paths relative to run_dir (then relative to repo root).
+pecan_dispatch=$(get_val "pecan_dispatch" "")
+
+# Resolve manifest paths relative to run_dir.
 # Effective path = run_dir / manifest_path so R (CWD=REPO_ROOT) sees the correct file.
 resolve_path() { echo "${run_dir}/${1}"; }
+
+# All workflow paths come from the manifest only (no user overrides).
 site_info_file=$(resolve_path "$p_site_info_file")
 site_sipnet_met_path=$(resolve_path "$p_site_sipnet_met_path")
 site_era5_path=$(resolve_path "$p_site_era5_path")
@@ -159,14 +195,13 @@ field_shape_path=$(resolve_path "$p_field_shape_path")
 data_dir=$(resolve_path "$p_data_dir")
 ic_outdir=$(resolve_path "$p_ic_outdir")
 pft_dir=$(resolve_path "$p_pft_dir")
-landtrendr_raw_files=$(resolve_path "$p_landtrendr_raw_files")
 site_file=$(resolve_path "$p_site_file")
 template_file=$(resolve_path "$p_template_file")
 output_file=$(resolve_path "$p_output_file")
 met_dir=$(resolve_path "$p_met_dir")
 ic_dir=$(resolve_path "$p_ic_dir")
 settings_xml=$(resolve_path "$p_settings_xml")
-# landtrendr_raw_files is comma-separated; resolve each segment
+# landtrendr_raw_files is comma-separated; resolve each segment (manifest only for now)
 landtrendr_raw_files=""
 while IFS= read -r segment; do
   segment=$(echo "$segment" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
@@ -181,6 +216,46 @@ check_aws() {
     echo "magic-ensemble: AWS CLI (aws) not found on PATH; required for S3 access." >&2
     exit 1
   fi
+}
+
+# --- Apptainer: ensure apptainer is available (module load then PATH); apptainer only, no singularity ---
+ensure_apptainer_available() {
+  if command -v apptainer &>/dev/null; then
+    return 0
+  fi
+  if command -v module &>/dev/null; then
+    if module load apptainer 2>/dev/null; then
+      if command -v apptainer &>/dev/null; then
+        return 0
+      fi
+    fi
+  fi
+  echo "magic-ensemble: use_apptainer is true but apptainer is not available. Run 'module load apptainer' or ensure apptainer is on PATH. (Singularity is not supported.)" >&2
+  exit 1
+}
+
+# --- Apptainer: resolve SIF path from manifest (in run_dir); pull from remote if not present (no user override of remote) ---
+ensure_sif_present() {
+  local sif_name sif_path remote_base container_name tag uri
+  sif_name=$(yq eval '.apptainer.sif' "$MANIFEST")
+  sif_path="${run_dir}/${sif_name}"
+  if [[ -f "$sif_path" ]]; then
+    APPTAINER_SIF="$sif_path"
+    return 0
+  fi
+  ensure_apptainer_available
+  remote_base=$(yq eval '.apptainer.remote.url' "$MANIFEST")
+  remote_base="${remote_base%/}"
+  container_name=$(yq eval '.apptainer.container.name' "$MANIFEST")
+  tag=$(yq eval '.apptainer.tag' "$MANIFEST")
+  uri="${remote_base}/${container_name}:${tag}"
+  echo "magic-ensemble: SIF not found at $sif_path; pulling from $uri" >&2
+  mkdir -p "$run_dir"
+  if ! apptainer pull "$sif_path" "$uri"; then
+    echo "magic-ensemble: Failed to pull container to $sif_path" >&2
+    exit 1
+  fi
+  APPTAINER_SIF="$sif_path"
 }
 
 # --- Get list of script paths for current command (from manifest steps) ---
@@ -211,27 +286,39 @@ check_r_libs_for_step() {
   done < <(yq eval '.steps["'"$COMMAND"'"] | .['"$i"'].r_libraries | .[]?' "$MANIFEST" 2>/dev/null || true)
 }
 
-# --- Dry-run: print scripts and optionally run checks ---
-do_dry_run() {
-  echo "magic-ensemble: dry-run for command: $COMMAND"
-  echo "Run directory (for this execution): $run_dir"
-  echo "Would run the following scripts (CWD = $REPO_ROOT):"
-  while IFS= read -r script; do
-    [[ -z "$script" ]] && continue
-    script_path="${REPO_ROOT}/${script}"
-    if [[ -f "$script_path" ]]; then
-      echo "  - $script (exists)"
-    else
-      echo "  - $script (MISSING)"
+# --- R library check for step at index i inside Apptainer (APPTAINER_SIF must be set) ---
+check_r_libs_for_step_in_apptainer() {
+  local i="$1"
+  local script="${STEPS[i]}"
+  [[ "$script" == *.sh ]] && return 0
+  local lib
+  while IFS= read -r lib; do
+    [[ -z "$lib" || "$lib" == "null" ]] && continue
+    if ! apptainer run --bind "$REPO_ROOT:$REPO_ROOT" --bind "$run_dir:$run_dir" --pwd "$REPO_ROOT" "$APPTAINER_SIF" Rscript -e "library(\"$lib\")" 2>/dev/null; then
+      echo "magic-ensemble: R library check failed inside container: library(\"$lib\") not available in image $APPTAINER_SIF" >&2
+      exit 1
     fi
-  done < <(get_steps)
-  echo ""
-  echo "Pre-execution checks (R libraries, AWS CLI) can be run when not in dry-run."
-  exit 0
+  done < <(yq eval '.steps["'"$COMMAND"'"] | .['"$i"'].r_libraries | .[]?' "$MANIFEST" 2>/dev/null || true)
 }
 
-# --- Run R script with args; CWD = REPO_ROOT ---
+# --- Run R script with args. Optional leading args: --apptainer, --cwd DIR (default DIR = REPO_ROOT). ---
 run_script() {
+  local use_apptainer=0
+  local script_cwd="$REPO_ROOT"
+  while [[ $# -gt 0 ]]; do
+    case "${1:-}" in
+      --apptainer) use_apptainer=1; shift ;;
+      --cwd)
+        if [[ $# -lt 2 ]]; then
+          echo "magic-ensemble: run_script --cwd requires DIR." >&2
+          exit 1
+        fi
+        script_cwd="$2"
+        shift 2
+        ;;
+      *) break ;;
+    esac
+  done
   local script="$1"
   shift
   local script_path="${REPO_ROOT}/${script}"
@@ -239,13 +326,23 @@ run_script() {
     echo "magic-ensemble: Script not found: $script_path" >&2
     exit 1
   fi
-  if [[ $VERBOSE -eq 1 ]]; then
-    echo "Rscript $script_path $*" >&2
+  if [[ $use_apptainer -eq 1 ]]; then
+    # APPTAINER_SIF and run_dir must be set (ensure_sif_present and run_dir resolved earlier).
+    echo "magic-ensemble: Rscript (inside apptainer: $APPTAINER_SIF)"
+    if [[ $VERBOSE -eq 1 ]]; then
+      echo "apptainer run --bind \"$REPO_ROOT:$REPO_ROOT\" --bind \"$run_dir:$run_dir\" --cwd \"$script_cwd\" \"$APPTAINER_SIF\" Rscript \"$script_path\" $*" >&2
+    fi
+    apptainer run --bind "$REPO_ROOT:$REPO_ROOT" --bind "$run_dir:$run_dir" --cwd "$script_cwd" "$APPTAINER_SIF" Rscript "$script_path" "$@"
+  else
+    echo "magic-ensemble: Rscript: $(command -v Rscript)"
+    if [[ $VERBOSE -eq 1 ]]; then
+      echo "(cd \"$script_cwd\" && Rscript \"$script_path\" $*)" >&2
+    fi
+    (cd "$script_cwd" && Rscript "$script_path" "$@")
   fi
-  (cd "$REPO_ROOT" && Rscript "$script_path" "$@")
 }
 
-# --- Run shell script; CWD = REPO_ROOT. Pass COMMAND and STEP_INDEX for manifest lookups. ---
+# --- Run shell script; CWD = REPO_ROOT. Step scripts receive documented CLI arguments. ---
 run_shell_script() {
   local script="$1"
   local step_index="${2:-0}"
@@ -254,10 +351,74 @@ run_shell_script() {
     echo "magic-ensemble: Script not found: $script_path" >&2
     exit 1
   fi
-  if [[ $VERBOSE -eq 1 ]]; then
-    echo "RUN_DIR=$run_dir REPO_ROOT=$REPO_ROOT MANIFEST=$MANIFEST COMMAND=$COMMAND STEP_INDEX=$step_index bash $script_path" >&2
+  local script_basename="${script##*/}"
+  if [[ "$script_basename" == "00_fetch_s3_and_prepare_run_dir.sh" || "$script_basename" == "00_stage_external_inputs.sh" ]]; then
+    # Step 00 helpers: documented arguments (see each script's --help).
+    local args=(--repo-root "$REPO_ROOT")
+    if [[ "$script_basename" == "00_fetch_s3_and_prepare_run_dir.sh" ]]; then
+      args+=(--command "$COMMAND" --step-index "$step_index")
+    fi
+    if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
+      args+=(--config "$CONFIG_FILE" --invocation-cwd "$INVOCATION_CWD")
+    else
+      args+=(--run-dir "$run_dir" --invocation-cwd "$INVOCATION_CWD")
+    fi
+    if [[ $VERBOSE -eq 1 ]]; then
+      echo "bash $script_path ${args[*]}" >&2
+    fi
+    (cd "$REPO_ROOT" && bash "$script_path" "${args[@]}")
+  else
+    # Other shell steps: pass args if/when they are added; no env vars
+    if [[ $VERBOSE -eq 1 ]]; then
+      echo "bash $script_path" >&2
+    fi
+    (cd "$REPO_ROOT" && bash "$script_path")
   fi
-  (cd "$REPO_ROOT" && RUN_DIR="$run_dir" REPO_ROOT="$REPO_ROOT" MANIFEST="$MANIFEST" COMMAND="$COMMAND" STEP_INDEX="$step_index" bash "$script_path")
+}
+
+# --- Validate pecan_dispatch value against manifest options ---
+validate_pecan_dispatch() {
+  if ! yq eval ".pecan_dispatch | has(\"$pecan_dispatch\")" "$MANIFEST" | grep -q '^true$'; then
+    echo "magic-ensemble: Unknown pecan_dispatch value '$pecan_dispatch'. Valid options:" >&2
+    yq eval '.pecan_dispatch | keys | .[]' "$MANIFEST" >&2
+    exit 1
+  fi
+}
+
+# --- Patch <host>...</host> block in staged template.xml with chosen dispatch XML ---
+# Selects host_xml_apptainer when use_apptainer=1 (with @SIF@ substituted); falls back to host_xml.
+patch_dispatch() {
+  if ! command -v python3 &>/dev/null; then
+    echo "magic-ensemble: python3 is required to patch dispatch in template.xml." >&2
+    exit 1
+  fi
+  local template_path="${run_dir}/$(yq eval '.paths.template_file' "$MANIFEST")"
+  if [[ ! -f "$template_path" ]]; then
+    echo "magic-ensemble: staged template.xml not found at $template_path" >&2
+    exit 1
+  fi
+
+  # Select apptainer variant when available and requested; otherwise plain host_xml.
+  local host_xml_key="host_xml"
+  if [[ $use_apptainer -eq 1 ]]; then
+    local has_apptainer_variant
+    has_apptainer_variant=$(yq eval ".pecan_dispatch[\"$pecan_dispatch\"] | has(\"host_xml_apptainer\")" "$MANIFEST")
+    if [[ "$has_apptainer_variant" == "true" ]]; then
+      host_xml_key="host_xml_apptainer"
+    fi
+  fi
+
+  if [[ $VERBOSE -eq 1 ]]; then
+    echo "magic-ensemble: patching <host> block in $template_path (pecan_dispatch=$pecan_dispatch, xml_key=$host_xml_key)" >&2
+  fi
+
+  local sif_name host_xml
+  sif_name=$(yq eval '.apptainer.sif' "$MANIFEST")
+  # Substitute @SIF@ with the SIF filename (relative to run_dir, as jobs execute there).
+  host_xml=$(yq eval ".pecan_dispatch[\"$pecan_dispatch\"].$host_xml_key" "$MANIFEST" \
+    | sed "s|@SIF@|./${sif_name}|g")
+
+  python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "host" "$host_xml" --block
 }
 
 # --- Get-demo-data: run steps from manifest (shell script only) ---
@@ -270,67 +431,96 @@ run_get_demo_data() {
   done
 }
 
-# --- Prepare: run steps from manifest (01, 02, 03 with R args) ---
+# --- Prepare: run steps from manifest (hard-coded sequence for this workflow); optionally inside Apptainer ---
 run_prepare() {
   get_steps_array
   check_aws
-  for i in "${!STEPS[@]}"; do
-    check_r_libs_for_step "$i"
-  done
+  validate_pecan_dispatch
+
+  local apptainer_arg=""
+  if [[ $use_apptainer -eq 1 ]]; then
+    ensure_apptainer_available
+    ensure_sif_present
+    apptainer_arg="--apptainer"
+    for i in "${!STEPS[@]}"; do
+      check_r_libs_for_step_in_apptainer "$i"
+    done
+  else
+    for i in "${!STEPS[@]}"; do
+      check_r_libs_for_step "$i"
+    done
+  fi
 
   for i in "${!STEPS[@]}"; do
-    case "$i" in
-      0) run_script "${STEPS[i]}" \
-          --site_era5_path "$site_era5_path" \
-          --site_sipnet_met_path "$site_sipnet_met_path" \
-          --site_info_file "$site_info_file" \
-          --start_date "$start_date" \
-          --end_date "$end_date" \
-          --n_cores "$n_workers" \
-          --parallel_strategy "multisession" ;;
-      1) run_script "${STEPS[i]}" \
-          --site_info_path "$site_info_file" \
-          --field_shape_path "$field_shape_path" \
-          --ic_ensemble_size "$ic_ensemble_size" \
-          --run_start_date "$start_date" \
-          --run_LAI_date "$run_LAI_date" \
-          --ic_outdir "$ic_outdir" \
-          --data_dir "$data_dir" \
-          --pft_dir "$pft_dir" \
-          --params_read_from_pft "$params_from_pft" \
-          --landtrendr_raw_files "$landtrendr_raw_files" \
-          --additional_params "$additional_params" ;;
-      2) run_script "${STEPS[i]}" \
-          --n_ens "$n_ens" \
-          --n_met "$n_met" \
-          --start_date "$start_date" \
-          --end_date "$end_date" \
-          --ic_dir "$ic_dir" \
-          --met_dir "$met_dir" \
-          --site_file "$site_file" \
-          --template_file "$template_file" \
-          --output_file "$output_file" ;;
-      *) echo "magic-ensemble: No argument mapping for prepare step index $i" >&2; exit 1 ;;
-    esac
+    step_num=$((i + 1))
+    script="${STEPS[i]}"
+    echo "magic-ensemble: prepare step $step_num of ${#STEPS[@]}: $script"
+    if [[ "$script" == *.sh ]]; then
+      run_shell_script "$script" "$i"
+      if [[ "$i" -eq 0 ]]; then
+        echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
+        patch_dispatch
+      fi
+    else
+      case "$i" in
+        1) run_script $apptainer_arg "$script" \
+             --site_era5_path "$site_era5_path" \
+             --site_sipnet_met_path "$site_sipnet_met_path" \
+             --site_info_file "$site_info_file" \
+             --start_date "$start_date" \
+             --end_date "$end_date" \
+             --n_cores "$n_workers" \
+             --parallel_strategy "multisession" ;;
+        2) run_script $apptainer_arg "$script" \
+             --site_info_path "$site_info_file" \
+             --field_shape_path "$field_shape_path" \
+             --ic_ensemble_size "$ic_ensemble_size" \
+             --run_start_date "$start_date" \
+             --run_LAI_date "$run_LAI_date" \
+             --ic_outdir "$ic_outdir" \
+             --data_dir "$data_dir" \
+             --pft_dir "$pft_dir" \
+             --params_read_from_pft "$params_from_pft" \
+             --landtrendr_raw_files "$landtrendr_raw_files" \
+             --additional_params "$additional_params" ;;
+        3) run_script $apptainer_arg "$script" \
+             --n_ens "$n_ens" \
+             --n_met "$n_met" \
+             --start_date "$start_date" \
+             --end_date "$end_date" \
+             --ic_dir "$ic_dir" \
+             --met_dir "$met_dir" \
+             --site_file "$site_file" \
+             --template_file "$template_file" \
+             --output_file "$output_file" ;;
+        *) echo "magic-ensemble: No argument mapping for prepare step index $i (script $script)" >&2; exit 1 ;;
+      esac
+    fi
+    echo "magic-ensemble: prepare step $step_num completed"
   done
+  echo "magic-ensemble: prepare finished (all ${#STEPS[@]} steps)"
 }
 
-# --- Run-ensembles: run single step from manifest (04) ---
+# --- Run-ensembles: run single step from manifest (04); never inside Apptainer.
+# When use_apptainer=1, the SIF must be present for dispatched jobs (already patched
+# into template.xml via patch_dispatch during prepare); 04_run_model.R itself always
+# runs on the host so it can submit further jobs to Slurm.
 run_run_ensembles() {
   get_steps_array
   check_aws
+
+  if [[ $use_apptainer -eq 1 ]]; then
+    ensure_apptainer_available
+    ensure_sif_present
+  fi
   check_r_libs_for_step 0
 
-  run_script "${STEPS[0]}" \
+  run_script --cwd "$run_dir" "${STEPS[0]}" \
     --settings "$settings_xml" \
     --continue "FALSE"
 }
 
 # --- Main ---
-if [[ $DRY_RUN -eq 1 ]]; then
-  do_dry_run
-fi
-
 case "$COMMAND" in
   get-demo-data)  run_get_demo_data ;;
   prepare)        run_prepare ;;

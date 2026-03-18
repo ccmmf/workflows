@@ -45,7 +45,7 @@
   <type>SIPNET</type>
   <revision>git</revision>
   <delete.raw>TRUE</delete.raw>
-  <binary>sipnet.git</binary>
+  <binary>/usr/local/bin/sipnet.git</binary>
   <prerun>cp data/events.in @RUNDIR@</prerun>
  </model>
  <run>
@@ -67,15 +67,11 @@
  </run>
  <host>
   <name>localhost</name>
+  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./sipnet-carb_develop.sif </qsub>
+  <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+  <!-- <qstat>squeue -h -j  @JOBID@ || echo "DONE"</qstat> -->
+  <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
   <outdir>output/out</outdir>
   <rundir>output/run</rundir>
-  <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
-  <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
-  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-  <modellauncher>
-    <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
-    <!-- <qsub.extra>-a 1-@NJOBS@</qsub.extra> -->
-    <Njobmax>1000</Njobmax>
-  </modellauncher>
  </host>
 </pecan>

@@ -3,7 +3,9 @@
 #
 # Paths: All entries under 'paths' are inside the run directory (no paths outside run_dir).
 # Keys are referenced by name in steps (inputs/outputs). At runtime the CLI resolves
-# each path as run_dir + "/" + value.
+# each path as run_dir + "/" + value. These are fixed, non-overrideable locations;
+# user configs may only supply external source files that are copied into these
+# paths before 'prepare' runs.
 #
 # Steps: Each command has a list of step objects. Each step has:
 #   script:       R script path (relative to repo root)
@@ -12,18 +14,69 @@
 #   outputs:      List of path keys this script creates or writes
 
 # S3 resources (not in user config). Remote resources are localized before R runs.
+# Stored as endpoint + bucket + per-resource key_prefix and filename (no full URLs).
 s3:
   endpoint_url: "https://s3.garage.ccmmf.ncsa.cloud"
   bucket: "carb"
   artifact_02:
-    url: "s3://carb/data/workflows/phase_2a"
-    filename: "ccmmf_phase_2a_input_artifacts.tgz"
+    key_prefix: "data_raw"
+    filename: "ensembles_data_artifact.tar.gz"
   median_tif:
-    url: "s3://carb/data_raw"
+    key_prefix: "data_raw"
     filename: "ca_biomassfiaald_2016_median.tif"
   stdv_tif:
-    url: "s3://carb/data_raw"
+    key_prefix: "data_raw"
     filename: "ca_biomassfiaald_2016_stdv.tif"
+
+# Dispatch options for run-ensembles. The user config selects one by name via pecan_dispatch.
+# host_xml is the complete <host>...</host> block to inject into the staged template.xml
+# before step 03 (xml_build.R) runs. Valid values for pecan_dispatch in user config are the
+# keys listed here.
+pecan_dispatch:
+  local-gnu-parallel:
+    description: "Run ensemble members locally using GNU parallel (no Slurm required)"
+    host_xml: |
+      <host>
+       <name>localhost</name>
+       <outdir>output/out</outdir>
+       <rundir>output/run</rundir>
+       <qstat>squeue -j @JOBID@ || echo DONE</qstat>
+       <modellauncher>
+        <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
+        <Njobmax>1000</Njobmax>
+       </modellauncher>
+      </host>
+    host_xml_apptainer: |
+      <host>
+       <name>localhost</name>
+       <outdir>output/out</outdir>
+       <rundir>output/run</rundir>
+       <qstat>squeue -j @JOBID@ || echo DONE</qstat>
+       <modellauncher>
+        <binary>parallel -j ${NCPUS:-1} --skip-first-line 'apptainer run @SIF@ {}/job.sh' ::::</binary>
+        <Njobmax>1000</Njobmax>
+       </modellauncher>
+      </host>
+  slurm-dispatch:
+    description: "Submit ensemble members to Slurm via sbatch"
+    host_xml: |
+      <host>
+       <name>localhost</name>
+       <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ </qsub>
+       <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+       <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
+       <outdir>output/out</outdir>
+       <rundir>output/run</rundir>
+      </host>
+    host_xml_apptainer: |
+      <host>
+       <name>localhost</name>
+       <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run @SIF@ </qsub>
+       <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+       <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
+       <outdir>output/out</outdir>
+       <rundir>output/run</rundir>
+      </host>
 
 # Apptainer (not in user config)
 apptainer:
@@ -35,6 +88,8 @@ apptainer:
   sif: "sipnet-carb_develop.sif"
 
 # Path definitions: all contained within the run directory.
+# note that these paths are the internal-workflow expected I/O paths.
+# Users should not modify these values unless you know what you are doing.
 # Values are relative to run_dir; CLI resolves as run_dir + "/" + value.
 paths:
   site_info_file: "site_info.csv"
@@ -65,6 +120,11 @@ steps:
       outputs: [data_dir, ic_outdir, site_sipnet_met_path]
 
   prepare:
+    - script: "2a_grass/00_stage_external_inputs.sh"
+      r_libraries: []
+      inputs:  []
+      outputs: []
+
     - script: "2a_grass/01_ERA5_nc_to_clim.R"
       r_libraries: [future, furrr]
       inputs:  [site_info_file, site_era5_path]

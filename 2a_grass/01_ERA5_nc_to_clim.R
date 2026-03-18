@@ -73,21 +73,36 @@ file_info <- site_info |>
   dplyr::rename(site_id = id) |>
   dplyr::cross_join(data.frame(ens_id = 1:10))
 
+# stopifnot(
+#   length(unique(file_info$id)) == nrow(file_info),
+#   all(file_info$lat > 0), # just to simplify grid naming below
+#   all(file_info$lon < 0)
+# )
+file_info <- file_info |>
+  dplyr::mutate(
+    # match locations to half-degree ERA5 grid cell centers
+    # CAUTION: Calculation only correct when all lats are N and all lons are W!
+    ERA5_grid_cell = paste0(
+      ((lat + 0.25) %/% 0.5) * 0.5, "N_",
+      ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
+    )
+  )
 if (!dir.exists(args$site_sipnet_met_path)) {
   dir.create(args$site_sipnet_met_path, recursive = TRUE)
 }
 furrr::future_pwalk(
   file_info,
-  function(site_id, start_date, end_date, ens_id, ...) {
+  function(site_id, start_date, end_date, ens_id, ERA5_grid_cell, ...) {
     PEcAn.SIPNET::met2model.SIPNET(
       in.path = file.path(
         args$site_era5_path,
-        paste("ERA5", site_id, ens_id, sep = "_")
+        # paste("ERA5", site_id, ens_id, sep = "_")
+        paste("ERA5", ERA5_grid_cell, ens_id, sep = "_")
       ),
       start_date = args$start_date,
       end_date = args$end_date,
       in.prefix = paste0("ERA5.", ens_id),
-      outfolder = file.path(args$site_sipnet_met_path, site_id)
+      outfolder = file.path(args$site_sipnet_met_path, ERA5_grid_cell)
     )
   }
 )
