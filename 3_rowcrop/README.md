@@ -96,18 +96,24 @@ TODO 2: show how to pass n_cores from host_args
 
 ### 2. Generate initial site conditions
 
-We'll run this twice, once for validation sites and once for statewide.
+We'll run this twice, once for validation sites and once for statewide anchors.
 It would also be fine to put both together in the same input and run it once.
+
+NOTE: ECMWF soil moisture data calls were failing when I tried to run this for anchor sites on 2025-12-08,
+so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/`. On a day the server is up, this _should_ not be needed... but also isn't a problem, since that subdirectory contains global 0.25 degree/25 km soil moisture data for the first 10 days of 2016 and can be expected to be identical from one downloading to the next. The fact that we cache that output here is a quirk of how `PEcAn.data.land::extract_SM_CDS` is implemented, not a designed part of the IC workflow.
+
 
 ```{sh}
 [host_args] ./02_ic_build.R \
 	--site_info_path=validation_site_info.csv \
 	--pft_dir=data_raw/pfts \
+	--data_dir=data/IC_prep_val \
 	--ic_outdir=data/IC_files
-#[host_args] ./02_ic_build.R \
-#	--site_info_path=site_info.csv \
-#	--pft_dir=data_raw/pfts \
-#	--ic_outdir=data/IC_files
+[host_args] ./02_ic_build.R \
+	--site_info_path=site_info.csv \
+	--pft_dir=data_raw/pfts \
+	--data_dir=data/IC_prep \
+	--ic_outdir=data/IC_files
 ```
 
 ### 3. generate settings file

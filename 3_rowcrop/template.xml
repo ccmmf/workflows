@@ -52,9 +52,15 @@
  <model>
   <id>99000000003</id>
   <type>SIPNET</type>
-  <revision>git</revision>
+  <revision>2.0.0</revision>
   <delete.raw>TRUE</delete.raw>
   <binary>sipnet.git</binary>
+  <options>
+    <GDD>0</GDD>
+    <NITROGEN_CYCLE>1</NITROGEN_CYCLE>
+    <ANAEROBIC>1</ANAEROBIC>
+    <LITTER_POOL>1</LITTER_POOL>
+  </options>
  </model>
  <run>
   <site><!-- inserted at config time --></site>
