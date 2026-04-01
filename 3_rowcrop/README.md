@@ -50,6 +50,7 @@ TODO. Should include:
 	- ERA5 data as nc (clim conversion runs locally)
 	- ca_half_degree_grid.csv too
 	- data/events/
+	- data_raw/management, copied from s3://carb/management/
 	- DWR map?
 	- initial conditions
 		- Decide: deliver full files, site-level mean/sd, or other?

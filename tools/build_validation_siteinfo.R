@@ -17,9 +17,9 @@ mgmt_file <- "Harmonized_SiteMngmt_Croplands.csv"
 # can't use datapoints from before our simulations start
 min_yr <- 2016
 
-# TODO using 2018 for compatibility with field ids used in IC script;
-# still need to harmonize IDs with those in data_raw/crop_map/ca_fields.gpkg
-field_map <- "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb"
+# parcel ID lookup
+field_map <- "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
+field_pft_info <- "data_raw/management/crops/v4.1/crops_all_years.parq"
 
 # For first pass, selecting only the control/no-treatment plots.
 # TODO: revisit this as we build more management into the workflow.
@@ -36,6 +36,9 @@ site_locs <- read.csv(file.path(data_dir, soc_file)) |>
   inner_join(site_ids)
 
 dwr_fields <- terra::vect(field_map)
+dwr_field_pfts <- arrow::read_parquet(field_pft_info) |>
+  dplyr::filter(year == min_yr, season == 2) |>
+  select(parcel_id, crop_class = CLASS)
 site_dwr_ids <- site_locs |>
   terra::vect(crs = "epsg:4326") |>
   terra::project(dwr_fields) |>
@@ -44,9 +47,10 @@ site_dwr_ids <- site_locs |>
   mutate(
     ProjectName = site_locs$ProjectName[from_id],
     BaseID = site_locs$BaseID[from_id],
-    field_id = dwr_fields$UniqueID[to_id],
-    crop_class = dwr_fields$SYMB_CLASS[to_id]
-  )
+    parcel_id = dwr_fields$parcel_id[to_id],
+  ) |>
+  left_join(dwr_field_pfts)
+
 stopifnot(nrow(site_dwr_ids) == nrow(site_locs))
 
 site_locs |>
@@ -70,5 +74,5 @@ site_locs |>
   group_by(lat, lon, pft) |>
   slice_sample(n = 1) |>
   ungroup() |>
-  select(id, field_id, lat, lon, site.pft = pft) |>
+  select(id, field_id = parcel_id, lat, lon, site.pft = pft) |>
   write.csv("validation_site_info.csv", row.names = FALSE)
