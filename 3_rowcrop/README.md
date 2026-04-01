@@ -148,7 +148,7 @@ ln -s [your/path/to]/sipnet/sipnet sipnet.git
 ```{sh}
 [host_args] ./validate.R \
 	--model_dir=val_out \
-	--output_dir=validation_results_$(date'+%s')
+	--output_dir=validation_results_$(date '+%s')
 ```
 
 
