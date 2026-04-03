@@ -113,12 +113,10 @@ get_val() {
   if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
     local u
     u=$(yq eval ".$key" "$CONFIG_FILE" 2>/dev/null)
-    if [[ -z "$u" || "$u" == "null" ]]; then
-      echo "magic-ensemble: Config key '$key' is missing or empty in $CONFIG_FILE" >&2
-      exit 1
+    if [[ -n "$u" && "$u" != "null" ]]; then
+      echo "$u"
+      return
     fi
-    echo "$u"
-    return
   fi
   echo "$from_manifest"
 }
@@ -154,6 +152,11 @@ n_workers_default="1"
 use_apptainer_default="false"
 
 run_dir=$(get_val "run_dir" "$run_dir_default")
+
+if [[ -z "$run_dir" || "$run_dir" == "null" ]]; then
+  echo "magic-ensemble: run_dir is required in config $CONFIG_FILE" >&2
+  exit 1
+fi
 
 if [[ "$run_dir" == "/" ]]; then
   echo "magic-ensemble: run_dir cannot be the root directory (/)." >&2
@@ -434,7 +437,6 @@ run_get_demo_data() {
 # --- Prepare: run steps from manifest (hard-coded sequence for this workflow); optionally inside Apptainer ---
 run_prepare() {
   get_steps_array
-  check_aws
   validate_pecan_dispatch
 
   local apptainer_arg=""
@@ -507,7 +509,6 @@ run_prepare() {
 # runs on the host so it can submit further jobs to Slurm.
 run_run_ensembles() {
   get_steps_array
-  check_aws
 
   if [[ $use_apptainer -eq 1 ]]; then
     ensure_apptainer_available

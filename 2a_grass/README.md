@@ -45,7 +45,7 @@ ln -sf ../sipnet ../sipnet.git
 ### Install or update PEcAn
 
 If this is a brand-new installation, expect this step to take a few hours to download and compile more than 300 R packages. If you've installed PEcAn on this machine before, expect it to be just a few minutes of updating only the PEcAn packages and any dependencies whose version requirement has changed.
-Defaults to using 4 CPUs to compile packages in parallel. If you have more cores, adjust `sbatch`'s `--cpus-per-task` parameter.
+Defaults to using 4 CPUs to compile packages in parallel. If you have more cores, adjust `sbatch`'s `--cpus-per-task` parameter.
 
 ```
 sbatch -o install_pecan.out ../tools/install_pecan.sh

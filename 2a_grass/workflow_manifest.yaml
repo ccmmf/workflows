@@ -13,135 +13,142 @@
 #   inputs:       List of path keys (from 'paths') this script reads (local paths only)
 #   outputs:      List of path keys this script creates or writes
 
-# S3 resources (not in user config). Remote resources are localized before R runs.
-# Stored as endpoint + bucket + per-resource key_prefix and filename (no full URLs).
-s3:
-  endpoint_url: "https://s3.garage.ccmmf.ncsa.cloud"
-  bucket: "carb"
-  artifact_02:
-    key_prefix: "data_raw"
-    filename: "ensembles_data_artifact.tar.gz"
-  median_tif:
-    key_prefix: "data_raw"
-    filename: "ca_biomassfiaald_2016_median.tif"
-  stdv_tif:
-    key_prefix: "data_raw"
-    filename: "ca_biomassfiaald_2016_stdv.tif"
+# Steps per command: script path, R libs to check (empty for shell scripts), input/output path keys
+steps:
+    get-demo-data:
+        - script: "2a_grass/00_fetch_s3_and_prepare_run_dir.sh"
+          r_libraries: []
+          inputs: []
+          outputs: [data_dir, ic_outdir, site_sipnet_met_path]
 
-# Dispatch options for run-ensembles. The user config selects one by name via pecan_dispatch.
-# host_xml is the complete <host>...</host> block to inject into the staged template.xml
-# before step 03 (xml_build.R) runs. Valid values for pecan_dispatch in user config are the
-# keys listed here.
-pecan_dispatch:
-  local-gnu-parallel:
-    description: "Run ensemble members locally using GNU parallel (no Slurm required)"
-    host_xml: |
-      <host>
-       <name>localhost</name>
-       <outdir>output/out</outdir>
-       <rundir>output/run</rundir>
-       <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-       <modellauncher>
-        <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
-        <Njobmax>1000</Njobmax>
-       </modellauncher>
-      </host>
-    host_xml_apptainer: |
-      <host>
-       <name>localhost</name>
-       <outdir>output/out</outdir>
-       <rundir>output/run</rundir>
-       <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-       <modellauncher>
-        <binary>parallel -j ${NCPUS:-1} --skip-first-line 'apptainer run @SIF@ {}/job.sh' ::::</binary>
-        <Njobmax>1000</Njobmax>
-       </modellauncher>
-      </host>
-  slurm-dispatch:
-    description: "Submit ensemble members to Slurm via sbatch"
-    host_xml: |
-      <host>
-       <name>localhost</name>
-       <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ </qsub>
-       <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
-       <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
-       <outdir>output/out</outdir>
-       <rundir>output/run</rundir>
-      </host>
-    host_xml_apptainer: |
-      <host>
-       <name>localhost</name>
-       <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run @SIF@ </qsub>
-       <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
-       <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
-       <outdir>output/out</outdir>
-       <rundir>output/run</rundir>
-      </host>
+    prepare:
+        - script: "2a_grass/00_stage_external_inputs.sh"
+          r_libraries: []
+          inputs: []
+          outputs: []
 
-# Apptainer (not in user config)
-apptainer:
-  remote:
-    url: "docker://hdpriest0uiuc/"
-  container:
-    name: "sipnet-carb"
-  tag: "develop"
-  sif: "sipnet-carb_develop.sif"
+        - script: "2a_grass/01_ERA5_nc_to_clim.R"
+          r_libraries: [future, furrr]
+          inputs: [site_info_file, site_era5_path]
+          outputs: [site_sipnet_met_path]
+
+        - script: "2a_grass/02_ic_build.R"
+          r_libraries: [tidyverse]
+          inputs:
+              [
+                  site_info_file,
+                  field_shape_path,
+                  pft_dir,
+                  data_dir,
+                  landtrendr_raw_files,
+              ]
+          outputs: [ic_outdir, data_dir]
+
+        - script: "2a_grass/03_xml_build.R"
+          r_libraries: [PEcAn.settings]
+          inputs: [site_file, template_file, ic_dir, met_dir]
+          outputs: [output_file]
+
+    run-ensembles:
+        - script: "2a_grass/04_run_model.R"
+          r_libraries: [PEcAn.all]
+          inputs: [settings_xml]
+          outputs: []
 
 # Path definitions: all contained within the run directory.
 # note that these paths are the internal-workflow expected I/O paths.
 # Users should not modify these values unless you know what you are doing.
 # Values are relative to run_dir; CLI resolves as run_dir + "/" + value.
 paths:
-  site_info_file: "site_info.csv"
-  site_sipnet_met_path: "data/ERA5_SIPNET"
-  site_era5_path: "data_raw/ERA5_nc"
-  field_shape_path: "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb"
-  data_dir: "data/IC_prep"
-  ic_outdir: "IC_files"
-  pft_dir: "pfts"
-  landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
-  site_file: "site_info.csv"
-  template_file: "template.xml"
-  output_file: "settings.xml"
-  met_dir: "data/ERA5_SIPNET"
-  ic_dir: "IC_files"
-  settings_xml: "settings.xml"
+    site_info_file: "site_info.csv"
+    site_sipnet_met_path: "data/ERA5_SIPNET"
+    site_era5_path: "data_raw/ERA5_nc"
+    field_shape_path: "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb"
+    data_dir: "data/IC_prep"
+    ic_outdir: "IC_files"
+    pft_dir: "pfts"
+    landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
+    site_file: "site_info.csv"
+    template_file: "template.xml"
+    output_file: "settings.xml"
+    met_dir: "data/ERA5_SIPNET"
+    ic_dir: "IC_files"
+    settings_xml: "settings.xml"
 
 # Fixed workflow values (not user overrides)
 params_from_pft: "SLA,leafC"
 additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005"
 
-# Steps per command: script path, R libs to check (empty for shell scripts), input/output path keys
-steps:
-  get-demo-data:
-    - script: "2a_grass/00_fetch_s3_and_prepare_run_dir.sh"
-      r_libraries: []
-      inputs:  []
-      outputs: [data_dir, ic_outdir, site_sipnet_met_path]
+# S3 resources (not in user config). Remote resources are localized before R runs.
+# Stored as endpoint + bucket + per-resource key_prefix and filename (no full URLs).
+s3:
+    endpoint_url: "https://s3.garage.ccmmf.ncsa.cloud"
+    bucket: "carb"
+    artifact_02:
+        key_prefix: "data_raw"
+        filename: "ensembles_data_artifact.tar.gz"
+    median_tif:
+        key_prefix: "data_raw"
+        filename: "ca_biomassfiaald_2016_median.tif"
+    stdv_tif:
+        key_prefix: "data_raw"
+        filename: "ca_biomassfiaald_2016_stdv.tif"
 
-  prepare:
-    - script: "2a_grass/00_stage_external_inputs.sh"
-      r_libraries: []
-      inputs:  []
-      outputs: []
+# Dispatch options for run-ensembles. The user config selects one by name via pecan_dispatch.
+# host_xml is the complete <host>...</host> block to inject into the staged template.xml
+# before step 03 (xml_build.R) runs. Valid values for pecan_dispatch in user config are the
+# keys listed here.
+pecan_dispatch:
+    local-gnu-parallel:
+        description: "Run ensemble members locally using GNU parallel (no Slurm required)"
+        host_xml: |
+            <host>
+             <name>localhost</name>
+             <outdir>output/out</outdir>
+             <rundir>output/run</rundir>
+             <qstat>squeue -j @JOBID@ || echo DONE</qstat>
+             <modellauncher>
+              <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
+              <Njobmax>1000</Njobmax>
+             </modellauncher>
+            </host>
+        host_xml_apptainer: |
+            <host>
+             <name>localhost</name>
+             <outdir>output/out</outdir>
+             <rundir>output/run</rundir>
+             <qstat>squeue -j @JOBID@ || echo DONE</qstat>
+             <modellauncher>
+              <binary>parallel -j ${NCPUS:-1} --skip-first-line 'apptainer run @SIF@ {}/job.sh' ::::</binary>
+              <Njobmax>1000</Njobmax>
+             </modellauncher>
+            </host>
+    slurm-dispatch:
+        description: "Submit ensemble members to Slurm via sbatch"
+        host_xml: |
+            <host>
+             <name>localhost</name>
+             <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ </qsub>
+             <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+             <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
+             <outdir>output/out</outdir>
+             <rundir>output/run</rundir>
+            </host>
+        host_xml_apptainer: |
+            <host>
+             <name>localhost</name>
+             <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run @SIF@ </qsub>
+             <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+             <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
+             <outdir>output/out</outdir>
+             <rundir>output/run</rundir>
+            </host>
 
-    - script: "2a_grass/01_ERA5_nc_to_clim.R"
-      r_libraries: [future, furrr]
-      inputs:  [site_info_file, site_era5_path]
-      outputs: [site_sipnet_met_path]
-
-    - script: "2a_grass/02_ic_build.R"
-      r_libraries: [tidyverse]
-      inputs:  [site_info_file, field_shape_path, pft_dir, data_dir, landtrendr_raw_files]
-      outputs: [ic_outdir, data_dir]
-
-    - script: "2a_grass/03_xml_build.R"
-      r_libraries: [PEcAn.settings]
-      inputs:  [site_file, template_file, ic_dir, met_dir]
-      outputs: [output_file]
-
-  run-ensembles:
-    - script: "2a_grass/04_run_model.R"
-      r_libraries: [PEcAn.all]
-      inputs:  [settings_xml]
-      outputs: []
+# Apptainer (not in user config)
+apptainer:
+    remote:
+        url: "docker://hdpriest0uiuc/"
+    container:
+        name: "sipnet-carb"
+    tag: "develop"
+    sif: "sipnet-carb_develop.sif"

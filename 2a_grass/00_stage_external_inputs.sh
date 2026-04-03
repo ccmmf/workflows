@@ -7,8 +7,8 @@
 #
 # Requires: yq (mikefarah/yq)
 #
-# Options (see --help): --repo-root (required); --manifest optional, currently
-# unused for staging; defaults to <repo-root>/2a_grass/workflow_manifest.yaml.
+# Options (see --help): --repo-root (required); --manifest optional,
+# defaults to <repo-root>/2a_grass/workflow_manifest.yaml.
 # Run directory is either from --run-dir or from run_dir in the file given by
 # --config (relative paths resolved with --invocation-cwd). external_paths
 # entries are resolved from --invocation-cwd when relative.
@@ -31,7 +31,7 @@ Run directory (one of):
   --config PATH         User YAML config file; script reads run_dir from it (use with --invocation-cwd).
 
 Optional:
-  --manifest PATH       Path to workflow_manifest.yaml (default: <repo-root>/2a_grass/workflow_manifest.yaml). (Currently unused.)
+  --manifest PATH       Path to workflow_manifest.yaml (default: <repo-root>/2a_grass/workflow_manifest.yaml).
   --invocation-cwd PATH Required when using --config with a relative run_dir or relative external_paths.
   -h, --help            Print this help and exit.
 EOF
@@ -144,9 +144,9 @@ if [[ -z "$CONFIG_FILE" || ! -f "$CONFIG_FILE" ]]; then
   exit 0
 fi
 
-# external_paths is a mapping from arbitrary keys to source file paths.
-# We do not depend on manifest paths here; we simply copy each source file
-# into the run directory (flattened by basename).
+# external_paths is a mapping from manifest path keys to source file paths.
+# Each key must match an entry in manifest.paths; the destination filename is
+# derived from that manifest path (basename), not from the source filename.
 # Parse the YAML block output of .external_paths line by line (yq v4 outputs plain
 # scalars without quotes). Split on first ": " to get key and value.
 external_block=$(yq eval '.external_paths' "$CONFIG_FILE" 2>/dev/null || echo "null")
@@ -181,8 +181,14 @@ while IFS= read -r line; do
     exit 1
   fi
 
-  # Destination: copy into the run directory using the source basename.
-  dest="${RUN_DIR_ABS}/$(basename "$src")"
+  # Destination: derived from the manifest path for the same key, not the source basename.
+  # This enforces the manifest contract so downstream scripts always find files where expected.
+  manifest_path=$(yq eval ".paths.${key}" "$MANIFEST" 2>/dev/null)
+  if [[ -z "$manifest_path" || "$manifest_path" == "null" ]]; then
+    echo "00_stage_external_inputs: external_paths key '${key}' has no corresponding entry in manifest.paths" >&2
+    exit 1
+  fi
+  dest="${RUN_DIR_ABS}/$(basename "$manifest_path")"
   dest_dir=$(dirname "$dest")
   mkdir -p "$dest_dir"
 
