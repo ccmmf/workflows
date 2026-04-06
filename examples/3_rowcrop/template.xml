@@ -10,6 +10,11 @@
  <rundir><!-- altered at config time -->output/run</rundir>
  <pfts>
   <pft>
+   <name>annual_crop</name>
+   <posterior.files>data_raw/pfts/annual_crop/post.distns.Rdata</posterior.files>
+   <outdir>data_raw/pfts/annual_crop/</outdir>
+  </pft>
+  <pft>
    <name>temperate.deciduous</name>
    <posterior.files>data_raw/pfts/temperate.deciduous/post.distns.Rdata</posterior.files>
    <outdir>data_raw/pfts/temperate.deciduous/</outdir>

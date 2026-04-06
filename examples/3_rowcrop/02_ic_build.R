@@ -49,7 +49,7 @@ options <- list(
     )
   ),
   optparse::make_option("--params_read_from_pft",
-    default = "SLA,leafC", # SLA units are m2/kg, leafC units are %
+    default = "SLA,leafC,leafGrowth", # SLA units are m2/kg, leafC units are %
     help = "Parameters to read from the PFT file, comma separated"
   ),
   optparse::make_option("--landtrendr_raw_files",
@@ -428,6 +428,9 @@ ic_samples <- initial_condition_estimated |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
   dplyr::left_join(pft_var_samples, by = c("site_id", "replicate")) |>
   dplyr::mutate(
+    # Experimental hack: Assume leafGrowth==0 means this is an annual crop, force starting biomass to zero even if LandTrendr says otherwise.
+    # This might be a terrible idea.
+    AbvGrndBiomass = if_else(leafGrowth == 0.0, 0, AbvGrndBiomass),
     AbvGrndWood = AbvGrndBiomass * wood_carbon_fraction,
     leaf_carbon_content = tidyr::replace_na(LAI, 0) / SLA * (leafC / 100),
     wood_carbon_content = pmax(AbvGrndWood - leaf_carbon_content, 0)

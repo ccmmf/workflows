@@ -59,9 +59,10 @@ site_locs |>
     id = paste(ProjectName, BaseID, lat, lon) |>
       purrr::map_chr(rlang::hash),
     pft = dplyr::case_when(
-      crop_class %in% c("G", "F", "P", "T") ~ "grass",
+      crop_class %in% c("F", "G", "T") ~ "annual_crop", # TODO assumes all G are annual. Refine?
+      crop_class %in% c("P", "T") ~ "grass",
       crop_class %in% c("D", "C", "V", "YP") ~ "temperate.deciduous",
-      # TODO later: R = rice, T19 & T28 = woody berries
+      # TODO later: R = rice, T19 & T28 = woody berries, T16 = flowers/nursery/xmastrees
       TRUE ~ NA_character_
     )
   ) |>

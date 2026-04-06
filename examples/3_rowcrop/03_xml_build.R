@@ -88,6 +88,8 @@ args <- optparse::OptionParser(option_list = options) |>
 ## Whew, that was a lot of lines to define a few defaults!
 
 
+# papply emits a lot of uninformative debug messages; let's ignore those
+PEcAn.logger::logger.setLevel("INFO")
 
 site_info <- read.csv(args$site_file)
 stopifnot(
