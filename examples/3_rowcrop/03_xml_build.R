@@ -159,6 +159,14 @@ settings <- settings |>
     path = args$event_dir,
     path_template = "{path}/events-{id}.in"
   ) |>
+  # For now, hard-coding one phenology path for all sites, placed inside event dir
+  # TODO make settable?
+  setEnsemblePaths(
+    n_reps = args$n_ens,
+    input_type = "leaf_phenology",
+    path = args$event_dir,
+    path_template = "{path}/phenology.csv"
+  ) |>
   papply(add_soil_pft)
 
 # Update just the first component of the output directory,
