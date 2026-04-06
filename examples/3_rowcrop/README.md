@@ -117,14 +117,65 @@ so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/
 	--ic_outdir=data/IC_files
 ```
 
+### 2a. Generate event files
+
+Management events are read from files produced by the monitoring pipeline or equivalent sources.
+The current version assumes all event types are provided as Parquet files, and that they live in subdirectories of `mgmt_file_dir` that include specific, currently hardcoded, version numbers. See script for the details.
+Future versions of the event_build script may support passing separate paths per data product and potentially also add support for alternate storage formats (e.g. allowing csv as well as parquet).
+
+```{sh
+[host_args] ./02a_build_events.R \
+  --site_info_path=validation_site_info.csv \
+  --mgmt_file_dir=data_raw/management \
+  --event_outdir=data/val_events
+host_args] ./02a_build_events.R \
+  --site_info_path=site_info.csv \
+  --mgmt_file_dir=data_raw/management \
+  --event_outdir=data/events
+```
+
+For validation we need an additional hack:
+`02a_build_events.R` created event files named by their *parcel* id,
+but the validation dataset uses a separate set of *site* ids derived by hashing locations, experiment names, and treatment codes.
+This is done to (1) keep locations opaque since the validation data are nonpublic, and (2) allow simulation of separate plots (treatments) whose locations all fall in a single parcel of the statewide map.
+A future solution would be to teach `03_xml_build.R` how to find event files that are named by parcel id, so that sites which share a parcel do not need to duplicate the file.
+For now though, let's duplicate the files of interest so they're named after the site IDs PEcAn will use. For now, I'm not cleaning up the originals afterwards -- they're small and might be used by other runs that reuse this data directory.
+
+```{r}
+vsi <- read.csv("validation_site_info.csv") |>
+  dplyr::distinct(id, field_id) |>
+  dplyr::rename(site_id = id)
+vsi |> purrr::pwalk(
+  \(site_id, field_id) file.copy(
+    paste0("data/val_events/events-", field_id, ".in"),
+    paste0("data/val_events/events-", site_id, ".in")
+  )
+)
+
+# And rename inside the phenology file, too
+read.csv("data/val_events/phenology.csv") |>
+  dplyr::rename(field_id = site_id) |>
+  dplyr::left_join(vsi) |>
+  write.csv("data/val_events/phenology.csv", row.names = FALSE)
+```
+
+
 ### 3. generate settings file
 
 ```{sh}
 [host_args] ./03_xml_build.R \
+	--end_date=2023-12-31 \
 	--ic_dir=data/IC_files \
 	--site_file=validation_site_info.csv \
+	--event_dir=data/val_events \
 	--output_file=validation_settings.xml \
 	--output_dir_name=val_out
+[host_args] ./03_xml_build.R \
+	--ic_dir=data/IC_files \
+	--end_date=2023-12-31 \
+	--site_file=site_info.csv \
+	--output_file=settings.xml \
+	--output_dir_name=output
 ```
 
 ### 4. Set up model run directories
@@ -134,6 +185,7 @@ stage instead of in xml_build.
 
 ```{sh}
 [host_args] ./04_set_up_runs.R --settings=validation_settings.xml
+host_args] ./04_set_up_runs.R --settings=settings.xml
 ```
 
 ### 5. Run model
@@ -142,6 +194,7 @@ stage instead of in xml_build.
 export NCPUS=8
 ln -s [your/path/to]/sipnet/sipnet sipnet.git
 [host_args] ./05_run_model.R --settings=val_out/pecan.CONFIGS.xml
+[host_args] ./05_run_model.R --settings=output/pecan.CONFIGS.xml
 ```
 
 ### 6. Validate
