@@ -91,7 +91,7 @@ TODO 2: show how to pass n_cores from host_args
 	--site_sipnet_met_path=data/ERA5_CA_SIPNET \
 	--site_info_file=data_raw/ca_half_degree_grid.csv \
 	--start_date=2016-01-01 \
-	--end_date=2025-12-31 \
+	--end_date=2023-12-31 \
 	--n_cores=7
 ```
 
