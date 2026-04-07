@@ -45,10 +45,12 @@ As written, a user can only inject files that are expected by the pipeline.
 00_stage_external_inputs.sh
   → creates run_dir
   → copies external_paths files into run_dir (manifest-defined destinations)
-  → [patch_dispatch() runs after this step]
-      → reads pecan_dispatch host_xml from manifest
-      → substitutes @SIF@ if use_apptainer is set
-      → patches <host> block in run_dir/template.xml via tools/patch_xml.py
+  → [patch_xml_block() runs twice after this step]
+      → patches <host> block: reads pecan_dispatch host_xml from manifest,
+        substitutes @SIF@ if use_apptainer is set
+      → patches <model> block: reads sipnet_model model_xml from manifest,
+        selects model_xml_apptainer variant if use_apptainer is set
+      → both use tools/patch_xml.py --block
 
 01_ERA5_nc_to_clim.R
   reads:  run_dir/data_raw/ERA5_nc, run_dir/site_info.csv
@@ -152,14 +154,24 @@ When `use_apptainer` is set to `true` and the mode also defines `host_xml_apptai
 variant is used instead. The `@SIF@` string substituted with the SIF filename
 relative to `run_dir` (since dispatched jobs execute there).
 
-### `patch_dispatch()` (`magic-ensemble` lines 390–422)
+### `patch_xml_block()` (`magic-ensemble`)
 
-Called immediately after step 00 in `prepare`. Steps:
+Generic XML block patcher called immediately after step 00 in `prepare`.
+
+```
+patch_xml_block <xml_tag> <plain_yq_path> <apptainer_yq_path>
+```
+
+Steps:
 1. Resolve `template_path` as `run_dir + manifest.paths.template_file`.
-2. Select `host_xml` or `host_xml_apptainer` based on `use_apptainer` and
-   manifest availability.
-3. Substitute `@SIF@` via `sed`.
-4. Call `tools/patch_xml.py` with `--block` to replace the entire `<host>` element.
+2. If `use_apptainer=1` and `<apptainer_yq_path>` resolves to a non-null value
+   in the manifest, use it; otherwise use `<plain_yq_path>`.
+3. Substitute `@SIF@` via `sed` (no-op when `@SIF@` is absent from the block).
+4. Call `tools/patch_xml.py` with `--block` to replace the entire element.
+
+Called twice in `run_prepare()`: once for `<host>` (dispatch XML) and once for
+`<model>` (SIPNET binary path). Adding a new patched block requires only one
+more `patch_xml_block` call with the appropriate manifest yq paths.
 
 ### `tools/patch_xml.py`
 
@@ -202,7 +214,7 @@ For each entry in `config.external_paths`:
    not source-derived.
 4. Parent directories are created if needed; file is copied with `cp -f`.
 
-This staging runs before `patch_dispatch()`, so `template.xml` is guaranteed
+This staging runs before `patch_xml_block()`, so `template.xml` is guaranteed
 to be present when the XML patching step fires.
 
 ---
@@ -232,7 +244,7 @@ paths as absolute values so scripts do not need to be CWD-aware.
 - Argument parsing, `get_val()`, path normalization
 - `check_aws` (for any command that fetches from S3)
 - `ensure_apptainer_available`, `ensure_sif_present`, `check_r_libs_for_step*`
-- `run_script`, `run_shell_script`, `patch_dispatch`
+- `run_script`, `run_shell_script`, `patch_xml_block`
 
 ### Update in `magic-ensemble`
 
@@ -249,7 +261,7 @@ paths as absolute values so scripts do not need to be CWD-aware.
 _(Placeholder — expand on this.)_
 
 Proposed tiers:
-- **Unit (bats/shunit2):** `get_val()` fallback behavior, `patch_dispatch()` XML
+- **Unit (bats/shunit2):** `get_val()` fallback behavior, `patch_xml_block()` XML
   output, path normalization and `external_paths` destination derivation using
   fixture configs and manifests.
 - **Integration:** End-to-end `prepare` against a minimal fixture that exercises

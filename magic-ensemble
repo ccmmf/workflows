@@ -388,40 +388,44 @@ validate_pecan_dispatch() {
   fi
 }
 
-# --- Patch <host>...</host> block in staged template.xml with chosen dispatch XML ---
-# Selects host_xml_apptainer when use_apptainer=1 (with @SIF@ substituted); falls back to host_xml.
-patch_dispatch() {
+# --- Patch a named XML block in the staged template.xml from manifest values ---
+# Usage: patch_xml_block <xml_tag> <plain_yq_path> <apptainer_yq_path>
+#
+# Reads the XML block from the manifest at <plain_yq_path>. If use_apptainer=1
+# and <apptainer_yq_path> resolves to a non-null value in the manifest, uses
+# that instead. Always runs @SIF@ substitution (no-op when @SIF@ is absent).
+patch_xml_block() {
+  local xml_tag="$1" plain_yq_path="$2" apptainer_yq_path="$3"
+
   if ! command -v python3 &>/dev/null; then
-    echo "magic-ensemble: python3 is required to patch dispatch in template.xml." >&2
+    echo "magic-ensemble: python3 is required to patch <${xml_tag}> in template.xml." >&2
     exit 1
   fi
+
   local template_path="${run_dir}/$(yq eval '.paths.template_file' "$MANIFEST")"
   if [[ ! -f "$template_path" ]]; then
     echo "magic-ensemble: staged template.xml not found at $template_path" >&2
     exit 1
   fi
 
-  # Select apptainer variant when available and requested; otherwise plain host_xml.
-  local host_xml_key="host_xml"
+  local yq_path="$plain_yq_path"
   if [[ $use_apptainer -eq 1 ]]; then
-    local has_apptainer_variant
-    has_apptainer_variant=$(yq eval ".pecan_dispatch[\"$pecan_dispatch\"] | has(\"host_xml_apptainer\")" "$MANIFEST")
-    if [[ "$has_apptainer_variant" == "true" ]]; then
-      host_xml_key="host_xml_apptainer"
+    local apptainer_val
+    apptainer_val=$(yq eval "$apptainer_yq_path" "$MANIFEST" 2>/dev/null)
+    if [[ -n "$apptainer_val" && "$apptainer_val" != "null" ]]; then
+      yq_path="$apptainer_yq_path"
     fi
   fi
 
   if [[ $VERBOSE -eq 1 ]]; then
-    echo "magic-ensemble: patching <host> block in $template_path (pecan_dispatch=$pecan_dispatch, xml_key=$host_xml_key)" >&2
+    echo "magic-ensemble: patching <${xml_tag}> block in $template_path (yq_path=${yq_path})" >&2
   fi
 
-  local sif_name host_xml
+  local sif_name xml_block
   sif_name=$(yq eval '.apptainer.sif' "$MANIFEST")
-  # Substitute @SIF@ with the SIF filename (relative to run_dir, as jobs execute there).
-  host_xml=$(yq eval ".pecan_dispatch[\"$pecan_dispatch\"].$host_xml_key" "$MANIFEST" \
-    | sed "s|@SIF@|./${sif_name}|g")
+  xml_block=$(yq eval "$yq_path" "$MANIFEST" | sed "s|@SIF@|./${sif_name}|g")
 
-  python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "host" "$host_xml" --block
+  python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
 
 # --- Get-demo-data: run steps from manifest (shell script only) ---
@@ -461,7 +465,12 @@ run_prepare() {
       run_shell_script "$script" "$i"
       if [[ "$i" -eq 0 ]]; then
         echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
-        patch_dispatch
+        patch_xml_block "host" \
+          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml" \
+          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml_apptainer"
+        patch_xml_block "model" \
+          ".sipnet_model.model_xml" \
+          ".sipnet_model.model_xml_apptainer"
       fi
     else
       case "$i" in
@@ -505,7 +514,7 @@ run_prepare() {
 
 # --- Run-ensembles: run single step from manifest (04); never inside Apptainer.
 # When use_apptainer=1, the SIF must be present for dispatched jobs (already patched
-# into template.xml via patch_dispatch during prepare); 04_run_model.R itself always
+# into template.xml via patch_xml_block during prepare); 04_run_model.R itself always
 # runs on the host so it can submit further jobs to Slurm.
 run_run_ensembles() {
   get_steps_array

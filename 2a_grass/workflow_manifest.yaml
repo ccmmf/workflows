@@ -144,6 +144,29 @@ pecan_dispatch:
              <rundir>output/run</rundir>
             </host>
 
+# SIPNET model XML block injected into template.xml during prepare.
+# model_xml is used for host-native runs (sipnet.git must be on PATH).
+# model_xml_apptainer is used when use_apptainer=true (binary path is inside container).
+sipnet_model:
+    model_xml: |
+        <model>
+         <id>99000000003</id>
+         <type>SIPNET</type>
+         <revision>git</revision>
+         <delete.raw>TRUE</delete.raw>
+         <binary>sipnet.git</binary>
+         <prerun>cp data/events.in @RUNDIR@</prerun>
+        </model>
+    model_xml_apptainer: |
+        <model>
+         <id>99000000003</id>
+         <type>SIPNET</type>
+         <revision>git</revision>
+         <delete.raw>TRUE</delete.raw>
+         <binary>/usr/local/bin/sipnet.git</binary>
+         <prerun>cp data/events.in @RUNDIR@</prerun>
+        </model>
+
 # Apptainer (not in user config)
 apptainer:
     remote:
