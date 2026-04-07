@@ -17,7 +17,7 @@ ca_bboxgrid <- expand.grid(
   lon = seq(from = -124.5, to = -114, by = 0.5),
   lat = seq(from = 32.5, to = 42, by = 0.5)
 ) |>
-  mutate(id = paste0(lat, "N_", abs(lon), "W"))
+  dplyr::mutate(id = paste0(lat, "N_", abs(lon), "W"))
 ca_gridcell_ids <- ca_bboxgrid |>
   vect(crs = "epsg:4326") |>
   project(ca_shp) |>
@@ -25,7 +25,7 @@ ca_gridcell_ids <- ca_bboxgrid |>
   intersect(ca_shp) |>
   _$id
 ca_grid <- ca_bboxgrid |>
-  filter(id %in% ca_gridcell_ids)
+  dplyr::filter(id %in% ca_gridcell_ids)
 
 PEcAn.data.atmosphere::extract.nc.ERA5(
   slat = ca_grid$lat,
