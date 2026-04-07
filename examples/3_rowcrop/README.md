@@ -36,9 +36,9 @@ Linux + Slurm + Apptainer HPC environment as we finish testing and deployment.
 
 Aspirationally, any command prefixed with `[host_args]` is one that ought to
 work on HPC by "just" adding a system-specific prefix, e.g.
-`./01_ERA4_nc_to_clim.R --start_date=2016-01-01` on my machine becomes
+`./01_ERA5_nc_to_clim.R --start_date=2016-01-01` on my machine becomes
 `sbatch -n16 --mem=12G --mail-type=ALL --uid=jdoe \
-	./01_ERA4_nc_to_clim.R --start_date=2016-01-01` on yours.
+	./01_ERA5_nc_to_clim.R --start_date=2016-01-01` on yours.
 
 
 ## Running the workflow
