@@ -84,8 +84,8 @@ furrr::future_pwalk(
         args$site_era5_path,
         paste("ERA5", site_id, ens_id, sep = "_")
       ),
-      start_date = args$start_date,
-      end_date = args$end_date,
+      start_date = start_date,
+      end_date = end_date,
       in.prefix = paste0("ERA5.", ens_id),
       outfolder = file.path(args$site_sipnet_met_path, site_id)
     )
