@@ -11,6 +11,7 @@
 # data files not marked test
 **/IC_files/**
 **/data/**
+**/data_raw/**
 **/pfts/**
 
 # R-specific files
@@ -43,3 +44,4 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+**/local_dev_notes/**

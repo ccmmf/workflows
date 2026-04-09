@@ -1,0 +1,39 @@
+# Example user-facing config for 2a_grass workflows.
+# Pass with: ./magic-ensemble <command> --config workflows/2a_grass/example_user_config.yaml
+#
+# This file contains only overridable settings and user-provided external
+# resources. Fixed paths, S3 resources, and step I/O are defined in
+# workflow_manifest.yaml and are not overridden here.
+
+# Run directory: where outputs and run-specific data live.
+# Relative to the CWD where you invoke the CLI, unless you use an absolute path.
+run_dir: "config-based-rundir/"
+
+# Dates used by prepare and run-ensembles.
+start_date: "2016-01-01"
+end_date: "2023-12-31"
+run_LAI_date: "2016-07-01"
+
+# Ensemble sizes.
+n_ens: 20
+n_met: 10
+ic_ensemble_size: 100
+
+# User-provided external resources.
+
+# Absolute paths are used as-is; relative paths are resolved from the
+# directory where you invoke ./magic-ensemble.
+# paths in external_paths will be localized to the run_dir before the workflow is run.
+external_paths:
+    template_file: "2a_grass/template.xml"
+
+# Parallelism (e.g. for step 01 --n_cores).
+n_workers: 1
+
+# Run prepare steps inside Apptainer (single image from workflow manifest; pull-if-not-present).
+# When true: 'module load apptainer' is attempted, then apptainer must be on PATH; SIF is
+# pulled from manifest remote if not present. No user override of remote; local image only.
+use_apptainer: true
+
+# Switch dispatch method for parallel execution (local-gnu-parallel, slurm-dispatch, etc.).
+pecan_dispatch: local-gnu-parallel
