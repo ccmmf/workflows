@@ -70,6 +70,19 @@
     <LITTER_POOL>1</LITTER_POOL>
   </options>
  </model>
+ <host>
+  <name>localhost</name>
+  <outdir><!-- altered at config time -->output/out</outdir>
+  <rundir><!-- altered at config time -->output/run</rundir>
+  <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
+  <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
+  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
+  <modellauncher>
+    <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
+    <!-- <qsub.extra>-a 1-@NJOBS@</qsub.extra> -->
+    <Njobmax>1000</Njobmax>
+  </modellauncher>
+ </host>
  <run>
   <site><!-- inserted at config time --></site>
   <inputs>
@@ -94,17 +107,4 @@
   <start.date><!-- inserted at config time --></start.date>
   <end.date><!-- inserted at config time --></end.date>
  </run>
- <host>
-  <name>localhost</name>
-  <outdir><!-- altered at config time -->output/out</outdir>
-  <rundir><!-- altered at config time -->output/run</rundir>
-  <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
-  <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
-  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-  <modellauncher>
-    <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
-    <!-- <qsub.extra>-a 1-@NJOBS@</qsub.extra> -->
-    <Njobmax>1000</Njobmax>
-  </modellauncher>
- </host>
 </pecan>
