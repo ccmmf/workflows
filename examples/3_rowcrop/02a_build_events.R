@@ -48,18 +48,18 @@ ids <- read.csv(
 # read management files from inside mgmt directory
 # TODO will break if not all mgmt types live at same path
 # (e.g. user wants to pull in their own tillage but use monitored plant/harv)
-read_parquet_years <- function(dir, parcel_ids) {
+read_parquet_years <- function(dir, parcel_ids, id_var = "parcel_id") {
   file.path(args$mgmt_file_dir, dir) |>
     list.files("*.parq(uet)?$", full.names = TRUE) |>
     arrow::open_dataset() |>
     # as.character is a hack bc planting dataset has id as string some years and int others.
     # TODO remove when fixed upstream.
-    filter(as.character(site_id) %in% parcel_ids) |>
+    filter(as.character(.data[[id_var]]) %in% parcel_ids) |>
     collect()
 }
 
 # phenology doesn't have to be json -- we'll just write one CSV of all sites and years
-pheno <- read_parquet_years("phenology/v1.0", ids) |>
+pheno <- read_parquet_years("phenology/v1.0", ids, "site_id") |>
   # TODO some seasons wrap past year end (e.g. 2025-09-08 to 2026-03-29) --
   # current code drops year so leafonday > leafoffday, which write.config skips
   # as invalid.
@@ -88,7 +88,7 @@ if (file.exists(pheno_out_path)) {
 }
 write.csv(pheno, file = pheno_out_path, row.names = FALSE)
 
-plant <- read_parquet_years("planting/v1.0", ids) |>
+plant <- read_parquet_years("planting/v1.0", ids, "site_id") |>
   # TODO fix upstream
   dplyr::rename(
     leaf_c_kg_m2 = C_LEAF,
@@ -103,9 +103,9 @@ plant <- read_parquet_years("planting/v1.0", ids) |>
   # TODO: Should also (/instead?) adjust initial pool sizes in these cases.
   dplyr::mutate(date = pmax(date,  "2016-01-01"))
 
-harv <- read_parquet_years("harvest/v1.0", ids)
+harv <- read_parquet_years("harvest/v1.0", ids, "site_id")
 
-till <- read_parquet_years("tillage/v1.0", ids) |>
+till <- read_parquet_years("tillage/v1.0", ids, "site_id") |>
   mutate(
     date = OGMn_date,
     # Placeholder -- better-informed conversion under development.
@@ -114,20 +114,10 @@ till <- read_parquet_years("tillage/v1.0", ids) |>
   )
 
 
-# Irrigation is not yet added to management.
-# Expected call:
-# irrig <- read_parquet_years("irrigation/v1.0", ids)
-#
-# Until then, here's a fixed 2.8 mm every week from April through October
-irrig <- expand.grid(
-  event_type = "irrigation",
-    site_id = ids,
-    date = seq(from = as.Date("2016-01-01"), as.Date("2023-12-31"), by = "7 days"),
-    amount_mm = 2.8,
-    method = "soil") |>
-  dplyr::filter(lubridate::month(date) %in% 4:10) |>
-  dplyr::arrange(site_id, date) |>
-  dplyr::mutate(date = as.character(date))
+irrig <- read_parquet_years("irrigation/v1.0", ids, "parcel_id") |>
+  # Ignore ensemble dimension. TODO support event ensembles across all event types
+  filter(ens_id == "irr_ens_001") |>
+  select(site_id = parcel_id, date, amount_mm, method)
 
 # TODO add fertilization / NCC here when available
 
