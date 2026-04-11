@@ -113,14 +113,17 @@ till <- read_parquet_years("tillage/v1.0", ids, "site_id") |>
     tillage_eff_0to1 = pmax(0, pmin(1, ndti_pct_change / 100), na.rm = TRUE)
   )
 
-
 irrig <- read_parquet_years("irrigation/v1.0", ids, "parcel_id") |>
   # Ignore ensemble dimension. TODO support event ensembles across all event types
   filter(ens_id == "irr_ens_001") |>
-  select(site_id = parcel_id, date, amount_mm, method)
+  mutate(
+    event_type = "irrigation",
+    site_id = as.character(parcel_id),
+    date = as.character(date)
+  ) |>
+  select(site_id, event_type, date, amount_mm, method)
 
 # TODO add fertilization / NCC here when available
-
 
 all_events <- dplyr::bind_rows(plant, harv, till, irrig) |>
   dplyr::mutate(pecan_events_version = "0.1.0") |>

@@ -136,20 +136,20 @@ dwr_parcelid_to_crop <- function(
 design_pts <- read.csv(args$location_file)
 pts_matched <- point_to_dwr_parcelid(design_pts)
 crop_2016 <- dwr_parcelid_to_crop(pts_matched$parcel_id, years = 2016, seasons = 2) |>
-  dplyr::select("parcel_id", "CLASS", "SUBCLASS")
+  mutate(site.pft = dwr_crop_to_pft(CLASS, SUBCLASS)) |>
+  dplyr::select("parcel_id", "site.pft")
+
+if (!is.null(design_pts$id) && anyDuplicated(design_pts$id)) {
+  PEcAn.logger::logger.severe("column `id` of design points is not unique")
+}
 
 site_info <- pts_matched |>
   left_join(crop_2016, by = "parcel_id") |>
-  rename(id = parcel_id) |> # TODO propagate `parcel_id` convention further downstream?
-  # OR rethink naming: id vs site_id vs something else?
-  mutate(
-    site.pft = dwr_crop_to_pft(CLASS, SUBCLASS),
-    field_id = id
-  ) |>
+  rename(field_id = parcel_id) # TODO propagate `parcel_id` convention further downstream?
+                               # OR rethink naming: id vs site_id vs something else?
   
-  # TODO
-  # - retain field_id or drop now that it's equal to id in this case?
-  # - 
-  select(-CLASS, -SUBCLASS)
+if (is.null(site_info$id)) {
+  site_info$id <- site_info$field_id
+}
 
 write.csv(site_info, args$out_file, row.names = FALSE)

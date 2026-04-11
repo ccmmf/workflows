@@ -36,12 +36,12 @@ site_locs <- read.csv(file.path(data_dir, soc_file)) |>
       purrr::map_chr(rlang::hash)
   ) |>
   inner_join(site_ids) |>
-  select(val_id, lat = Latitude, lon = Longitude)
+  distinct(id = val_id, lat = Latitude, lon = Longitude)
 
 # Match against field IDs and crop codes using same script used on non-val files
 # TODO avoid round trip to CSV here...
-# I replaced a chunk of code that was redundant with `build_site_info.R`
-# and this was faster than thinking how to refactor further
+# it's only here because I replaced a chunk of code that was redundant with
+# `build_site_info.R` and this was faster than thinking how to refactor further
 write.csv(site_locs, loc_tmp_file, row.names = FALSE)
 callr::rscript(
   "../tools/build_site_info.R",
@@ -49,9 +49,6 @@ callr::rscript(
               paste0("--out_file=", output_file))
 )
 read.csv(output_file) |>
-  # TODO is this desirable?
-  # In production, may be better to complain if no PFT match
-  drop_na(site.pft) |>
   # Temporary hack:
   # Where multiple treatments share a location,
   # use only one of them
