@@ -114,8 +114,12 @@ till <- read_parquet_years("tillage/v1.0", ids, "site_id") |>
   )
 
 irrig <- read_parquet_years("irrigation/v1.0", ids, "parcel_id") |>
-  # Ignore ensemble dimension. TODO support event ensembles across all event types
-  filter(ens_id == "irr_ens_001") |>
+  filter(
+    # Ignore ensemble dimension. TODO support event ensembles across all event types
+    ens_id == "irr_ens_001",
+    # ignore all irrigation events before start of simulation
+    date >= "2016-01-01"
+  ) |>
   mutate(
     event_type = "irrigation",
     site_id = as.character(parcel_id),
@@ -126,9 +130,10 @@ irrig <- read_parquet_years("irrigation/v1.0", ids, "parcel_id") |>
 # TODO add fertilization / NCC here when available
 
 all_events <- dplyr::bind_rows(plant, harv, till, irrig) |>
-  dplyr::mutate(pecan_events_version = "0.1.0") |>
-  dplyr::nest_by(site_id, pecan_events_version, .key="events")
- 
+  dplyr::arrange(site_id, date, event_type) |>
+  dplyr::nest_by(site_id, .key="events") |>
+  dplyr::mutate(pecan_events_version = "0.1.0")
+
 evt_json_path <- file.path(args$event_outdir, "combined_events.json")
 if (file.exists(evt_json_path)) {
   # TODO append to existing file like for phenology?
