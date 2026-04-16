@@ -27,11 +27,7 @@ simulation period.
 
 ## Caveats
 
-TODO UPDATE when no longer true
-
-This simulation is under active development and all the notes below are subject
-to change as we update the code.
-For now, instructions assume a local run on MacOS and will be updated for a
+Instructions assume a local run on MacOS and will be updated for a
 Linux + Slurm + Apptainer HPC environment as we finish testing and deployment.
 
 Aspirationally, any command prefixed with `[host_args]` is one that ought to
@@ -192,7 +188,7 @@ host_args] ./04_set_up_runs.R --settings=settings.xml
 
 ```{sh}
 export NCPUS=8
-ln -s [your/path/to]/sipnet/sipnet sipnet.git
+ln -s [your/path/to]/sipnet/sipnet sipnet
 [host_args] ./05_run_model.R --settings=val_out/pecan.CONFIGS.xml
 [host_args] ./05_run_model.R --settings=output/pecan.CONFIGS.xml
 ```

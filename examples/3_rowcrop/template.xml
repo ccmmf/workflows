@@ -62,7 +62,7 @@
   <type>SIPNET</type>
   <revision>2.0.0</revision>
   <delete.raw>TRUE</delete.raw>
-  <binary>sipnet.git</binary>
+  <binary>./sipnet</binary>
   <options>
     <GDD>0</GDD>
     <NITROGEN_CYCLE>0</NITROGEN_CYCLE>
