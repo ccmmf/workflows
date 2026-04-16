@@ -1,0 +1,24 @@
+# Example user config for the 1b statewide woody crops workflow.
+# Copy this file and edit before running. Only run_dir and pecan_dispatch are required;
+# all other keys fall back to the defaults shown.
+#
+# Run with:
+#   ./magic-ensemble prepare-example-1b --config <this file>
+#   ./magic-ensemble run-ensembles      --config <this file>
+
+run_dir: "1b-run-directory/"
+
+start_date: "2016-01-01"
+end_date: "2023-12-31"
+run_LAI_date: "2016-07-01"
+n_ens: 20
+n_met: 10
+ic_ensemble_size: 100
+n_workers: 1
+use_apptainer: false
+pecan_dispatch: local-gnu-parallel
+
+# Stage example-specific input files into run_dir before prepare runs.
+external_paths:
+  template_file: "examples/1b_statewide_woody/template.xml"
+  site_info_file: "examples/1b_statewide_woody/site_info.csv"

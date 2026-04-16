@@ -8,7 +8,7 @@
 # paths before 'prepare' runs.
 #
 # Steps: Each command has a list of step objects. Each step has:
-#   script:       R script path (relative to repo root)
+#   script:       Script path (relative to repo root)
 #   r_libraries:  R packages to check before running this script
 #   inputs:       List of path keys (from 'paths') this script reads (local paths only)
 #   outputs:      List of path keys this script creates or writes
@@ -16,23 +16,23 @@
 # Steps per command: script path, R libs to check (empty for shell scripts), input/output path keys
 steps:
     get-demo-data:
-        - script: "2a_grass/00_fetch_s3_and_prepare_run_dir.sh"
+        - script: "workflow/00_fetch_s3_and_prepare_run_dir.sh"
           r_libraries: []
           inputs: []
           outputs: [data_dir, ic_outdir, site_sipnet_met_path]
 
     prepare:
-        - script: "2a_grass/00_stage_external_inputs.sh"
+        - script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
           outputs: []
 
-        - script: "2a_grass/01_ERA5_nc_to_clim.R"
+        - script: "workflow/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
           outputs: [site_sipnet_met_path]
 
-        - script: "2a_grass/02_ic_build.R"
+        - script: "workflow/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
               [
@@ -44,13 +44,69 @@ steps:
               ]
           outputs: [ic_outdir, data_dir]
 
-        - script: "2a_grass/03_xml_build.R"
+        - script: "workflow/03_xml_build.R"
+          r_libraries: [PEcAn.settings]
+          inputs: [site_file, template_file, ic_dir, met_dir]
+          outputs: [output_file]
+
+    prepare-example-2a:
+        - script: "workflow/00_stage_external_inputs.sh"
+          r_libraries: []
+          inputs: []
+          outputs: []
+
+        - script: "examples/2a_grass/01_ERA5_nc_to_clim.R"
+          r_libraries: [future, furrr]
+          inputs: [site_info_file, site_era5_path]
+          outputs: [site_sipnet_met_path]
+
+        - script: "examples/2a_grass/02_ic_build.R"
+          r_libraries: [tidyverse]
+          inputs:
+              [
+                  site_info_file,
+                  field_shape_path,
+                  pft_dir,
+                  data_dir,
+                  landtrendr_raw_files,
+              ]
+          outputs: [ic_outdir, data_dir]
+
+        - script: "examples/2a_grass/03_xml_build.R"
+          r_libraries: [PEcAn.settings]
+          inputs: [site_file, template_file, ic_dir, met_dir]
+          outputs: [output_file]
+
+    prepare-example-1b:
+        - script: "workflow/00_stage_external_inputs.sh"
+          r_libraries: []
+          inputs: []
+          outputs: []
+
+        - script: "examples/1b_statewide_woody/01_ERA5_nc_to_clim.R"
+          r_libraries: [future, furrr]
+          inputs: [site_info_file, site_era5_path]
+          outputs: [site_sipnet_met_path]
+
+        - script: "examples/1b_statewide_woody/02_ic_build.R"
+          r_libraries: [tidyverse]
+          inputs:
+              [
+                  site_info_file,
+                  field_shape_path,
+                  pft_dir,
+                  data_dir,
+                  landtrendr_raw_files,
+              ]
+          outputs: [ic_outdir, data_dir]
+
+        - script: "examples/1b_statewide_woody/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir]
           outputs: [output_file]
 
     run-ensembles:
-        - script: "2a_grass/04_run_model.R"
+        - script: "workflow/04_run_model.R"
           r_libraries: [PEcAn.all]
           inputs: [settings_xml]
           outputs: []
@@ -166,6 +222,14 @@ sipnet_model:
          <binary>/usr/local/bin/sipnet.git</binary>
          <prerun>cp data/events.in @RUNDIR@</prerun>
         </model>
+
+# SIPNET installation paths for host-native runs (use_apptainer: false).
+# src_dir and bin_dir are relative to the repo root.
+# revision: empty string = use HEAD; set to a commit SHA or tag to pin a version.
+sipnet_install:
+    src_dir: "tools/sipnet_src"
+    bin_dir: "tools/sipnet_binaries"
+    revision: ""
 
 # Apptainer (not in user config)
 apptainer:

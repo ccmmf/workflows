@@ -11,7 +11,11 @@
  <pfts>
   <pft>
    <name>temperate.deciduous</name>
-   <posterior.files>pfts/temperate/post.distns.Rdata</posterior.files>
+   <posterior.files>pfts/temperate.deciduous/post.distns.Rdata</posterior.files>
+  </pft>
+  <pft>
+   <name>grass</name>
+   <posterior.files>pfts/grass/post.distns.Rdata</posterior.files>
   </pft>
  </pfts>
  <ensemble>
@@ -40,9 +44,9 @@
   <id>99000000003</id>
   <type>SIPNET</type>
   <revision>git</revision>
-  <delete.raw>FALSE</delete.raw>
-  <binary>sipnet.git</binary>
-  <prerun>cp data/sipnet.event @RUNDIR@</prerun>
+  <delete.raw>TRUE</delete.raw>
+  <binary>/usr/local/bin/sipnet.git</binary>
+  <prerun>cp data/events.in @RUNDIR@</prerun>
  </model>
  <run>
   <site><!-- inserted at config time --></site>
@@ -63,15 +67,11 @@
  </run>
  <host>
   <name>localhost</name>
+  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./sipnet-carb_develop.sif </qsub>
+  <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
+  <!-- <qstat>squeue -h -j  @JOBID@ || echo "DONE"</qstat> -->
+  <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
   <outdir>output/out</outdir>
   <rundir>output/run</rundir>
-  <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub>
-  <qsub.jobid>.*job ([0-9]+).*</qsub.jobid>
-  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-  <modellauncher>
-    <binary>slurm_array_submit.sh</binary>
-    <qsub.extra>-a 1-@NJOBS@</qsub.extra>
-    <Njobmax>1000</Njobmax>
-  </modellauncher>
  </host>
 </pecan>

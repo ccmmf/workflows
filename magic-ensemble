@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# magic-ensemble: minimal CLI for workflows (2a_grass).
+# magic-ensemble: minimal CLI for CCMMF ensemble workflows.
 # Usage: ./magic-ensemble <command> [--verbose] --config <path>
-# Commands: help | get-demo-data | prepare | run-ensembles
+# Commands: help | get-demo-data | prepare | prepare-example-1b | prepare-example-2a | run-ensembles
 
 set -euo pipefail
 
 # --- Repo root, manifest, and invocation CWD ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR"
-MANIFEST="${REPO_ROOT}/2a_grass/workflow_manifest.yaml"
+MANIFEST="${REPO_ROOT}/workflow/workflow_manifest.yaml"
 INVOCATION_CWD="${INVOCATION_CWD:-$(pwd)}"
 
 usage() {
@@ -16,10 +16,12 @@ usage() {
 Usage: ./magic-ensemble <command> [global options]
 
 Commands:
-  help            Print this usage and help (no scripts run).
-  get-demo-data   Fetch demo data from S3 and create run directory (for users without local data).
-  prepare         Run preparation steps: 00 (stage external inputs), 01 (ERA5→clim), 02 (IC build), 03 (XML build).
-  run-ensembles   Run step 04 (run model) using existing settings.xml and prepared inputs.
+  help                  Print this usage and help (no scripts run).
+  get-demo-data         Fetch demo data from S3 and create run directory (for users without local data).
+  prepare               Run canonical preparation steps using workflow/ scripts.
+  prepare-example-1b    Run preparation steps using the 1b statewide woody crops example scripts.
+  prepare-example-2a    Run preparation steps using the 2a grass example scripts.
+  run-ensembles         Run step 04 (run model) using existing settings.xml and prepared inputs.
 
 Global options (after command):
   --verbose       Echo each command before running (including apptainer run when use_apptainer is true).
@@ -30,6 +32,8 @@ Examples:
   ./magic-ensemble help
   ./magic-ensemble get-demo-data --config my_config.yaml
   ./magic-ensemble prepare --config my_config.yaml --verbose
+  ./magic-ensemble prepare-example-2a --config examples/2a_grass/example_user_config.yaml
+  ./magic-ensemble prepare-example-1b --config examples/1b_statewide_woody/example_user_config.yaml
   ./magic-ensemble run-ensembles --config my_config.yaml
 EOF
 }
@@ -52,7 +56,7 @@ VERBOSE=0
 CONFIG_FILE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    help|get-demo-data|prepare|run-ensembles)
+    help|get-demo-data|prepare|prepare-example-1b|prepare-example-2a|run-ensembles)
       if [[ -z "$COMMAND" ]]; then COMMAND="$1"; shift; continue; fi
       ;;
     --verbose)   VERBOSE=1; shift; continue ;;
@@ -82,7 +86,7 @@ if [[ -z "$COMMAND" || "$COMMAND" == "help" ]]; then
   exit 0
 fi
 
-if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "run-ensembles" ]]; then
+if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "prepare-example-1b" && "$COMMAND" != "prepare-example-2a" && "$COMMAND" != "run-ensembles" ]]; then
   echo "magic-ensemble: Unknown command: $COMMAND" >&2
   usage >&2
   exit 1
@@ -357,7 +361,7 @@ run_shell_script() {
   local script_basename="${script##*/}"
   if [[ "$script_basename" == "00_fetch_s3_and_prepare_run_dir.sh" || "$script_basename" == "00_stage_external_inputs.sh" ]]; then
     # Step 00 helpers: documented arguments (see each script's --help).
-    local args=(--repo-root "$REPO_ROOT")
+    local args=(--repo-root "$REPO_ROOT" --manifest "$MANIFEST")
     if [[ "$script_basename" == "00_fetch_s3_and_prepare_run_dir.sh" ]]; then
       args+=(--command "$COMMAND" --step-index "$step_index")
     fi
@@ -377,6 +381,19 @@ run_shell_script() {
     fi
     (cd "$REPO_ROOT" && bash "$script_path")
   fi
+}
+
+# --- Ensure SIPNET binary is present in run_dir (host-native runs only) ---
+ensure_sipnet_binary() {
+  local src_dir bin_dir revision
+  src_dir="${REPO_ROOT}/$(yq eval '.sipnet_install.src_dir' "$MANIFEST")"
+  bin_dir="${REPO_ROOT}/$(yq eval '.sipnet_install.bin_dir' "$MANIFEST")"
+  revision=$(yq eval '.sipnet_install.revision' "$MANIFEST")
+  [[ "$revision" == "null" ]] && revision=""
+
+  echo "magic-ensemble: ensuring SIPNET binary in $run_dir"
+  bash "${REPO_ROOT}/tools/install_sipnet.sh" \
+    "$src_dir" "$bin_dir" "${run_dir}/sipnet.git" "$revision"
 }
 
 # --- Validate pecan_dispatch value against manifest options ---
@@ -471,6 +488,9 @@ run_prepare() {
         patch_xml_block "model" \
           ".sipnet_model.model_xml" \
           ".sipnet_model.model_xml_apptainer"
+        if [[ $use_apptainer -eq 0 ]]; then
+          ensure_sipnet_binary
+        fi
       fi
     else
       case "$i" in
@@ -532,8 +552,10 @@ run_run_ensembles() {
 
 # --- Main ---
 case "$COMMAND" in
-  get-demo-data)  run_get_demo_data ;;
-  prepare)        run_prepare ;;
-  run-ensembles)  run_run_ensembles ;;
-  *)              echo "magic-ensemble: Unknown command: $COMMAND" >&2; exit 1 ;;
+  get-demo-data)        run_get_demo_data ;;
+  prepare)              run_prepare ;;
+  prepare-example-1b)   run_prepare ;;
+  prepare-example-2a)   run_prepare ;;
+  run-ensembles)        run_run_ensembles ;;
+  *)                    echo "magic-ensemble: Unknown command: $COMMAND" >&2; exit 1 ;;
 esac
