@@ -42,7 +42,7 @@ are expected by the pipeline.
 
 ### `prepare` / `prepare-example-*`
 
-All prepare variants follow the same four-step sequence. The manifest
+All `prepare` variants follow the same four-step sequence. The manifest
 defines which scripts run at steps 1–3 per command; step 0 always uses
 `workflow/00_stage_external_inputs.sh`.
 
