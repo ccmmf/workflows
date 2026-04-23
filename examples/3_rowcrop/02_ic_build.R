@@ -10,7 +10,7 @@ options <- list(
     help = "CSV giving ids, locations, and PFTs for sites of interest"
   ),
   optparse::make_option("--field_shape_path",
-    default = "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb",
+    default = "data_raw/management/crops/v4.1/parcels-consolidated.gpkg",
     help = "file containing site geometries, used for extraction from rasters"
   ),
   optparse::make_option("--ic_ensemble_size",
@@ -49,7 +49,7 @@ options <- list(
     )
   ),
   optparse::make_option("--params_read_from_pft",
-    default = "SLA,leafC", # SLA units are m2/kg, leafC units are %
+    default = "SLA,leafC,leafGrowth", # SLA units are m2/kg, leafC units are %
     help = "Parameters to read from the PFT file, comma separated"
   ),
   optparse::make_option("--landtrendr_raw_files",
@@ -124,7 +124,7 @@ additional_params <- args$additional_params |>
 
 site_info <- read.csv(
   args$site_info_path,
-  colClasses = c(field_id = "character")
+  colClasses = c(id = "character", field_id = "character")
 )
 site_info$start_date <- args$run_start_date
 site_info$LAI_date <- args$run_LAI_date
@@ -136,7 +136,11 @@ PEcAn.logger::logger.info("Getting estimated soil carbon from SoilGrids 250m")
 soilc_csv_path <- file.path(args$data_dir, "soilgrids_soilC_data.csv")
 if (file.exists(soilc_csv_path)) {
   PEcAn.logger::logger.info("using existing soil C file", soilc_csv_path)
-  soil_carbon_est <- read.csv(soilc_csv_path, check.names = FALSE)
+  soil_carbon_est <- read.csv(
+    soilc_csv_path,
+    check.names = FALSE,
+    colClasses = c(Site_ID = "character", Site_Name = "character")
+  )
   sites_needing_soilc <- site_info |>
     filter(!id %in% soil_carbon_est$Site_ID)
 } else {
@@ -166,7 +170,9 @@ sm_outdir <- file.path(args$data_dir, "soil_moisture") |>
 sm_csv_path <- file.path(args$data_dir, "sm.csv") # name is hardcorded by fn
 if (file.exists(sm_csv_path)) {
   PEcAn.logger::logger.info("using existing soil moisture file", sm_csv_path)
-  soil_moisture_est <- read.csv(sm_csv_path)
+  soil_moisture_est <- read.csv(
+    sm_csv_path,
+    colClasses = c(site.id = "character"))
   sites_needing_soilmoist <- site_info |>
     filter(!id %in% soil_moisture_est$site.id)
 } else {
@@ -199,7 +205,11 @@ PEcAn.logger::logger.info("LAI")
 lai_csv_path <- file.path(args$data_dir, "LAI_bysite.csv")
 if (file.exists(lai_csv_path)) {
   PEcAn.logger::logger.info("using existing LAI file", lai_csv_path)
-  lai_est <- read.csv(lai_csv_path, check.names = FALSE) # TODO edit MODIS_LAI_prep to use valid colnames?
+  lai_est <- read.csv(
+    lai_csv_path,
+    check.names = FALSE, # TODO edit MODIS_LAI_prep to use valid colnames?
+    colClasses = c(site_id = "character")
+  )
   sites_needing_lai <- site_info |>
     filter(!id %in% lai_est$site_id)
 } else {
@@ -235,7 +245,10 @@ if (file.exists(landtrendr_csv_path)) {
     "using existing LandTrendr AGB file",
     landtrendr_csv_path
   )
-  agb_est <- read.csv(landtrendr_csv_path)
+  agb_est <- read.csv(
+    landtrendr_csv_path,
+    colClasses = c(site_id = "character")
+  )
   sites_needing_agb <- site_info |>
     filter(!id %in% agb_est$site_id)
 } else {
@@ -256,18 +269,19 @@ if (nagb > 0) {
   lt_sd <- terra::rast(lt_sd_path)
   field_shp <- terra::vect(args$field_shape_path)
 
-  site_bnds <- field_shp[field_shp$UniqueID %in% sites_needing_agb$field_id, ] |>
+  site_bnds <- field_shp[field_shp$parcel_id %in% sites_needing_agb$field_id, ] |>
     terra::project(lt_med)
 
   # Check for unmatched sites
   # TODO is stopping here too strict? Could reduce to warning if needed
-  stopifnot(all(sites_needing_agb$field_id %in% site_bnds$UniqueID))
+  stopifnot(all(sites_needing_agb$field_id %in% site_bnds$parcel_id))
 
   new_agb <- lt_med |>
     terra::extract(x = _, y = site_bnds, fun = mean, bind = TRUE) |>
     terra::extract(x = lt_sd, y = _, fun = mean, bind = TRUE) |>
     as.data.frame() |>
-    left_join(sites_needing_agb, by = c("UniqueID" = "field_id")) |>
+    mutate(parcel_id = as.character(parcel_id)) |>
+    left_join(sites_needing_agb, by = c("parcel_id" = "field_id")) |>
     dplyr::select(
       site_id = id,
       AGB_median_Mg_ha = ends_with("median"),
@@ -414,6 +428,9 @@ ic_samples <- initial_condition_estimated |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
   dplyr::left_join(pft_var_samples, by = c("site_id", "replicate")) |>
   dplyr::mutate(
+    # Experimental hack: Assume leafGrowth==0 means this is an annual crop, force starting biomass to zero even if LandTrendr says otherwise.
+    # This might be a terrible idea.
+    AbvGrndBiomass = if_else(leafGrowth == 0.0, 0, AbvGrndBiomass),
     AbvGrndWood = AbvGrndBiomass * wood_carbon_fraction,
     leaf_carbon_content = tidyr::replace_na(LAI, 0) / SLA * (leafC / 100),
     wood_carbon_content = pmax(AbvGrndWood - leaf_carbon_content, 0)

@@ -10,6 +10,11 @@
  <rundir><!-- altered at config time -->output/run</rundir>
  <pfts>
   <pft>
+   <name>annual_crop</name>
+   <posterior.files>data_raw/pfts/annual_crop/post.distns.Rdata</posterior.files>
+   <outdir>data_raw/pfts/annual_crop/</outdir>
+  </pft>
+  <pft>
    <name>temperate.deciduous</name>
    <posterior.files>data_raw/pfts/temperate.deciduous/post.distns.Rdata</posterior.files>
    <outdir>data_raw/pfts/temperate.deciduous/</outdir>
@@ -44,6 +49,9 @@
    <events>
     <method>sampling</method>
    </events>
+   <leaf_phenology>
+    <method>sampling</method>
+   </leaf_phenology>
    <!-- TODO soil physics here when ready -->
   </samplingspace>
   <start.year><!-- inserted at config time --></start.year>
@@ -54,14 +62,27 @@
   <type>SIPNET</type>
   <revision>2.0.0</revision>
   <delete.raw>TRUE</delete.raw>
-  <binary>sipnet.git</binary>
+  <binary>./sipnet</binary>
   <options>
     <GDD>0</GDD>
-    <NITROGEN_CYCLE>1</NITROGEN_CYCLE>
-    <ANAEROBIC>1</ANAEROBIC>
+    <NITROGEN_CYCLE>0</NITROGEN_CYCLE>
+    <ANAEROBIC>0</ANAEROBIC>
     <LITTER_POOL>1</LITTER_POOL>
   </options>
  </model>
+ <host>
+  <name>localhost</name>
+  <outdir><!-- altered at config time -->output/out</outdir>
+  <rundir><!-- altered at config time -->output/run</rundir>
+  <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
+  <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
+  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
+  <modellauncher>
+    <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
+    <!-- <qsub.extra>-a 1-@NJOBS@</qsub.extra> -->
+    <Njobmax>1000</Njobmax>
+  </modellauncher>
+ </host>
  <run>
   <site><!-- inserted at config time --></site>
   <inputs>
@@ -79,21 +100,11 @@
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
    </events>
+   <leaf_phenology>
+    <path><!-- inserted at config time --></path>
+   </leaf_phenology>
   </inputs>
   <start.date><!-- inserted at config time --></start.date>
   <end.date><!-- inserted at config time --></end.date>
  </run>
- <host>
-  <name>localhost</name>
-  <outdir><!-- altered at config time -->output/out</outdir>
-  <rundir><!-- altered at config time -->output/run</rundir>
-  <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
-  <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
-  <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-  <modellauncher>
-    <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
-    <!-- <qsub.extra>-a 1-@NJOBS@</qsub.extra> -->
-    <Njobmax>1000</Njobmax>
-  </modellauncher>
- </host>
 </pecan>
