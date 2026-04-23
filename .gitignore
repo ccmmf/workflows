@@ -41,6 +41,10 @@
 .DS_Store
 Thumbs.db
 
+# SIPNET source and compiled binaries (managed by tools/install_sipnet.sh)
+tools/sipnet_src/
+tools/sipnet_binaries/
+
 # Temporary files
 *.tmp
 *.log

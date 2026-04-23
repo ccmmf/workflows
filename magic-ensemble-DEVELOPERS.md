@@ -1,8 +1,8 @@
 # magic-ensemble Developer Guide
 
 This document covers the internal design of `magic-ensemble` and the
-`2a_grass/` workflow: how the pieces fit together, where the boundaries are,
-and what to change when adapting this CLI to a different workflow.
+workflow scripts: how the pieces fit together, where the boundaries are,
+and what to change when adding a new example or adapting this CLI.
 
 ---
 
@@ -21,11 +21,12 @@ external_paths (staged)  — user-provided files copied into run_dir before
                            prepare runs, mapped to manifest-defined destinations
 ```
 
-The manifest is the source of truth for everything that is fixed per workflow.
-The user config contains only the values a user legitimately needs to vary
-between runs. External paths are the mechanism for injecting user-owned files
-(e.g. a custom `template.xml`) without making manifest paths user-overridable.
-As written, a user can only inject files that are expected by the pipeline.
+The manifest (`workflow/workflow_manifest.yaml`) is the source of truth for
+everything that is fixed per workflow. The user config contains only the values
+a user legitimately needs to vary between runs. External paths are the mechanism
+for injecting user-owned files (e.g. a custom `template.xml`) without making
+manifest paths user-overridable. As written, a user can only inject files that
+are expected by the pipeline.
 
 ---
 
@@ -39,10 +40,14 @@ As written, a user can only inject files that are expected by the pipeline.
   → downloads and extracts S3 artifact into run_dir
 ```
 
-### `prepare`
+### `prepare` / `prepare-example-*`
+
+All `prepare` variants follow the same four-step sequence. The manifest
+defines which scripts run at steps 1–3 per command; step 0 always uses
+`workflow/00_stage_external_inputs.sh`.
 
 ```
-00_stage_external_inputs.sh
+workflow/00_stage_external_inputs.sh  (step 0, all prepare variants)
   → creates run_dir
   → copies external_paths files into run_dir (manifest-defined destinations)
   → [patch_xml_block() runs twice after this step]
@@ -52,26 +57,31 @@ As written, a user can only inject files that are expected by the pipeline.
         selects model_xml_apptainer variant if use_apptainer is set
       → both use tools/patch_xml.py --block
 
-01_ERA5_nc_to_clim.R
+[step 1]  01_ERA5_nc_to_clim.R
   reads:  run_dir/data_raw/ERA5_nc, run_dir/site_info.csv
   writes: run_dir/data/ERA5_SIPNET/
 
-02_ic_build.R
+[step 2]  02_ic_build.R
   reads:  run_dir/site_info.csv, run_dir/data_raw/dwr_map/...,
           run_dir/data/IC_prep/, run_dir/pfts/,
           run_dir/data_raw/ca_biomassfiaald_*.tif
   writes: run_dir/IC_files/, run_dir/data/IC_prep/
 
-03_xml_build.R
+[step 3]  03_xml_build.R
   reads:  run_dir/site_info.csv, run_dir/template.xml,
           run_dir/IC_files/, run_dir/data/ERA5_SIPNET/
   writes: run_dir/settings.xml
 ```
 
+For `prepare`, steps 1–3 come from `workflow/`. For `prepare-example-2a`,
+they come from `examples/2a_grass/`. For `prepare-example-1b`, from
+`examples/1b_statewide_woody/`. The manifest's `steps` block for each
+command defines which scripts are used.
+
 ### `run-ensembles`
 
 ```
-04_run_model.R  (CWD = run_dir)
+workflow/04_run_model.R  (CWD = run_dir)
   reads:  run_dir/settings.xml
   writes: run_dir/output/  (via PEcAn dispatch)
 ```
@@ -88,9 +98,11 @@ As written, a user can only inject files that are expected by the pipeline.
 - `pecan_dispatch`: named dispatch modes, each with a `host_xml` (and optionally `host_xml_apptainer`) block
 - `apptainer`: remote registry URL, container name, tag, and SIF filename
 
-None of these are user-overridable. Adding a new workflow means replacing or
-extending the manifest, not the user config. As the underlying R-scripts evolve,
-the manifest must be kept in-sync with any i/o changes made in R-scripts.
+None of these are user-overridable. Adding a new example verb means adding a
+`steps.<verb-name>` block to `workflow/workflow_manifest.yaml` pointing at the
+appropriate example scripts, then registering the verb in the CLI (see below).
+As the underlying R-scripts evolve, the manifest must be kept in-sync with any
+i/o changes made in R-scripts.
 
 ### What belongs in the user config
 
@@ -202,9 +214,10 @@ be present because the patched `host_xml_apptainer` references it in the
 
 ## External Inputs Staging (`00_stage_external_inputs.sh`)
 
-The script accepts `--repo-root`, `--config`, `--invocation-cwd`, and
-optionally `--manifest`. Manifest defaults to
-`<repo-root>/2a_grass/workflow_manifest.yaml`.
+The script accepts `--repo-root`, `--manifest`, `--config`, `--invocation-cwd`.
+The CLI always passes `--manifest "$MANIFEST"` explicitly. The script's built-in
+default (`<repo-root>/workflow/workflow_manifest.yaml`) is only a fallback for
+standalone invocation.
 
 For each entry in `config.external_paths`:
 1. Key must exist under `manifest.paths`; if not, the script exits with an error.
@@ -219,40 +232,51 @@ to be present when the XML patching step fires.
 
 ---
 
-## Adapting to a New Workflow
+## Adding a New Example Verb
 
-The CLI skeleton (`magic-ensemble`) and the staging/dispatch infrastructure are
-designed to be reused. When adapting:
+To wire up a new `prepare-example-*` command (e.g. for a future `3_rowcrop`
+example):
 
-### Replace in the manifest
+### 1. Add a steps block to the manifest
 
-- `steps`: update script paths and input/output path keys for the new workflow
-- `paths`: replace with the new workflow's internal file layout
-- `params_from_pft`, `additional_params`: workflow-specific fixed values
-- `s3`: update bucket, key prefixes, and filenames
-- `pecan_dispatch`: keep as-is if PEcAn dispatch is reused; otherwise replace
-- `apptainer`: update container name and tag
+In `workflow/workflow_manifest.yaml`, add:
 
-### Replace the step scripts
+```yaml
+steps:
+  prepare-example-3:
+    - script: "workflow/00_stage_external_inputs.sh"
+      r_libraries: []
+      inputs: []
+      outputs: []
+    - script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
+      r_libraries: [future, furrr]
+      ...
+    - script: "examples/3_rowcrop/02_ic_build.R"
+      r_libraries: [tidyverse]
+      ...
+    - script: "examples/3_rowcrop/03_xml_build.R"
+      r_libraries: [PEcAn.settings]
+      ...
+```
 
-Each script under `steps` should accept its inputs as named CLI arguments (R
-scripts via `optparse`; shell scripts via `--flag value`). The CLI passes all
-paths as absolute values so scripts do not need to be CWD-aware.
+### 2. Register the verb in `magic-ensemble`
 
-### Keep in `magic-ensemble`
+Three locations:
+- Add `prepare-example-3` to the recognized commands in the argument parser
+  (`help|get-demo-data|prepare|...|run-ensembles`)
+- Add it to the unknown-command guard
+- Add a case in the main dispatch block: `prepare-example-3) run_prepare ;;`
 
-- Argument parsing, `get_val()`, path normalization
-- `check_aws` (for any command that fetches from S3)
-- `ensure_apptainer_available`, `ensure_sif_present`, `check_r_libs_for_step*`
-- `run_script`, `run_shell_script`, `patch_xml_block`
+### 3. Write an `example_user_config.yaml`
 
-### Update in `magic-ensemble`
+Place it at `examples/3_rowcrop/example_user_config.yaml`. Include
+`external_paths` entries for any files in the example directory that need
+to be staged into `run_dir` (typically `template_file` and `site_info_file`).
 
-- The argument mappings in `run_prepare()` (the `case "$i"` block) — these are
-  the per-step CLI arguments passed to each R script and are workflow-specific.
-- `usage()` — update command descriptions and examples.
-- The manifest path constant (`MANIFEST=`) if the new workflow lives in a
-  different subdirectory.
+### 4. Update `usage()` and docs
+
+Add the new command to `usage()` in `magic-ensemble`, and to the *Commands*
+section of `magic-ensemble-README.md`.
 
 ---
 

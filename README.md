@@ -1,16 +1,34 @@
 # Workflow files for CCMMF deliverables
 
-This repo contains demonstrations of modeling functionality for MAGiC,
-each built to showcase a unit of functionality added for each phase of the
-project.
+This repo contains the `magic-ensemble` CLI and the scripts it orchestrates for
+running SIPNET carbon flux ensemble analyses.
 
-Each directory is conceptually freestanding and is intended not to care
-about paths outside itself, but to avoid redundancy there are two exceptions:
+## Structure
 
-* Each demo directory contains a symbolic link to the root `data_raw` folder,
-	because it is for files that have only one canonical version and are often
-	large enough it's undesirable to leave many copies of them on disk.
-	Update these links if needed to match your on-disk project layout.
-* Some interactive workflow steps call for scripts in the root `tools` folder,
-	because these do the same job everywhere and updates needed in one demo
-	will be needed in the others too.
+```
+workflows/
+├── magic-ensemble               CLI entry point
+├── workflow/                    Canonical, data-agnostic workflow scripts
+│   ├── workflow_manifest.yaml   Fixed step definitions, paths, dispatch config
+│   ├── 00_fetch_s3_and_prepare_run_dir.sh
+│   ├── 00_stage_external_inputs.sh
+│   ├── 01_ERA5_nc_to_clim.R
+│   ├── 02_ic_build.R
+│   ├── 03_xml_build.R
+│   ├── 04_run_model.R
+│   └── template.xml
+├── examples/                    Example analyses (phase-specific data prep)
+│   ├── 1a_single_site/
+│   ├── 1b_statewide_woody/
+│   ├── 2a_grass/
+│   └── 3_rowcrop/
+└── tools/                       Shared utility scripts
+```
+
+The `workflow/` directory holds the canonical implementation. The `examples/`
+directories contain phase-specific preparation scripts (steps 01–03) and
+their own `template.xml` and `site_info.csv`. Step 04 (`run_model`) is
+shared — all workflows dispatch through `workflow/04_run_model.R`.
+
+See `magic-ensemble-README.md` for usage and `magic-ensemble-DEVELOPERS.md`
+for architecture details.

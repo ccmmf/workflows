@@ -1,5 +1,7 @@
-# Example user-facing config for 2a_grass workflows.
-# Pass with: ./magic-ensemble <command> --config workflows/2a_grass/example_user_config.yaml
+# Example user-facing config for the 2a grass workflow.
+# Run with:
+#   ./magic-ensemble prepare-example-2a --config examples/2a_grass/example_user_config.yaml
+#   ./magic-ensemble run-ensembles      --config examples/2a_grass/example_user_config.yaml
 #
 # This file contains only overridable settings and user-provided external
 # resources. Fixed paths, S3 resources, and step I/O are defined in
@@ -25,7 +27,7 @@ ic_ensemble_size: 100
 # directory where you invoke ./magic-ensemble.
 # paths in external_paths will be localized to the run_dir before the workflow is run.
 external_paths:
-    template_file: "2a_grass/template.xml"
+    template_file: "examples/2a_grass/template.xml"
 
 # Parallelism (e.g. for step 01 --n_cores).
 n_workers: 1

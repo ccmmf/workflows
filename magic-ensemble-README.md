@@ -1,8 +1,8 @@
 # magic-ensemble CLI
 
-`magic-ensemble` is a command-line interface for running the 2a_grass statewide
-grassland carbon flux workflow. It fetches or stages input data, builds initial
-conditions and model settings, and dispatches ensemble runs locally or via Slurm.
+`magic-ensemble` is a command-line interface for running SIPNET carbon flux
+ensemble workflows. It fetches or stages input data, builds initial conditions
+and model settings, and dispatches ensemble runs locally or via Slurm.
 
 ---
 
@@ -20,18 +20,27 @@ conditions and model settings, and dispatches ensemble runs locally or via Slurm
 
 ## Quick Start
 
+**Using the 2a grass example:**
 ```bash
 # 1. Copy and edit the example config
-cp 2a_grass/example_user_config.yaml my_config.yaml
+cp examples/2a_grass/example_user_config.yaml my_config.yaml
 $EDITOR my_config.yaml   # at minimum, set run_dir
 
 # 2. Fetch demo data (skip if you have your own inputs — see "Supplying Your Own Data")
 ./magic-ensemble get-demo-data --config my_config.yaml
 
 # 3. Prepare: stage inputs, build climate files, ICs, and settings XML
-./magic-ensemble prepare --config my_config.yaml
+./magic-ensemble prepare-example-2a --config my_config.yaml
 
 # 4. Run the ensemble
+./magic-ensemble run-ensembles --config my_config.yaml
+```
+
+**Using the canonical workflow (bring your own data):**
+```bash
+cp examples/2a_grass/example_user_config.yaml my_config.yaml
+$EDITOR my_config.yaml   # set run_dir, pecan_dispatch, and external_paths
+./magic-ensemble prepare --config my_config.yaml
 ./magic-ensemble run-ensembles --config my_config.yaml
 ```
 
@@ -42,8 +51,9 @@ they execute.
 
 ## Configuration
 
-Copy `2a_grass/example_user_config.yaml` as a starting point. All keys except
-`run_dir` are optional and fall back to the defaults shown below.
+Copy `examples/2a_grass/example_user_config.yaml` or
+`examples/1b_statewide_woody/example_user_config.yaml` as a starting point.
+All keys except `run_dir` are optional and fall back to the defaults shown below.
 
 | Key | Default | Description |
 |---|---|---|
@@ -60,7 +70,7 @@ Copy `2a_grass/example_user_config.yaml` as a starting point. All keys except
 | `external_paths` | _(none)_ | User-provided input files to stage into `run_dir` before `prepare` runs (see below). |
 
 Fixed internal paths, S3 coordinates, dispatch XML, and Apptainer image
-details are defined in `2a_grass/workflow_manifest.yaml` and are not set in
+details are defined in `workflow/workflow_manifest.yaml` and are not set in
 user configs.
 
 ---
@@ -78,14 +88,15 @@ you do not have your own ERA5, IC, or site data.
 
 ### `prepare`
 
-Runs four steps in sequence:
+Runs the canonical `workflow/` scripts (steps 00–03). Use this with your own
+data supplied via `external_paths`.
 
 | Step | Script | R packages |
 |---|---|---|
 | 00 | Stage external inputs; create run directory | — |
-| 01 | Convert ERA5 NetCDF to SIPNET climate format | `future`, `furrr` |
-| 02 | Build initial condition ensemble | `tidyverse` |
-| 03 | Build PEcAn settings XML | `PEcAn.settings` |
+| 01 | `workflow/01_ERA5_nc_to_clim.R` | `future`, `furrr` |
+| 02 | `workflow/02_ic_build.R` | `tidyverse` |
+| 03 | `workflow/03_xml_build.R` | `PEcAn.settings` |
 
 After step 00, `template.xml` is patched with the `<host>` dispatch block
 selected by `pecan_dispatch` (and the Apptainer SIF path when applicable).
@@ -94,11 +105,26 @@ selected by `pecan_dispatch` (and the Apptainer SIF path when applicable).
 
 **Produces:** `settings.xml` in `run_dir`, ready for `run-ensembles`.
 
+### `prepare-example-2a`
+
+Runs preparation steps using the `examples/2a_grass/` scripts (statewide
+2-PFT grassland). Use with `examples/2a_grass/example_user_config.yaml`.
+
+### `prepare-example-1b`
+
+Runs preparation steps using the `examples/1b_statewide_woody/` scripts
+(statewide woody crops). Use with
+`examples/1b_statewide_woody/example_user_config.yaml`.
+
+Both `prepare-example-*` commands follow the same four-step sequence as
+`prepare` and accept the same config keys.
+
 ### `run-ensembles`
 
-Runs `04_run_model.R` using the `settings.xml` produced by `prepare`. The R
-script runs on the host and dispatches ensemble members to workers (local or
-Slurm) as configured in the patched `settings.xml`.
+Runs `workflow/04_run_model.R` using the `settings.xml` produced by any
+`prepare` or `prepare-example-*` command. The R script runs on the host and
+dispatches ensemble members to workers (local or Slurm) as configured in the
+patched `settings.xml`.
 
 **Requires:** `PEcAn.all` R package; `settings.xml` present in `run_dir`.
 
@@ -144,10 +170,10 @@ external_paths:
   template_file: /path/to/my-template.xml
 ```
 
-Each key must match a key under `paths` in `workflow_manifest.yaml`. The file
-is copied into `run_dir` at the location the workflow expects, before `prepare`
-runs. Paths may be absolute or relative to the directory where you invoke
-`./magic-ensemble`.
+Each key must match a key under `paths` in `workflow/workflow_manifest.yaml`.
+The file is copied into `run_dir` at the location the workflow expects, before
+`prepare` runs. Paths may be absolute or relative to the directory where you
+invoke `./magic-ensemble`.
 
 ---
 
