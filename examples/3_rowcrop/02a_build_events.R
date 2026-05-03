@@ -78,8 +78,8 @@ if (file.exists(pheno_out_path)) {
   site_dups <- intersect(pheno$site_id, existing_pheno$site_id)
   if (length(site_dups) > 0) {
     warning(
-      "Overwriting existing phenology records for",
-      length(site_dups), "sites in", pheno_out_path
+      "Overwriting existing phenology records for ",
+      length(site_dups), " sites in ", pheno_out_path
     )
   }
   pheno <- existing_pheno |>
@@ -138,7 +138,7 @@ evt_json_path <- file.path(args$event_outdir, "combined_events.json")
 if (file.exists(evt_json_path)) {
   # TODO append to existing file like for phenology?
   # need more care to handle nesting right.
-  warning("Overwriting existing events file", evt_json_path)
+  warning("Overwriting existing events file ", evt_json_path)
 }
 jsonlite::write_json(all_events, evt_json_path)
 

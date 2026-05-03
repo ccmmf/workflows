@@ -119,12 +119,12 @@ Management events are read from files produced by the monitoring pipeline or equ
 The current version assumes all event types are provided as Parquet files, and that they live in subdirectories of `mgmt_file_dir` that include specific, currently hardcoded, version numbers. See script for the details.
 Future versions of the event_build script may support passing separate paths per data product and potentially also add support for alternate storage formats (e.g. allowing csv as well as parquet).
 
-```{sh
+```{sh}
 [host_args] ./02a_build_events.R \
   --site_info_path=validation_site_info.csv \
   --mgmt_file_dir=data_raw/management \
   --event_outdir=data/val_events
-host_args] ./02a_build_events.R \
+[host_args] ./02a_build_events.R \
   --site_info_path=site_info.csv \
   --mgmt_file_dir=data_raw/management \
   --event_outdir=data/events

@@ -16,7 +16,7 @@ mgmt_file <- "Harmonized_SiteMngmt_Croplands.csv"
 
 loc_tmp_file <- "validation_site_locs.csv"
 output_file <- "validation_site_info.csv"
-
+on.exit(unlink(loc_tmp_file), add = TRUE)
 # can't use datapoints from before our simulations start
 min_yr <- 2016
 

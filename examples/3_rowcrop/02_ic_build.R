@@ -49,7 +49,7 @@ options <- list(
     )
   ),
   optparse::make_option("--params_read_from_pft",
-    default = "SLA,leafC,leafGrowth", # SLA units are m2/kg, leafC units are %
+    default = "SLA,leafC,leafGrowth", # Units: SLA m2/kg, leafC percent, leafGrowth g C/m2
     help = "Parameters to read from the PFT file, comma separated"
   ),
   optparse::make_option("--landtrendr_raw_files",
