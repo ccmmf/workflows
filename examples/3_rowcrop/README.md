@@ -68,17 +68,14 @@ Contact chelsea.carey@arb.ca.gov for more information about the dataset.
 
 Once obtained, place them in `data_raw/private/HSP` and run
 ```{sh}
-../tools/build_validation_siteinfo.R
+../../tools/build_validation_siteinfo.R
 ```
 to create `validation_site_info.csv`.
 
 
 ### 1. Convert climate driver files
 
-TODO 1: current development version of PEcAn.sipnet still writes 13-col
-	clim files with constants for grid index and soil water. Document which version writes correctly.
-
-TODO 2: show how to pass n_cores from host_args
+TODO: show how to pass n_cores from host_args
 (NSLOTS? SLURM_CPUS_PER_TASK?)
 
 ```{sh}
@@ -106,6 +103,9 @@ so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/
 	--pft_dir=data_raw/pfts \
 	--data_dir=data/IC_prep_val \
 	--ic_outdir=data/IC_files
+
+../../tools/build_site_info.R --location_file=../../data/design_points.csv
+
 [host_args] ./02_ic_build.R \
 	--site_info_path=site_info.csv \
 	--pft_dir=data_raw/pfts \
@@ -156,7 +156,7 @@ read.csv("data/val_events/phenology.csv") |>
 ```
 
 
-### 3. generate settings file
+### 3. Generate settings file
 
 ```{sh}
 [host_args] ./03_xml_build.R \

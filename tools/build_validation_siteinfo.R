@@ -44,7 +44,7 @@ site_locs <- read.csv(file.path(data_dir, soc_file)) |>
 # `build_site_info.R` and this was faster than thinking how to refactor further
 write.csv(site_locs, loc_tmp_file, row.names = FALSE)
 callr::rscript(
-  "../tools/build_site_info.R",
+  "../../tools/build_site_info.R",
   cmdargs = c(paste0("--location_file=", loc_tmp_file),
               paste0("--out_file=", output_file))
 )
