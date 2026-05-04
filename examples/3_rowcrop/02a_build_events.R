@@ -36,6 +36,18 @@ args <- optparse::OptionParser(option_list = options) |>
 
 library(tidyverse)
 
+# TODO these probably deserve to be runtime args,
+# but first better fix other version-specific assumptions below
+mgmt_subdirs <- list(
+  pheno = "phenology/v1.0",
+  plant = "planting/v1.0",
+  harv = "harvest/v1.0",
+  till = "tillage/v1.0",
+  irri = "irrigation/v1.0",
+  fert = NULL, # TODO
+  occ = NULL # TODO
+)
+
 if (!dir.exists(args$event_outdir)) {
   dir.create(args$event_outdir, recursive = TRUE)
 }
@@ -59,7 +71,7 @@ read_parquet_years <- function(dir, parcel_ids, id_var = "parcel_id") {
 }
 
 # phenology doesn't have to be json -- we'll just write one CSV of all sites and years
-pheno <- read_parquet_years("phenology/v1.0", ids, "site_id") |>
+pheno <- read_parquet_years(mgmt_subdirs$pheno, ids, "site_id") |>
   # TODO some seasons wrap past year end (e.g. 2025-09-08 to 2026-03-29) --
   # current code drops year so leafonday > leafoffday, which write.config skips
   # as invalid.
@@ -88,7 +100,7 @@ if (file.exists(pheno_out_path)) {
 }
 write.csv(pheno, file = pheno_out_path, row.names = FALSE)
 
-plant <- read_parquet_years("planting/v1.0", ids, "site_id") |>
+plant <- read_parquet_years(mgmt_subdirs$plant, ids, "site_id") |>
   # TODO fix upstream
   dplyr::rename(
     leaf_c_kg_m2 = C_LEAF,
@@ -103,9 +115,9 @@ plant <- read_parquet_years("planting/v1.0", ids, "site_id") |>
   # TODO: Should also (/instead?) adjust initial pool sizes in these cases.
   dplyr::mutate(date = pmax(date,  "2016-01-01"))
 
-harv <- read_parquet_years("harvest/v1.0", ids, "site_id")
+harv <- read_parquet_years(mgmt_subdirs$harv, ids, "site_id")
 
-till <- read_parquet_years("tillage/v1.0", ids, "site_id") |>
+till <- read_parquet_years(mgmt_subdirs$till, ids, "site_id") |>
   mutate(
     date = OGMn_date,
     # Placeholder -- better-informed conversion under development.
@@ -113,7 +125,7 @@ till <- read_parquet_years("tillage/v1.0", ids, "site_id") |>
     tillage_eff_0to1 = pmax(0, pmin(1, ndti_pct_change / 100), na.rm = TRUE)
   )
 
-irrig <- read_parquet_years("irrigation/v1.0", ids, "parcel_id") |>
+irrig <- read_parquet_years(mgmt_subdirs$irri, ids, "parcel_id") |>
   filter(
     # Ignore ensemble dimension. TODO support event ensembles across all event types
     ens_id == "irr_ens_001",
