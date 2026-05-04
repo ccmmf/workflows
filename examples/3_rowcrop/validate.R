@@ -48,7 +48,9 @@ library(tidyverse)
 diff_years <- function(df) {
   df |>
   arrange(year) |>
+  # convert all vars, including year, to deltas for each timestep
   mutate_all(\(x) (x - lag(x))) |>
+  # then scale non-time deltas to timestep length
   mutate(across(-year, \(x) x / year)) |>
   select(-year) |>
   _[-1,]
