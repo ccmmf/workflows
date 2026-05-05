@@ -92,18 +92,6 @@ args <- optparse::OptionParser(option_list = options) |>
 PEcAn.logger::logger.setLevel("INFO")
 
 
-# Attempt to convert to absolute paths, because the restart code changes
-# working directory and gets confused by relative paths
-# ("But why the getwd()? Won't normalizePath expand it for you?"
-#  Only for existing paths; dirs not yet created need the getwd. Humph.)
-abs_path <- function(path) {
-  if (substr(path, 1, 1) != "/") path <- file.path(getwd(), path)
-  normalizePath(path, mustWork = FALSE)
-}
-args$ic_dir <- abs_path(args$ic_dir)
-args$met_dir <- abs_path(args$met_dir)
-args$event_dir <- abs_path(args$event_dir)
-args$output_dir <- abs_path(args$output_dir)
 
 site_info <- read.csv(args$site_file)
 stopifnot(
@@ -123,6 +111,26 @@ site_info <- site_info |>
 
 settings <- read.settings(args$template_file) |>
   setDates(args$start_date, args$end_date)
+
+# Attempt to convert to absolute paths, because the restart code changes
+# working directory and gets confused by relative paths
+# ("But why the getwd()? Won't normalizePath expand it for you?"
+#  Only for existing paths; dirs not yet created need the getwd. Humph.)
+abs_path <- function(path) {
+  if (substr(path, 1, 1) != "/") path <- file.path(getwd(), path)
+  normalizePath(path, mustWork = FALSE)
+}
+args$ic_dir <- abs_path(args$ic_dir)
+args$met_dir <- abs_path(args$met_dir)
+args$event_dir <- abs_path(args$event_dir)
+args$output_dir <- abs_path(args$output_dir)
+# TODO it's awkward to set PFT paths in the template but then edit them here --
+# consider handling PFT insertion as an arg here?
+for(i in seq_along(settings$pfts)) {
+  settings$pfts[[i]]$posterior.files <- abs_path(
+    settings$pfts[[i]]$posterior.files
+  )
+}
 
 settings$ensemble$size <- args$n_ens
 settings$run$inputs$poolinitcond$ensemble <- args$n_ens
