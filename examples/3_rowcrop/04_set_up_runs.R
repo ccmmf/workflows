@@ -24,7 +24,7 @@ options <- list(
     default = "~/pecan/workflows/sipnet-restart-workflow/utils.R",
     help = paste(
       "File containing R functions implementing crop changes via restart.",
-      "Will be source()'d into the R session."
+      "Will be source()'d into the R session.",
       "This is a temporary option until restart functions are refactored into",
       "package code"
     )

@@ -201,11 +201,11 @@ settings <- settings |>
 
 # Update output directories
 # Note that we're assuming local and remote paths are the same.
-settings$outdir <- args$output_dir_name
-settings$modeloutdir <- file.path(args$output_dir_name, "out")
-settings$rundir <- file.path(args$output_dir_name, "run")
-settings$host$outdir <- file.path(args$output_dir_name, "out")
-settings$host$rundir <- file.path(args$output_dir_name, "run")
+settings$outdir <- args$output_dir
+settings$modeloutdir <- file.path(args$output_dir, "out")
+settings$rundir <- file.path(args$output_dir, "run")
+settings$host$outdir <- file.path(args$output_dir, "out")
+settings$host$rundir <- file.path(args$output_dir, "run")
 
 write.settings(
   settings,
