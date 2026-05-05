@@ -114,8 +114,8 @@ settings <- read.settings(args$template_file) |>
 
 # Attempt to convert to absolute paths, because the restart code changes
 # working directory and gets confused by relative paths
-# ("But why the getwd()? Won't normalizePath expand it for you?"
-#  Only for existing paths; dirs not yet created need the getwd. Humph.)
+# Q: "But why the getwd()? Won't normalizePath expand it for you?"
+# A: Only for existing paths; dirs not yet created need the getwd. Humph.
 abs_path <- function(path) {
   if (substr(path, 1, 1) != "/") path <- file.path(getwd(), path)
   normalizePath(path, mustWork = FALSE)
