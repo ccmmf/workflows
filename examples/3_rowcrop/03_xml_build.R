@@ -64,7 +64,7 @@ options <- list(
     default = "settings.xml",
     help = "path to write output XML"
   ),
-  optparse::make_option("--output_dir_name",
+  optparse::make_option("--output_dir",
     default = "output",
     help = paste(
       "Path the settings should declare as output directory.",
@@ -90,6 +90,20 @@ args <- optparse::OptionParser(option_list = options) |>
 
 # papply emits a lot of uninformative debug messages; let's ignore those
 PEcAn.logger::logger.setLevel("INFO")
+
+
+# Attempt to convert to absolute paths, because the restart code changes
+# working directory and gets confused by relative paths
+# ("But why the getwd()? Won't normalizePath expand it for you?"
+#  Only for existing paths; dirs not yet created need the getwd. Humph.)
+abs_path <- function(path) {
+  if (substr(path, 1, 1) != "/") path <- file.path(getwd(), path)
+  normalizePath(path, mustWork = FALSE)
+}
+args$ic_dir <- abs_path(args$ic_dir)
+args$met_dir <- abs_path(args$met_dir)
+args$event_dir <- abs_path(args$event_dir)
+args$output_dir <- abs_path(args$output_dir)
 
 site_info <- read.csv(args$site_file)
 stopifnot(
@@ -176,22 +190,13 @@ settings <- settings |>
   ) |>
   papply(add_soil_pft)
 
-# Update just the first component of the output directory,
-# in all four places it's used.
-# Note: It feels a bit odd to directly replace the word "output"
-# rather than fill a blank or use a @placeholder@, but since existing template
-# already passes @placeholder@'s on to be processed in PEcAn I didn't want
-# to introduce confusion by making some be replaced at a different stage.
-settings$outdir <- sub("^output", args$output_dir_name,
-                       settings$outdir)
-settings$modeloutdir <- sub("^output", args$output_dir_name,
-                            settings$modeloutdir)
-settings$rundir <- sub("^output", args$output_dir_name,
-                       settings$rundir)
-settings$host$outdir <- sub("^output", args$output_dir_name,
-                            settings$host$outdir)
-settings$host$rundir <- sub("^output", args$output_dir_name,
-                            settings$host$rundir)
+# Update output directories
+# Note that we're assuming local and remote paths are the same.
+settings$outdir <- args$output_dir_name
+settings$modeloutdir <- file.path(args$output_dir_name, "out")
+settings$rundir <- file.path(args$output_dir_name, "run")
+settings$host$outdir <- file.path(args$output_dir_name, "out")
+settings$host$rundir <- file.path(args$output_dir_name, "run")
 
 write.settings(
   settings,

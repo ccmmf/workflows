@@ -165,13 +165,13 @@ read.csv("data/val_events/phenology.csv") |>
 	--site_file=validation_site_info.csv \
 	--event_dir=data/val_events \
 	--output_file=validation_settings.xml \
-	--output_dir_name=val_out
+	--output_dir=val_out
 [host_args] ./03_xml_build.R \
 	--ic_dir=data/IC_files \
 	--end_date=2023-12-31 \
 	--site_file=site_info.csv \
 	--output_file=settings.xml \
-	--output_dir_name=output
+	--output_dir=output
 ```
 
 ### 4. Set up model run directories
