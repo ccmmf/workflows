@@ -131,6 +131,7 @@ for(i in seq_along(settings$pfts)) {
     settings$pfts[[i]]$posterior.files
   )
 }
+settings$model$binary <- abs_path(settings$model$binary)
 
 settings$ensemble$size <- args$n_ens
 settings$run$inputs$poolinitcond$ensemble <- args$n_ens
