@@ -103,6 +103,7 @@ write.csv(pheno, file = pheno_out_path, row.names = FALSE)
 plant <- read_parquet_years(mgmt_subdirs$plant, ids, "site_id") |>
   # TODO fix upstream
   dplyr::rename(
+    crop_code = code,
     leaf_c_kg_m2 = C_LEAF,
     wood_c_kg_m2 = C_STEM,
     fine_root_c_kg_m2 = C_FINEROOT,
