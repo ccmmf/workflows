@@ -92,5 +92,5 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
 
 PEcAn.utils::status.start("CONFIG_SEGMENTS")
 source(args$restart_code_location)
-papply(settings, \(s) write_segmented_configs.SIPNET(s, ens_design))
+run_script_paths <- papply(settings, \(s) write_segmented_configs.SIPNET(s, ens_design))
 PEcAn.utils::status.end()

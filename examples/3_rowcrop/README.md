@@ -148,6 +148,18 @@ vsi |> purrr::pwalk(
   )
 )
 
+# Rename sites inside JSON file, so restart code can match it for PFT changes
+# Doing this by pure substitution, not parsing anything
+evt_json_txt <- readLines("data/val_events/combined_events.json")
+for (i in seq_along(vsi$site_id)) {
+	evt_json_txt <- gsub(
+		pattern = paste0('"site_id":"', vsi$field_id[[i]], '"'),
+		replacement = paste0('"site_id":"', vsi$site_id[[i]], '"'),
+		x = evt_json_txt
+	)
+}
+writeLines(evt_json_txt, "data/val_events/combined_events.json")
+
 # And rename inside the phenology file, too
 read.csv("data/val_events/phenology.csv") |>
   dplyr::rename(field_id = site_id) |>
