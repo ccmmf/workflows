@@ -210,4 +210,21 @@ download_tif() {
 download_tif "$seg1" "$median_s3_uri" "median TIF"
 download_tif "$seg2" "$stdv_s3_uri" "stdv TIF"
 
+# --- Download soil moisture tarball and extract ---
+sm_key_prefix=$(yq eval '.s3.soil_moisture_tgz.key_prefix' "$MANIFEST")
+sm_filename=$(yq eval '.s3.soil_moisture_tgz.filename' "$MANIFEST")
+sm_s3_key=$(s3_key "$sm_key_prefix" "$sm_filename")
+sm_s3_uri="s3://${s3_bucket}/${sm_s3_key}"
+sm_local="${RUN_DIR_ABS}/${sm_filename}"
+sm_report=$(report_path "$sm_local")
+if [[ -f "$sm_local" ]]; then
+  echo "00_fetch_s3_and_prepare_run_dir: Soil moisture tarball already present: $sm_report"
+else
+  echo "00_fetch_s3_and_prepare_run_dir: Downloading soil moisture data from S3"
+  echo "00_fetch_s3_and_prepare_run_dir: Saving to: $sm_report"
+  (cd "$RUN_DIR_ABS" && aws s3 cp --endpoint-url "$s3_endpoint" "$sm_s3_uri" "$sm_filename")
+fi
+echo "00_fetch_s3_and_prepare_run_dir: Extracting soil moisture data into run directory"
+tar -xzf "$sm_local" -C "$RUN_DIR_ABS"
+
 echo "00_fetch_s3_and_prepare_run_dir: Done."

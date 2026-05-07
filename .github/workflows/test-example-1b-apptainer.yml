@@ -1,0 +1,79 @@
+name: Test Example 1b (Apptainer)
+
+# Runs the 1b statewide woody crops example end-to-end using the workflow
+# Apptainer container for all R steps, with Slurm dispatch for ensemble members.
+# Requires a self-hosted runner with Slurm and apptainer on PATH (or via module).
+
+on:
+  workflow_dispatch:
+    inputs:
+      pecan_env_version:
+        description: 'pecan-all conda env version (e.g. 1.10)'
+        default: '1.10'
+        required: false
+  push:
+    branches: [main]
+    paths:
+      - 'examples/1b_statewide_woody/**'
+      - 'workflow/**'
+      - 'tools/**'
+      - 'magic-ensemble'
+      - '.github/workflows/test-example-1b-apptainer.yml'
+      - '.github/ci/example_1b_apptainer_config.yaml'
+      - '.github/ci/site_info_1b.csv'
+
+env:
+  PECAN_ENV_VERSION: ${{ github.event.inputs.pecan_env_version || '1.10' }}
+  CONFIG: .github/ci/example_1b_apptainer_config.yaml
+
+jobs:
+  run:
+    name: 1b Statewide Woody (apptainer, Slurm)
+    runs-on: self-hosted
+    timeout-minutes: 480
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.S3_GARAGE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_GARAGE_SECRET_ACCESS_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Load apptainer module
+        run: module load apptainer
+
+      - name: Setup conda environment
+        run: |
+          aws s3 cp s3://carb/deploy/setup-pecan-env.sh setup-pecan-env.sh \
+            --endpoint-url https://s3.garage.ccmmf.ncsa.cloud
+          bash setup-pecan-env.sh "${PECAN_ENV_VERSION}" ./conda-env
+          echo "RETICULATE_PYTHON=${GITHUB_WORKSPACE}/conda-env/bin/python" >> "$GITHUB_ENV"
+
+      - name: Get demo data
+        run: |
+          set +u
+          eval "$(conda shell.bash hook)"
+          conda activate ./conda-env
+          set -u
+          ./magic-ensemble get-demo-data --verbose --config "$CONFIG"
+
+      - name: Prepare
+        run: |
+          set +u
+          eval "$(conda shell.bash hook)"
+          conda activate ./conda-env
+          set -u
+          ./magic-ensemble prepare-example-1b --verbose --config "$CONFIG"
+
+      - name: Run ensembles
+        run: |
+          set +u
+          eval "$(conda shell.bash hook)"
+          conda activate ./conda-env
+          set -u
+          ./magic-ensemble run-ensembles --verbose --config "$CONFIG"
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf ci-1b-apptainer-rundir conda-env setup-pecan-env.sh
