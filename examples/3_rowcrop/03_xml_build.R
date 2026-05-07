@@ -88,6 +88,8 @@ args <- optparse::OptionParser(option_list = options) |>
 ## Whew, that was a lot of lines to define a few defaults!
 
 
+# papply emits a lot of uninformative debug messages; let's ignore those
+PEcAn.logger::logger.setLevel("INFO")
 
 site_info <- read.csv(args$site_file)
 stopifnot(
@@ -156,6 +158,14 @@ settings <- settings |>
     input_type = "events",
     path = args$event_dir,
     path_template = "{path}/events-{id}.in"
+  ) |>
+  # For now, hard-coding one phenology path for all sites, placed inside event dir
+  # TODO make settable?
+  setEnsemblePaths(
+    n_reps = args$n_ens,
+    input_type = "leaf_phenology",
+    path = args$event_dir,
+    path_template = "{path}/phenology.csv"
   ) |>
   papply(add_soil_pft)
 

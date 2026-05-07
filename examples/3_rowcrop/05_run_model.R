@@ -43,11 +43,12 @@ options(error = quote({
 library("PEcAn.all")
 
 
-# Report package versions for provenance
-PEcAn.all::pecan_version()
-
 # Open and read in settings file for PEcAn run.
 settings <- PEcAn.settings::read.settings(args$settings)
+
+# Report package and model versions for provenance
+PEcAn.all::pecan_version()
+PEcAn.logger::logger.info(system2(settings$model$binary, "-v", stdout = TRUE))
 
 # Start ecosystem model runs
 if (PEcAn.utils::status.check("MODEL") == 0) {
