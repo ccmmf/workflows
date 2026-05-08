@@ -151,7 +151,7 @@ s3:
         filename: "ca_biomassfiaald_2016_stdv.tif"
     soil_moisture_tgz:
         key_prefix: "data_raw"
-        filename: "soil_moisture_20160101_20260110.tgz"
+        filename: "soil_moisture_20160101_20160110.tgz"
 
 # Dispatch options for run-ensembles. The user config selects one by name via pecan_dispatch.
 # host_xml is the complete <host>...</host> block to inject into the staged template.xml
