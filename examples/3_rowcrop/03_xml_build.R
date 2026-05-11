@@ -157,12 +157,6 @@ add_soil_pft <- function(s) {
   s
 }
 
-# The restart functions use this to find the crop type for each planting event
-add_event_source <- function(s) {
-  s$run$inputs$events$source <- file.path(args$event_dir, "combined_events.json")
-  s
-}
-
 settings <- settings |>
   createMultiSiteSettings(site_info) |>
   setEnsemblePaths(
@@ -188,7 +182,12 @@ settings <- settings |>
     path = args$event_dir,
     path_template = "{path}/events-{id}.in"
   ) |>
-  papply(add_event_source) |>
+  setEnsemblePaths(
+    n_reps = args$n_ens,
+    input_type = "event_json",
+    path = args$event_dir,
+    path_template = "{path}/ens_events_{n}.json"
+  ) |>
   # For now, hard-coding one phenology path for all sites, placed inside event dir
   # TODO make settable?
   setEnsemblePaths(

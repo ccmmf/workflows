@@ -43,8 +43,11 @@
    <poolinitcond>
     <method>sampling</method>
    </poolinitcond>
-   <events>
+   <event_json>
     <method>sampling</method>
+   </event_json>
+   <events>
+    <parent>event_json</parent>
    </events>
    <leaf_phenology>
     <method>sampling</method>
@@ -94,6 +97,10 @@
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
    </poolinitcond>
+   <event_json>
+     <ensemble><!-- inserted at config time --></ensemble>
+     <path><!-- inserted at config time --></path>
+   </event_json>
    <events>
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
