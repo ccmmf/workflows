@@ -1,0 +1,13 @@
+run_dir: "ci-2a-apptainer-rundir/"
+start_date: "2016-01-01"
+end_date: "2017-12-31"
+run_LAI_date: "2016-07-01"
+n_ens: 5
+n_met: 3
+ic_ensemble_size: 20
+n_workers: 2
+use_apptainer: true
+pecan_dispatch: slurm-dispatch
+external_paths:
+  template_file: "examples/2a_grass/template.xml"
+  site_info_file: ".github/ci/site_info_2a.csv"
