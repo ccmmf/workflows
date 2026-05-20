@@ -94,10 +94,10 @@
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
    </poolinitcond>
-   <event_json>
+   <crop_changes>
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
-   </event_json>
+   </crop_changes>
    <events>
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
