@@ -43,15 +43,12 @@
    <poolinitcond>
     <method>sampling</method>
    </poolinitcond>
-   <event_json>
-    <method>sampling</method>
-   </event_json>
+   <crop_changes>
+    <parent>events</parent>
+   </crop_changes>
    <events>
-    <parent>event_json</parent>
-   </events>
-   <leaf_phenology>
     <method>sampling</method>
-   </leaf_phenology>
+   </events>
    <!-- TODO soil physics here when ready -->
   </samplingspace>
   <start.year><!-- inserted at config time --></start.year>
@@ -105,9 +102,6 @@
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
    </events>
-   <leaf_phenology>
-    <path><!-- inserted at config time --></path>
-   </leaf_phenology>
   </inputs>
   <start.date><!-- inserted at config time --></start.date>
   <end.date><!-- inserted at config time --></end.date>

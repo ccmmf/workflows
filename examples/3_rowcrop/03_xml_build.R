@@ -177,24 +177,22 @@ settings <- settings |>
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
   ) |>
   setEnsemblePaths(
-    n_reps = args$n_ens,
+    n_reps = sprintf("%03d", seq_len(args$n_ens)), # yes, n_reps secretly accepts a vector!
     input_type = "events",
     path = args$event_dir,
-    path_template = "{path}/events-{id}.in"
+    path_template = "{path}/ens_{n}/events-{id}.in"
   ) |>
+  # setEnsemblePaths(
+  #   n_reps = sprintf("%03d", seq_len(args$n_ens)),
+  #   input_type = "event_json",
+  #   path = args$event_dir,
+  #   path_template = "{path}/events_ens_{n}.json"
+  # ) |>
   setEnsemblePaths(
-    n_reps = args$n_ens,
-    input_type = "event_json",
+    n_reps = sprintf("%03d", seq_len(args$n_ens)),
+    input_type = "crop_changes",
     path = args$event_dir,
-    path_template = "{path}/ens_events_{n}.json"
-  ) |>
-  # For now, hard-coding one phenology path for all sites, placed inside event dir
-  # TODO make settable?
-  setEnsemblePaths(
-    n_reps = args$n_ens,
-    input_type = "leaf_phenology",
-    path = args$event_dir,
-    path_template = "{path}/phenology.csv"
+    path_template = "{path}/ens_{n}/cycles-{id}.csv"
   ) |>
   papply(add_soil_pft)
 
