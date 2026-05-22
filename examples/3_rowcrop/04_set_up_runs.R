@@ -12,13 +12,6 @@ options <- list(
       "working directory of the process that invokes run_model.R,",
       "not relative to the settings file path"
     )
-  ),
-  optparse::make_option(c("-c", "--continue"),
-    default = FALSE,
-    help = paste(
-      "Attempt to pick up in the middle of a previously interrupted workflow?",
-      "Does not work reliably. Use at your own risk"
-    )
   )
 ) |>
   # Show default values in help message
