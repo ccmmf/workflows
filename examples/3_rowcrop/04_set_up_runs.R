@@ -19,15 +19,6 @@ options <- list(
       "Attempt to pick up in the middle of a previously interrupted workflow?",
       "Does not work reliably. Use at your own risk"
     )
-  ),
-  optparse::make_option(c("-r", "--restart_code_location"),
-    default = "~/pecan/workflows/sipnet-restart-workflow/utils.R",
-    help = paste(
-      "File containing R functions implementing crop changes via restart.",
-      "Will be source()'d into the R session.",
-      "This is a temporary option until restart functions are refactored into",
-      "package code"
-    )
   )
 ) |>
   # Show default values in help message
@@ -91,6 +82,8 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
 }
 
 PEcAn.utils::status.start("CONFIG_SEGMENTS")
-source(args$restart_code_location)
-run_script_paths <- papply(settings, \(s) write_segmented_configs.SIPNET(s, ens_design))
+run_script_paths <- papply(
+  settings,
+  \(s) PEcAn.SIPNET::write_segmented_configs.SIPNET(s, ens_design)
+)
 PEcAn.utils::status.end()
