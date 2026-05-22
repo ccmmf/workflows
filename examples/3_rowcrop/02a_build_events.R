@@ -28,6 +28,14 @@ options <- list(
   optparse::make_option("--event_outdir",
     default = "data/events",
     help = "directory to write events-*.in, events.json, and phenology.csv"
+  ),
+  optparse::make_option("--start_date",
+    default = "2016-01-01",
+    help = "Date to begin simulations"
+  ),
+  optparse::make_option("--end_date",
+    default = "2023-12-31",
+    help = "Date to end simulations"
   )
 ) |>
   # Show default values in help message
@@ -79,7 +87,7 @@ callr::rscript(
     planting_dir = mgmt_subdirs$plant,
     harvest_dir = mgmt_subdirs$harv,
     tillage_dir = mgmt_subdirs$till,
-    adjust_start = "2016-01-01",
+    adjust_start = args$start_date,
     outdir = args$clean_parquet_dir
   )
 )
@@ -90,8 +98,8 @@ callr::rscript(
     site_info_path = args$site_info_path,
     parquet_dir = args$clean_parquet_dir,
     event_dir = args$event_outdir,
-    start_date = "2016-01-01",
-    end_date = "2023-12-31"
+    start_date = args$start_date,
+    end_date = args$end_date
   )
 )
 
