@@ -16,7 +16,7 @@ options <- list(
   ),
   optparse::make_option("--harvest_dir",
     default = "data_raw/management/harvest/v1.0",
-    help = "Directory containing Parquet files of hrvest events"
+    help = "Directory containing Parquet files of harvest events"
   ),
   optparse::make_option("--tillage_dir",
     default = "data_raw/management/tillage/v1.0",
