@@ -54,7 +54,7 @@ args <- optparse::OptionParser(option_list = options) |>
 ## -------------------------- end option parsing ------------------------------
 
 
-harvest_files <- list.files(args$harvest_dir, "\\.parquet", full.names = TRUE, recursive = TRUE)
+harvest_files <- list.files(args$harvest_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
 planting_files <- list.files(args$planting_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
 phenology_files <- list.files(args$pheno_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
 tillage_files <- list.files(args$tillage_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
