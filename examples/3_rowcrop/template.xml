@@ -12,21 +12,18 @@
   <pft>
    <name>annual_crop</name>
    <posterior.files>data_raw/pfts/annual_crop/post.distns.Rdata</posterior.files>
-   <outdir>data_raw/pfts/annual_crop/</outdir>
   </pft>
   <pft>
    <name>temperate.deciduous</name>
    <posterior.files>data_raw/pfts/temperate.deciduous/post.distns.Rdata</posterior.files>
-   <outdir>data_raw/pfts/temperate.deciduous/</outdir>
   </pft>
   <pft>
    <name>grass</name>
    <posterior.files>data_raw/pfts/grass/post.distns.Rdata</posterior.files>
-   <outdir>data_raw/pfts/grass</outdir>
   </pft>
   <pft>
    <name>soil</name>
-   <outdir>data_raw/pfts/soil/</outdir>
+   <posterior.files>data_raw/pfts/soil/trait.mcmc.RData</posterior.files>
   </pft>
  </pfts>
  <ensemble>
@@ -46,12 +43,12 @@
    <poolinitcond>
     <method>sampling</method>
    </poolinitcond>
+   <crop_changes>
+    <parent>events</parent>
+   </crop_changes>
    <events>
     <method>sampling</method>
    </events>
-   <leaf_phenology>
-    <method>sampling</method>
-   </leaf_phenology>
    <!-- TODO soil physics here when ready -->
   </samplingspace>
   <start.year><!-- inserted at config time --></start.year>
@@ -60,14 +57,15 @@
  <model>
   <id>99000000003</id>
   <type>SIPNET</type>
-  <revision>2.0.0</revision>
-  <delete.raw>TRUE</delete.raw>
+  <revision>2.1.0</revision>
+  <delete.raw>FALSE</delete.raw>
   <binary>./sipnet</binary>
   <options>
     <GDD>0</GDD>
     <NITROGEN_CYCLE>0</NITROGEN_CYCLE>
     <ANAEROBIC>0</ANAEROBIC>
     <LITTER_POOL>1</LITTER_POOL>
+    <RESTART_OUT>restart.out</RESTART_OUT>
   </options>
  </model>
  <host>
@@ -96,13 +94,14 @@
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
    </poolinitcond>
+   <crop_changes>
+     <ensemble><!-- inserted at config time --></ensemble>
+     <path><!-- inserted at config time --></path>
+   </crop_changes>
    <events>
      <ensemble><!-- inserted at config time --></ensemble>
      <path><!-- inserted at config time --></path>
    </events>
-   <leaf_phenology>
-    <path><!-- inserted at config time --></path>
-   </leaf_phenology>
   </inputs>
   <start.date><!-- inserted at config time --></start.date>
   <end.date><!-- inserted at config time --></end.date>

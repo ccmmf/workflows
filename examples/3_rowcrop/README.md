@@ -82,7 +82,7 @@ TODO: show how to pass n_cores from host_args
 [host_args] ./01_ERA5_nc_to_clim.R \
 	--site_era5_path=data_raw/ERA5_CA_nc \
 	--site_sipnet_met_path=data/ERA5_CA_SIPNET \
-	--site_info_file=data_raw/ca_half_degree_grid.csv \
+	--site_info_file=data_raw/ERA5_CA_SIPNET/ca_half_degree_grid.csv \
 	--start_date=2016-01-01 \
 	--end_date=2023-12-31 \
 	--n_cores=7
@@ -148,6 +148,18 @@ vsi |> purrr::pwalk(
   )
 )
 
+# Rename sites inside JSON file, so restart code can match it for PFT changes
+# Doing this by pure substitution, not parsing anything
+evt_json_txt <- readLines("data/val_events/combined_events.json")
+for (i in seq_along(vsi$site_id)) {
+	evt_json_txt <- gsub(
+		pattern = paste0('"site_id":"', vsi$field_id[[i]], '"'),
+		replacement = paste0('"site_id":"', vsi$site_id[[i]], '"'),
+		x = evt_json_txt
+	)
+}
+writeLines(evt_json_txt, "data/val_events/combined_events.json")
+
 # And rename inside the phenology file, too
 read.csv("data/val_events/phenology.csv") |>
   dplyr::rename(field_id = site_id) |>
@@ -165,13 +177,13 @@ read.csv("data/val_events/phenology.csv") |>
 	--site_file=validation_site_info.csv \
 	--event_dir=data/val_events \
 	--output_file=validation_settings.xml \
-	--output_dir_name=val_out
+	--output_dir=val_out
 [host_args] ./03_xml_build.R \
 	--ic_dir=data/IC_files \
 	--end_date=2023-12-31 \
 	--site_file=site_info.csv \
 	--output_file=settings.xml \
-	--output_dir_name=output
+	--output_dir=output
 ```
 
 ### 4. Set up model run directories

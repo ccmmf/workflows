@@ -64,13 +64,12 @@ args <- optparse::OptionParser(option_list = options) |>
 
 future::plan(args$parallel_strategy, workers = args$n_cores)
 
-site_info <- read.csv(args$site_info_file)
-site_info$start_date <- args$start_date
-site_info$end_date <- args$end_date
-
-
-file_info <- site_info |>
-  dplyr::rename(site_id = id) |>
+file_info <- read.csv(args$site_info_file) |>
+  dplyr::distinct(id) |>
+  dplyr::mutate(
+    start_date = args$start_date,
+    end_date = args$end_date
+  ) |>
   dplyr::cross_join(data.frame(ens_id = 1:10))
 
 if (!dir.exists(args$site_sipnet_met_path)) {
@@ -78,16 +77,16 @@ if (!dir.exists(args$site_sipnet_met_path)) {
 }
 furrr::future_pwalk(
   file_info,
-  function(site_id, start_date, end_date, ens_id, ...) {
+  function(id, start_date, end_date, ens_id, ...) {
     PEcAn.SIPNET::met2model.SIPNET(
       in.path = file.path(
         args$site_era5_path,
-        paste("ERA5", site_id, ens_id, sep = "_")
+        paste("ERA5", id, ens_id, sep = "_")
       ),
       start_date = start_date,
       end_date = end_date,
       in.prefix = paste0("ERA5.", ens_id),
-      outfolder = file.path(args$site_sipnet_met_path, site_id)
+      outfolder = file.path(args$site_sipnet_met_path, id)
     )
   }
 )

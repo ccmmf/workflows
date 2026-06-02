@@ -12,13 +12,6 @@ options <- list(
       "working directory of the process that invokes run_model.R,",
       "not relative to the settings file path"
     )
-  ),
-  optparse::make_option(c("-c", "--continue"),
-    default = FALSE,
-    help = paste(
-      "Attempt to pick up in the middle of a previously interrupted workflow?",
-      "Does not work reliably. Use at your own risk"
-    )
   )
 ) |>
   # Show default values in help message
@@ -59,19 +52,31 @@ settings <- PEcAn.settings::read.settings(args$settings)
 if (!dir.exists(settings$outdir)) {
   dir.create(settings$outdir, recursive = TRUE)
 }
+PEcAn.logger::logger.setLevel("WARN")
 
-
-# start from scratch if no continue is passed in
-status_file <- file.path(settings$outdir, "STATUS")
-if (args$continue && file.exists(status_file)) {
-  file.remove(status_file)
-}
-
+PEcAn.utils::status.start("DESIGN")
+ens_design <- PEcAn.uncertainty::generate_joint_ensemble_design(
+  settings[[1]],
+  settings$ensemble$size
+)$X
+write.csv(ens_design, file.path(settings$outdir, "input_design.csv"))
+settings$ensemble$id <- rlang::hash(ens_design)
+PEcAn.utils::status.end()
 
 # Write model specific configs
 if (PEcAn.utils::status.check("CONFIG") == 0) {
   PEcAn.utils::status.start("CONFIG")
-  settings <- PEcAn.workflow::runModule.run.write.configs(settings)
+  settings <- PEcAn.workflow::runModule.run.write.configs(
+    settings,
+    input_design = ens_design
+  )
   PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
   PEcAn.utils::status.end()
 }
+
+PEcAn.utils::status.start("CONFIG_SEGMENTS")
+run_script_paths <- papply(
+  settings,
+  \(s) PEcAn.SIPNET::write_segmented_configs.SIPNET(s, ens_design)
+)
+PEcAn.utils::status.end()

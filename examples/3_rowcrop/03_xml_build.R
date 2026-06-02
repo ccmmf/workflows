@@ -64,7 +64,7 @@ options <- list(
     default = "settings.xml",
     help = "path to write output XML"
   ),
-  optparse::make_option("--output_dir_name",
+  optparse::make_option("--output_dir",
     default = "output",
     help = paste(
       "Path the settings should declare as output directory.",
@@ -91,6 +91,8 @@ args <- optparse::OptionParser(option_list = options) |>
 # papply emits a lot of uninformative debug messages; let's ignore those
 PEcAn.logger::logger.setLevel("INFO")
 
+
+
 site_info <- read.csv(args$site_file)
 stopifnot(
   length(unique(site_info$id)) == nrow(site_info),
@@ -109,6 +111,27 @@ site_info <- site_info |>
 
 settings <- read.settings(args$template_file) |>
   setDates(args$start_date, args$end_date)
+
+# Attempt to convert to absolute paths, because the restart code changes
+# working directory and gets confused by relative paths
+# Q: "But why the getwd()? Won't normalizePath expand it for you?"
+# A: Only for existing paths; dirs not yet created need the getwd. Humph.
+abs_path <- function(path) {
+  if (substr(path, 1, 1) != "/") path <- file.path(getwd(), path)
+  normalizePath(path, mustWork = FALSE)
+}
+args$ic_dir <- abs_path(args$ic_dir)
+args$met_dir <- abs_path(args$met_dir)
+args$event_dir <- abs_path(args$event_dir)
+args$output_dir <- abs_path(args$output_dir)
+# TODO it's awkward to set PFT paths in the template but then edit them here --
+# consider handling PFT insertion as an arg here?
+for(i in seq_along(settings$pfts)) {
+  settings$pfts[[i]]$posterior.files <- abs_path(
+    settings$pfts[[i]]$posterior.files
+  )
+}
+settings$model$binary <- abs_path(settings$model$binary)
 
 settings$ensemble$size <- args$n_ens
 settings$run$inputs$poolinitcond$ensemble <- args$n_ens
@@ -154,37 +177,32 @@ settings <- settings |>
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
   ) |>
   setEnsemblePaths(
-    n_reps = args$n_ens,
+    n_reps = sprintf("%03d", seq_len(args$n_ens)), # yes, n_reps secretly accepts a vector!
     input_type = "events",
     path = args$event_dir,
-    path_template = "{path}/events-{id}.in"
+    path_template = "{path}/ens_{n}/events-{id}.in"
   ) |>
-  # For now, hard-coding one phenology path for all sites, placed inside event dir
-  # TODO make settable?
+  # setEnsemblePaths(
+  #   n_reps = sprintf("%03d", seq_len(args$n_ens)),
+  #   input_type = "event_json",
+  #   path = args$event_dir,
+  #   path_template = "{path}/events_ens_{n}.json"
+  # ) |>
   setEnsemblePaths(
-    n_reps = args$n_ens,
-    input_type = "leaf_phenology",
+    n_reps = sprintf("%03d", seq_len(args$n_ens)),
+    input_type = "crop_changes",
     path = args$event_dir,
-    path_template = "{path}/phenology.csv"
+    path_template = "{path}/ens_{n}/cycles-{id}.csv"
   ) |>
   papply(add_soil_pft)
 
-# Update just the first component of the output directory,
-# in all four places it's used.
-# Note: It feels a bit odd to directly replace the word "output"
-# rather than fill a blank or use a @placeholder@, but since existing template
-# already passes @placeholder@'s on to be processed in PEcAn I didn't want
-# to introduce confusion by making some be replaced at a different stage.
-settings$outdir <- sub("^output", args$output_dir_name,
-                       settings$outdir)
-settings$modeloutdir <- sub("^output", args$output_dir_name,
-                            settings$modeloutdir)
-settings$rundir <- sub("^output", args$output_dir_name,
-                       settings$rundir)
-settings$host$outdir <- sub("^output", args$output_dir_name,
-                            settings$host$outdir)
-settings$host$rundir <- sub("^output", args$output_dir_name,
-                            settings$host$rundir)
+# Update output directories
+# Note that we're assuming local and remote paths are the same.
+settings$outdir <- args$output_dir
+settings$modeloutdir <- file.path(args$output_dir, "out")
+settings$rundir <- file.path(args$output_dir, "run")
+settings$host$outdir <- file.path(args$output_dir, "out")
+settings$host$rundir <- file.path(args$output_dir, "run")
 
 write.settings(
   settings,
