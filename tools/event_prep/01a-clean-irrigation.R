@@ -32,8 +32,12 @@ args <- optparse::OptionParser(option_list = options) |>
 
 dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
 
-dbdir <- file.path(Sys.getenv("TMPDIR", "/tmp"), "temp.duckdb")
+dbdir <- tempfile("duckdb", fileext = ".duckdb")
 conn <- DBI::dbConnect(duckdb::duckdb(dbdir = dbdir))
+on.exit({
+  DBI::dbDisconnect(conn, shutdown = TRUE)
+  unlink(dbdir, recursive = TRUE)
+}, add = TRUE)
 
 # Cast ensemble ID to an enum to accelerate and reduce the memory pressure of
 # the sort.
