@@ -29,6 +29,7 @@ Optional:
   --invocation-cwd PATH Required when using --config with a relative run_dir. Paths reported relative to this.
   --command NAME        Command name for manifest step lookup (default: get-demo-data).
   --step-index N        Step index in that command (default: 0).
+  --aws-profile NAME    AWS CLI named profile to use for S3 access (default: magic).
   -h, --help            Print this help and exit.
 EOF
 }
@@ -40,6 +41,7 @@ MANIFEST=""
 COMMAND="get-demo-data"
 STEP_INDEX="0"
 INVOCATION_CWD=""
+AWS_PROFILE="magic"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,6 +52,7 @@ while [[ $# -gt 0 ]]; do
     --command)      [[ $# -lt 2 ]] && { echo "00_fetch_s3_and_prepare_run_dir: --command requires NAME." >&2; usage >&2; exit 1; }; COMMAND="$2"; shift 2 ;;
     --step-index)   [[ $# -lt 2 ]] && { echo "00_fetch_s3_and_prepare_run_dir: --step-index requires N." >&2; usage >&2; exit 1; }; STEP_INDEX="$2"; shift 2 ;;
     --invocation-cwd) [[ $# -lt 2 ]] && { echo "00_fetch_s3_and_prepare_run_dir: --invocation-cwd requires PATH." >&2; usage >&2; exit 1; }; INVOCATION_CWD="$2"; shift 2 ;;
+    --aws-profile)  [[ $# -lt 2 ]] && { echo "00_fetch_s3_and_prepare_run_dir: --aws-profile requires NAME." >&2; usage >&2; exit 1; }; AWS_PROFILE="$2"; shift 2 ;;
     -h|--help)      usage; exit 0 ;;
     *)              echo "00_fetch_s3_and_prepare_run_dir: Unknown option: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -180,7 +183,7 @@ if [[ -f "$artifact_local" ]]; then
 else
   echo "00_fetch_s3_and_prepare_run_dir: Downloading artifact from S3 into run directory"
   echo "00_fetch_s3_and_prepare_run_dir: Saving to: $artifact_report"
-  (cd "$RUN_DIR_ABS" && aws s3 cp --endpoint-url "$s3_endpoint" "$artifact_s3_uri" "$artifact_filename")
+  (cd "$RUN_DIR_ABS" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$artifact_s3_uri" "$artifact_filename")
 fi
 echo "00_fetch_s3_and_prepare_run_dir: Extracting artifact into run directory"
 tar -xzf "$artifact_local" -C "$RUN_DIR_ABS"
@@ -204,7 +207,7 @@ download_tif() {
     mkdir -p "$dest_dir"
     echo "00_fetch_s3_and_prepare_run_dir: Downloading $label from S3"
     echo "00_fetch_s3_and_prepare_run_dir: Saving to: $(report_path "$resolved")"
-    (cd "$dest_dir" && aws s3 cp --endpoint-url "$s3_endpoint" "$s3_uri" "$dest_name")
+    (cd "$dest_dir" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$s3_uri" "$dest_name")
   fi
 }
 download_tif "$seg1" "$median_s3_uri" "median TIF"
@@ -222,7 +225,7 @@ if [[ -f "$sm_local" ]]; then
 else
   echo "00_fetch_s3_and_prepare_run_dir: Downloading soil moisture data from S3"
   echo "00_fetch_s3_and_prepare_run_dir: Saving to: $sm_report"
-  (cd "$RUN_DIR_ABS" && aws s3 cp --endpoint-url "$s3_endpoint" "$sm_s3_uri" "$sm_filename")
+  (cd "$RUN_DIR_ABS" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$sm_s3_uri" "$sm_filename")
 fi
 echo "00_fetch_s3_and_prepare_run_dir: Extracting soil moisture data into run directory"
 tar -xzf "$sm_local" -C "$RUN_DIR_ABS"

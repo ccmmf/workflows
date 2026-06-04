@@ -189,6 +189,8 @@ case "$(echo "$use_apptainer_raw" | tr '[:upper:]' '[:lower:]')" in
 esac
 
 pecan_dispatch=$(get_val "pecan_dispatch" "")
+slurm_partition=$(get_val "slurm_partition" "")
+aws_profile=$(get_val "aws_profile" "magic")
 
 # Resolve manifest paths relative to run_dir.
 # Effective path = run_dir / manifest_path so R (CWD=REPO_ROOT) sees the correct file.
@@ -363,7 +365,7 @@ run_shell_script() {
     # Step 00 helpers: documented arguments (see each script's --help).
     local args=(--repo-root "$REPO_ROOT" --manifest "$MANIFEST")
     if [[ "$script_basename" == "00_fetch_s3_and_prepare_run_dir.sh" ]]; then
-      args+=(--command "$COMMAND" --step-index "$step_index")
+      args+=(--command "$COMMAND" --step-index "$step_index" --aws-profile "$aws_profile")
     fi
     if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
       args+=(--config "$CONFIG_FILE" --invocation-cwd "$INVOCATION_CWD")
@@ -438,9 +440,14 @@ patch_xml_block() {
     echo "magic-ensemble: patching <${xml_tag}> block in $template_path (yq_path=${yq_path})" >&2
   fi
 
-  local sif_name xml_block
+  local sif_name xml_block partition_flag=""
   sif_name=$(yq eval '.apptainer.sif' "$MANIFEST")
-  xml_block=$(yq eval "$yq_path" "$MANIFEST" | sed "s|@SIF@|./${sif_name}|g")
+  if [[ -n "$slurm_partition" && "$slurm_partition" != "null" ]]; then
+    partition_flag="-p ${slurm_partition}"
+  fi
+  xml_block=$(yq eval "$yq_path" "$MANIFEST" \
+    | sed "s|@SIF@|./${sif_name}|g" \
+    | sed "s|@PARTITION@|${partition_flag}|g")
 
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
