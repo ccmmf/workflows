@@ -16,7 +16,11 @@ n_met: 10
 ic_ensemble_size: 100
 n_workers: 1
 use_apptainer: false
-pecan_dispatch: local-gnu-parallel
+pecan_dispatch: slurm-dispatch
+# slurm_partition: ""  # Slurm partition for sbatch jobs (slurm-dispatch only). Omit to use the cluster default.
+
+# AWS CLI named profile for S3 access (get-demo-data command).
+aws_profile: magic
 
 # Stage example-specific input files into run_dir before prepare runs.
 external_paths:

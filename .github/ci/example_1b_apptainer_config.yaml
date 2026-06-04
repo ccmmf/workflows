@@ -8,6 +8,8 @@ ic_ensemble_size: 20
 n_workers: 2
 use_apptainer: true
 pecan_dispatch: slurm-dispatch
+slurm_partition: node
+aws_profile: magic
 external_paths:
   template_file: "examples/1b_statewide_woody/template.xml"
   site_info_file: ".github/ci/site_info_1b.csv"
