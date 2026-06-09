@@ -232,7 +232,7 @@ sipnet_model:
 sipnet_install:
     src_dir: "tools/sipnet_src"
     bin_dir: "tools/sipnet_binaries"
-    revision: ""
+    revision: "v2.1.0"
 
 # Apptainer (not in user config)
 apptainer:
