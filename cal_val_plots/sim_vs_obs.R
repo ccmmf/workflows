@@ -135,3 +135,25 @@ ensemble_quantiles <- function(ens_df, variable) {
       .groups = "drop"
     )
 }
+
+# Load workbook observations matching a treatment + variable.
+load_obs <- function(workbook, treatment_id, variable) {
+  if (!file.exists(workbook)) {
+    message("  workbook not found: ", workbook)
+    return(dplyr::tibble())
+  }
+  obs <- readxl::read_excel(workbook, sheet = "observations",
+                            .name_repair = "minimal")
+  obs |>
+    dplyr::filter(treatment_id == !!treatment_id,
+                  variable     == !!variable) |>
+    dplyr::mutate(
+      value    = suppressWarnings(as.numeric(value)),
+      min_date = as.Date(min_date),
+      max_date = as.Date(max_date),
+      date     = as.Date((as.numeric(min_date) + as.numeric(max_date)) / 2,
+                         origin = "1970-01-01"),
+      year     = as.integer(format(date, "%Y"))
+    ) |>
+    dplyr::filter(!is.na(value))
+}
