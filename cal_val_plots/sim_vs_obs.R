@@ -246,3 +246,114 @@ derive_russell_soc_stock <- function(workbook, treatment_id,
   if (!is.null(year_max)) out <- dplyr::filter(out, year <= year_max)
   out
 }
+
+# Plot ensemble band + observed points.
+plot_sim_vs_obs <- function(site, variable, label, obs_var, units_conv = 1,
+                            ylab = NULL) {
+  cat("- ", site$name, " :: ", variable, "\n", sep = "")
+  ens <- read_ensemble(site$run_dir, variable, site$start_year, site$end_year)
+  if (is.null(ens)) {
+    message("  skip: no ensemble data")
+    return(invisible(NULL))
+  }
+  ens_q <- ensemble_quantiles(ens, variable)
+
+  obs <- load_obs(site$workbook, site$treatment, obs_var)
+  if (nrow(obs) == 0) {
+    message("  skip: no observations matched (", site$treatment, ", ", obs_var, ")")
+    return(invisible(NULL))
+  }
+  obs <- obs |>
+    dplyr::mutate(value_model_units = value * units_conv)
+
+  p <- ggplot() +
+    geom_ribbon(data = ens_q, aes(year, ymin = q05, ymax = q95),
+                fill = "gray70", alpha = 0.5) +
+    geom_line(data = ens_q, aes(year, mean), color = "black", linewidth = 0.8) +
+    geom_point(data = obs, aes(year, value_model_units),
+               color = "firebrick", size = 2) +
+    labs(title = sprintf("%s — %s (%d–%d)",
+                         site$name, site$treatment, site$start_year, site$end_year),
+         subtitle = label,
+         x = "Year",
+         y = ylab %||% variable) +
+    theme_minimal(base_size = 12)
+
+  out_file <- file.path(OUT_DIR,
+                        sprintf("%s_%s.png", site$short, variable))
+  ggsave(out_file, p, width = 9, height = 5, dpi = 150)
+  cat("  saved ", out_file, "\n", sep = "")
+}
+
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+# ----------------------------------------------------------------------------
+# Main — 3 sites × TotSoilCarb, plus Modesto N2O
+# ----------------------------------------------------------------------------
+cat("Sim-vs-obs plots — issue #238\n")
+cat("Workbook dir: ", WORKBOOK_DIR, "\n", sep = "")
+cat("Output dir: ", OUT_DIR, "\n\n", sep = "")
+
+for (site in SITES) {
+  if (site$short == "russell") {
+    # Russell Ranch workbook stores per-layer C% + BD, not SOC stock directly.
+    # Derive the 0-30 cm SOC stock per David's guidance (Slack), then plot.
+    cat("- ", site$name, " :: TotSoilCarb (derived from C% x BD x depth)\n", sep = "")
+    ens <- read_ensemble(site$run_dir, "TotSoilCarb",
+                         site$start_year, site$end_year)
+    if (is.null(ens)) {
+      message("  skip: no ensemble data")
+      next
+    }
+    ens_q <- ensemble_quantiles(ens, "TotSoilCarb")
+
+    obs <- derive_russell_soc_stock(site$workbook, site$treatment,
+                                    year_min = site$start_year,
+                                    year_max = site$end_year)
+    if (nrow(obs) == 0) {
+      message("  skip: no derivable SOC observations for ", site$treatment)
+      next
+    }
+    obs$value_model_units <- obs$value * 0.1  # Mg C ha-1 -> kg C m-2
+
+    p <- ggplot() +
+      geom_ribbon(data = ens_q, aes(year, ymin = q05, ymax = q95),
+                  fill = "gray70", alpha = 0.5) +
+      geom_line(data = ens_q, aes(year, mean), color = "black", linewidth = 0.8) +
+      geom_point(data = obs, aes(year, value_model_units),
+                 color = "firebrick", size = 2) +
+      labs(
+        title    = sprintf("%s — %s (%d–%d)",
+                           site$name, site$treatment,
+                           site$start_year, site$end_year),
+        subtitle = "Total Soil Carbon — derived obs (0-30 cm: C% x BD x depth, summed)\nAssumptions: total C = SOC (pH < 7); coarse fraction ignored (sandy loam)",
+        x = "Year", y = "Soil C (kg C m⁻²)"
+      ) +
+      theme_minimal(base_size = 12)
+
+    out_file <- file.path(OUT_DIR, "russell_TotSoilCarb.png")
+    ggsave(out_file, p, width = 9, height = 5, dpi = 150)
+    cat("  saved ", out_file, "\n", sep = "")
+  } else {
+    plot_sim_vs_obs(
+      site,
+      variable   = "TotSoilCarb",
+      label      = "Total Soil Carbon — model ensemble (5–95% band, mean line) vs observed SOC stock",
+      obs_var    = "SOC_stock_Mg_ha",
+      units_conv = 0.1,                 # Mg C ha-1 -> kg C m-2
+      ylab       = "Soil C (kg C m⁻²)"
+    )
+  }
+}
+
+modesto <- Filter(function(s) s$short == "modesto", SITES)[[1]]
+plot_sim_vs_obs(
+  modesto,
+  variable   = "N2O_flux",            # SIPNET variable name (if N cycle was on)
+  label      = "N₂O flux — model ensemble vs observed chamber flux",
+  obs_var    = "N2O_flux_g_N_ha_d",
+  units_conv = 1,
+  ylab       = "N₂O flux (g N ha⁻¹ d⁻¹)"
+)
+
+cat("\nDone. Plots in: ", normalizePath(OUT_DIR, mustWork = FALSE), "\n", sep = "")
