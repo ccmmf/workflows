@@ -157,3 +157,92 @@ load_obs <- function(workbook, treatment_id, variable) {
     ) |>
     dplyr::filter(!is.na(value))
 }
+
+# Derive Russell Ranch SOC stock (Mg C ha-1) from per-layer C% and BD.
+# Per David's guidance (Slack):
+#   1. Use only the 0-30 cm depth window.
+#   2. Compute SOC stock per layer = C% * BD * depth, then sum across layers.
+#   3. Assumptions:
+#      - total C = SOC (pH < 7 at this site)
+#      - coarse fraction negligible (sandy loam, not mentioned in source text)
+#
+# Formula (per layer): stock_Mg_ha = C(%) * BD(g/cm3) * layer_depth_cm
+#   ((g C / 100 g soil) * (g soil / cm3) * cm) = g C / (100 cm^2) -> Mg/ha
+#   Net factor of 1.0 once the % and unit conversions cancel for these units.
+derive_russell_soc_stock <- function(workbook, treatment_id,
+                                     year_min = NULL, year_max = NULL) {
+  if (!file.exists(workbook)) return(dplyr::tibble())
+
+  raw <- readxl::read_excel(workbook, sheet = "observations",
+                            .name_repair = "minimal")
+  pick <- function(varname) {
+    raw |>
+      dplyr::filter(treatment_id == !!treatment_id,
+                    variable     == !!varname) |>
+      dplyr::mutate(value = suppressWarnings(as.numeric(value)),
+                    min_depth_cm = suppressWarnings(as.numeric(min_depth)),
+                    max_depth_cm = suppressWarnings(as.numeric(max_depth)),
+                    year = as.integer(format(as.Date(
+                      (as.numeric(as.Date(min_date)) +
+                       as.numeric(as.Date(max_date))) / 2,
+                      origin = "1970-01-01"), "%Y"))) |>
+      dplyr::filter(!is.na(value), !is.na(year), max_depth_cm <= 30)
+  }
+
+  c_rows  <- pick("total_carbon_pct")
+  bd_rows <- pick("bulk_density_g_cm3")
+
+  if (nrow(c_rows) == 0 || nrow(bd_rows) == 0) {
+    message("  Russell Ranch: missing total_carbon_pct or bulk_density_g_cm3 rows in 0-30 cm")
+    return(dplyr::tibble())
+  }
+
+  # Average within (year, replicate, depth window) so multiple sub-samples or
+  # duplicate rows don't get double-counted in the layer sum.
+  c_layer <- c_rows |>
+    dplyr::group_by(year, replicate_id,
+                    min_depth_cm, max_depth_cm) |>
+    dplyr::summarise(c_pct = mean(value, na.rm = TRUE), .groups = "drop")
+
+  bd_layer <- bd_rows |>
+    dplyr::group_by(year, replicate_id,
+                    min_depth_cm, max_depth_cm) |>
+    dplyr::summarise(bd_g_cm3 = mean(value, na.rm = TRUE), .groups = "drop")
+
+  # Join C% with BD per (rep, depth). Use nearest-year BD where the BD year
+  # doesn't match the C% year (BD is measured less often than C%).
+  # Note: capture row values into local scalars so the nested filter doesn't
+  # collide with the bd_layer column names.
+  merged <- c_layer |>
+    dplyr::rowwise() |>
+    dplyr::mutate(
+      bd_g_cm3 = {
+        rep_id_  <- replicate_id
+        mindep_  <- min_depth_cm
+        maxdep_  <- max_depth_cm
+        year_    <- year
+        cand <- bd_layer |>
+          dplyr::filter(replicate_id == rep_id_,
+                        min_depth_cm == mindep_,
+                        max_depth_cm == maxdep_)
+        if (nrow(cand) == 0) NA_real_
+        else cand$bd_g_cm3[which.min(abs(cand$year - year_))]
+      }
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::filter(!is.na(bd_g_cm3)) |>
+    dplyr::mutate(layer_cm    = max_depth_cm - min_depth_cm,
+                  stock_Mg_ha = c_pct * bd_g_cm3 * layer_cm)
+
+  if (nrow(merged) == 0) return(dplyr::tibble())
+
+  out <- merged |>
+    dplyr::group_by(year, replicate_id) |>
+    dplyr::summarise(value = sum(stock_Mg_ha, na.rm = TRUE),
+                     .groups = "drop") |>
+    dplyr::mutate(date = as.Date(sprintf("%d-07-01", year)))
+
+  if (!is.null(year_min)) out <- dplyr::filter(out, year >= year_min)
+  if (!is.null(year_max)) out <- dplyr::filter(out, year <= year_max)
+  out
+}
