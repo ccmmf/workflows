@@ -92,8 +92,7 @@ dwr_crop_to_pft <- function(CLASS, SUBCLASS) {
 #'
 #' @examples
 #' point_to_dwr_parcelid(
-#'   c(32.18, 32.22),
-#'   c(-122.22, -123.18),
+#'   data.frame(lat = c(32.18, 32.22), lon = c(-122.22, -123.18)),
 #'   "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
 #' )
 #'
@@ -101,12 +100,29 @@ point_to_dwr_parcelid <- function(df, geo_file = args$parcel_file) {
   stopifnot(is.numeric(df$lat), is.numeric(df$lon))
   parcel_geo <- terra::vect(geo_file)
   nearest_parcels <- df |>
-  terra::vect(crs="epsg:4326") |>
-  terra::project(parcel_geo) |>
-  terra::nearest(parcel_geo)
+    terra::vect(crs="epsg:4326") |>
+    terra::project(parcel_geo) |>
+    terra::nearest(parcel_geo)
 
-  df |>
-  dplyr::mutate(parcel_id = parcel_geo$parcel_id[nearest_parcels$to_id])
+  # Some extra steps to avoid silently clobbering existing parcel_ids
+  orig_parcel_id <- NULL
+  if (!is.null(df$parcel_id)) {
+    orig_parcel_id <- df$parcel_id
+  }
+
+  df <- df |>
+    dplyr::mutate(parcel_id = parcel_geo$parcel_id[nearest_parcels$to_id])
+
+  if (!is.null(orig_parcel_id) && !all(df$parcel_id == orig_parcel_id)) {
+    warning(
+      "Found an input column named `parcel_id`, but it is not identical to",
+      " the ids computed from parcel location.",
+      " Please compare result columns `parcel_id.0` and `parcel_id`",
+      " and correct as needed.")
+    df$parcel_id.0 <- orig_parcel_id
+  }
+
+  df
 }
 
 #' @param ids vector of parcel ids
