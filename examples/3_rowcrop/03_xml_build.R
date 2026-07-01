@@ -10,10 +10,6 @@ options <- list(
     default = 20,
     help = "number of ensemble simulations per site"
   ),
-  optparse::make_option("--n_met",
-    default = 10,
-    help = "number of met files available (ensemble will sample from all)"
-  ),
   optparse::make_option("--start_date",
     default = "2016-01-01",
     help = paste(
@@ -26,11 +22,15 @@ options <- list(
     help = "Date to end simulations"
   ),
   optparse::make_option("--ic_dir",
-    default = "IC_files",
+    default = "data/IC_files",
     help = paste(
       "Directory containing initial conditions.",
       "Should contain subdirs named by site id"
     )
+  ),
+  optparse::make_option("--n_ic",
+    default = 100,
+    help = "number of initial condition files available (ensemble will sample from all)"
   ),
   optparse::make_option("--met_dir",
     default = "data/ERA5_CA_SIPNET",
@@ -39,12 +39,20 @@ options <- list(
       "Should contain subdirs named by grid cell (eg '32.5N_114.5W')"
     )
   ),
+  optparse::make_option("--n_met",
+    default = 10,
+    help = "number of met files available (ensemble will sample from all)"
+  ),
   optparse::make_option("--event_dir",
     default = "data/events",
     help = paste(
       "Directory containing Sipnet `events.in` files.",
       "Should contain subdirs named by site id"
     )
+  ),
+    optparse::make_option("--n_event",
+    default = 20,
+    help = "number of event files available (ensemble will sample from all)"
   ),
   optparse::make_option("--site_file",
     default = "site_info.csv",
@@ -65,7 +73,7 @@ options <- list(
     help = "path to write output XML"
   ),
   optparse::make_option("--output_dir",
-    default = "output",
+    default = "ensemble_output",
     help = paste(
       "Path the settings should declare as output directory.",
       "This will be inserted replacing [out] in all of the following places:",
@@ -171,25 +179,19 @@ settings <- settings |>
   ) |>
   papply(id2grid) |>
   setEnsemblePaths(
-    n_reps = args$n_ens,
+    n_reps = args$n_ic,
     input_type = "poolinitcond",
     path = args$ic_dir,
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
   ) |>
   setEnsemblePaths(
-    n_reps = sprintf("%03d", seq_len(args$n_ens)), # yes, n_reps secretly accepts a vector!
+    n_reps = sprintf("%03d", seq_len(args$n_event)), # yes, n_reps secretly accepts a vector!
     input_type = "events",
     path = args$event_dir,
     path_template = "{path}/ens_{n}/events-{id}.in"
   ) |>
-  # setEnsemblePaths(
-  #   n_reps = sprintf("%03d", seq_len(args$n_ens)),
-  #   input_type = "event_json",
-  #   path = args$event_dir,
-  #   path_template = "{path}/events_ens_{n}.json"
-  # ) |>
   setEnsemblePaths(
-    n_reps = sprintf("%03d", seq_len(args$n_ens)),
+    n_reps = sprintf("%03d", seq_len(args$n_event)),
     input_type = "crop_changes",
     path = args$event_dir,
     path_template = "{path}/ens_{n}/cycles-{id}.csv"
