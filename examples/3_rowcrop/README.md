@@ -122,11 +122,13 @@ Future versions of the event_build script may support passing separate paths per
 ```{sh}
 [host_args] ./02a_build_events.R \
   --site_info_path=validation_site_info.csv \
-  --mgmt_file_dir=data_raw/management \
+  --raw_parquet_dir=data_raw/management \
   --event_outdir=data/val_events
+# empty raw_parquet_dir to avoid redoing cleaning already done for val
+# (Cleaning runs on whole statewide file, not just selected sites)
 [host_args] ./02a_build_events.R \
   --site_info_path=site_info.csv \
-  --mgmt_file_dir=data_raw/management \
+  --raw_parquet_dir='' \
   --event_outdir=data/events
 ```
 

@@ -16,7 +16,9 @@ options <- list(
     help = paste(
       "Directory containing management inputs in Parquet format.",
       "Note: Code currently looks for subpaths that include hard-coded",
-      "version numbers for each management type."
+      "version numbers for each management type.",
+      "If this path is empty, cleaning is skipped and clean Parquet files",
+      " must already exist at the path specified by --clean_parquet_dir`."
     )
   ),
   optparse::make_option("--clean_parquet_dir",
@@ -71,26 +73,29 @@ cargs <- function(...) {
   paste0("--", ...names(), "=", list(...))
 }
 
-PEcAn.logger::logger.info("Cleaning irrigation files")
-callr::rscript(
-  "../../tools/event_prep/01a-clean-irrigation.R",
-  cmdargs = cargs(
-    irr_path = mgmt_subdirs$irri,
-    outdir = args$clean_parquet_dir
+if (args$raw_parquet_dir != "") {
+  PEcAn.logger::logger.info("Cleaning irrigation files")
+  callr::rscript(
+    "../../tools/event_prep/01a-clean-irrigation.R",
+    cmdargs = cargs(
+      irr_path = mgmt_subdirs$irri,
+      outdir = args$clean_parquet_dir
+    )
   )
-)
-PEcAn.logger::logger.info("Cleaning other management files")
-callr::rscript(
-  "../../tools/event_prep/01b-clean-other-events.R",
-  cmdargs = cargs(
-    pheno_dir = mgmt_subdirs$pheno,
-    planting_dir = mgmt_subdirs$plant,
-    harvest_dir = mgmt_subdirs$harv,
-    tillage_dir = mgmt_subdirs$till,
-    adjust_start = args$start_date,
-    outdir = args$clean_parquet_dir
+  PEcAn.logger::logger.info("Cleaning other management files")
+  callr::rscript(
+    "../../tools/event_prep/01b-clean-other-events.R",
+    cmdargs = cargs(
+      pheno_dir = mgmt_subdirs$pheno,
+      planting_dir = mgmt_subdirs$plant,
+      harvest_dir = mgmt_subdirs$harv,
+      tillage_dir = mgmt_subdirs$till,
+      adjust_start = args$start_date,
+      outdir = args$clean_parquet_dir
+    )
   )
-)
+}
+
 PEcAn.logger::logger.info("converting management files to events")
 callr::rscript(
   "../../tools/event_prep/02-events-to-json-and-sipnet.R",
