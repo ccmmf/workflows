@@ -98,7 +98,7 @@ so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/
 
 
 ```{sh}
-[host_args] ./02_ic_build.R \
+[host_args] ../../workflow/02_ic_build.R \
 	--site_info_path=validation_site_info.csv \
 	--pft_dir=data_raw/pfts \
 	--data_dir=data/IC_prep_val \
@@ -106,7 +106,7 @@ so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/
 
 ../../tools/build_site_info.R --location_file=../../data/design_points.csv
 
-[host_args] ./02_ic_build.R \
+[host_args] ../../workflow/02_ic_build.R \
 	--site_info_path=site_info.csv \
 	--pft_dir=data_raw/pfts \
 	--data_dir=data/IC_prep \
