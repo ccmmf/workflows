@@ -132,7 +132,7 @@ paths:
     settings_xml: "settings.xml"
 
 # Fixed workflow values (not user overrides)
-params_from_pft: "SLA,leafC"
+params_from_pft: "SLA,leafC,leafGrowth"
 additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005"
 
 # S3 resources (not in user config). Remote resources are localized before R runs.

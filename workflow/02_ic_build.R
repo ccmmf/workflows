@@ -409,9 +409,17 @@ ic_samples <- initial_condition_estimated |>
   dplyr::group_by(site_id, variable) |>
   dplyr::group_modify(ic_sample_draws, n = args$ic_ensemble_size) |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
-  dplyr::left_join(pft_var_samples, by = c("site_id", "replicate")) |>
+  dplyr::left_join(pft_var_samples, by = c("site_id", "replicate"))
+
+if (!"leafGrowth" %in% names(ic_samples)) {
+  ic_samples$leafGrowth <- NA_real_
+}
+
+ic_samples <- ic_samples |>
   dplyr::mutate(
-    AbvGrndBiomass = dplyr::if_else(leafGrowth == 0.0, 0, AbvGrndBiomass),
+    AbvGrndBiomass = dplyr::if_else(
+      !is.na(leafGrowth) & leafGrowth == 0.0, 0, AbvGrndBiomass
+    ),
     AbvGrndWood = AbvGrndBiomass * wood_carbon_fraction,
     leaf_carbon_content = tidyr::replace_na(LAI, 0) / SLA * (leafC / 100),
     wood_carbon_content = pmax(AbvGrndWood - leaf_carbon_content, 0)
