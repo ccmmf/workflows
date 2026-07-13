@@ -41,19 +41,13 @@ work on HPC by "just" adding a system-specific prefix, e.g.
 
 ### 0. Copy prebuilt artifacts and set up validation data
 
-TODO. Should include:
-	- PFT definitions including new row crop PFT
-	- ERA5 data as nc (clim conversion runs locally)
-	- ca_half_degree_grid.csv too
-	- data/events/
-	- data_raw/management, copied from s3://carb/management/
-	- DWR map?
-	- initial conditions
-		- Decide: deliver full files, site-level mean/sd, or other?
-	- site_info.csv
-	- validation info. Key constraint: datapoints are private,
-		probably need a "drop into this directory with this format"
-		step. do NOT include validation_site_info.csv
+```sh
+export AWS_PROFILE=magic
+aws s3 sync --exclude='mslsp/*' s3://carb/management/ ./data_raw/management
+aws s3 sync s3://carb/data_raw/ERA5_CA_nc ./data_raw/ERA5_CA_nc
+aws s3 cp s3://carb/data/workflows/phase_3/magic_example3_input_data_20260711.tgz .
+tar xf magic_example3_input_data_20260711.tgz
+```
 
 #### Validation data
 
@@ -82,7 +76,7 @@ TODO: show how to pass n_cores from host_args
 [host_args] ./01_ERA5_nc_to_clim.R \
 	--site_era5_path=data_raw/ERA5_CA_nc \
 	--site_sipnet_met_path=data/ERA5_CA_SIPNET \
-	--site_info_file=data_raw/ERA5_CA_SIPNET/ca_half_degree_grid.csv \
+	--site_info_file=data_raw/ERA5_CA_nc/ca_half_degree_grid.csv \
 	--start_date=2016-01-01 \
 	--end_date=2023-12-31 \
 	--n_cores=7
