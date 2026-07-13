@@ -60,7 +60,7 @@ mgmt_subdirs <- list(
   plant = file.path(args$raw_parquet_dir, "planting/v1.0"),
   harv = file.path(args$raw_parquet_dir, "harvest/v1.0"),
   till = file.path(args$raw_parquet_dir, "tillage/v1.0"),
-  irri = file.path(args$raw_parquet_dir, "irrigation/max_150/irrigation_all"), # "irrigation/v1.0"),
+  irri = file.path(args$raw_parquet_dir, "irrigation/v1.0"),
   fert = NULL, # TODO
   occ = NULL # TODO
 )
