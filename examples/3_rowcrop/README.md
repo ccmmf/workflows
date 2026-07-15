@@ -189,7 +189,7 @@ stage instead of in xml_build.
 
 ```{sh}
 [host_args] ./04_set_up_runs.R --settings=validation_settings.xml
-host_args] ./04_set_up_runs.R --settings=settings.xml
+[host_args] ./04_set_up_runs.R --settings=settings.xml
 ```
 
 ### 5. Run model
