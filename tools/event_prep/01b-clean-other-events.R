@@ -94,24 +94,18 @@ planting <- arrow::open_dataset(planting_files, format = "parquet") |>
     compression = "ZSTD"
   )
 
-# Equation is from PEcAn.data.land::ndti_to_sipnet_tillage,
-# reimplemented here in simpler form so that Arrow's expression parser can
-#  execute it directly as C++ without needing to pull the dataset back into R
-pct_to_tillage <- function (delta_ndti, no_till_threshold = 0.3, slope = 2.5) {
-  pmin(pmax(((delta_ndti/100) - no_till_threshold) * slope,
-            0),
-       1)
-}
-
 message("Writing tillage output")
 tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
   dplyr::filter(
     is.finite(.data$ndti_pct_change),
     .data$ndti_pct_change >= 0
   ) |>
+  dplyr::collect() |> # arrow can't inline ndti_to_sipnet_tillage()
   dplyr::mutate(
     site_id = as.integer(site_id),
-    tillage_eff_0to1 = pct_to_tillage(ndti_pct_change),
+    tillage_eff_0to1 = PEcAn.data.land::ndti_to_sipnet_tillage(
+      ndti_pct_change / 100
+    ),
     date = as.Date(.data$OGMn_date)
   ) |>
   dplyr::select(
