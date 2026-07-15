@@ -23,7 +23,7 @@
   </pft>
   <pft>
    <name>soil</name>
-   <posterior.files>data_raw/pfts/soil/trait.mcmc.RData</posterior.files>
+   <posterior.files>data_raw/pfts/soil/trait.mcmc.Rdata</posterior.files>
   </pft>
  </pfts>
  <ensemble>
