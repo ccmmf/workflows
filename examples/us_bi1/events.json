@@ -1,0 +1,246 @@
+{
+  "pecan_events_version": "0.1.1",
+  "site_id": "US-Bi1",
+  "provenance": {
+    "parcel_id": 328163,
+    "crop": "P1",
+    "member": "ens_001",
+    "generator": "adey2:step3_delta_assemble",
+    "note": "single-member; 2017 synthesized; events filtered to run window"
+  },
+  "events": [
+    {
+      "event_type": "planting",
+      "date": "2017-03-23",
+      "source": "synthesized:median_doy",
+      "crop_code": "P1",
+      "crop_display": "P1",
+      "leaf_c_kg_m2": 0.00994096,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2017-06-18",
+      "source": "synthesized:median_doy",
+      "crop_display": "P1",
+      "frac_above_removed_0to1": 0.75,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-07-16",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-08-03",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-08-24",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-09-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-11-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "planting",
+      "date": "2018-03-24",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "P1",
+      "crop_display": "P1",
+      "leaf_c_kg_m2": 0.00827062
+    },
+    {
+      "event_type": "harvest",
+      "date": "2018-06-22",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "P1",
+      "frac_above_removed_0to1": 0.75
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-10-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "planting",
+      "date": "2019-03-13",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "P1",
+      "crop_display": "P1",
+      "leaf_c_kg_m2": 0.00945953
+    },
+    {
+      "event_type": "harvest",
+      "date": "2019-06-14",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "P1",
+      "frac_above_removed_0to1": 0.75
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-11-01",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "planting",
+      "date": "2020-04-24",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "P1",
+      "crop_display": "P1",
+      "leaf_c_kg_m2": 0.01272326
+    },
+    {
+      "event_type": "harvest",
+      "date": "2020-07-09",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "P1",
+      "frac_above_removed_0to1": 0.75
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-07-19",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-08-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-09-25",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "planting",
+      "date": "2021-04-01",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "P1",
+      "crop_display": "P1",
+      "leaf_c_kg_m2": 0.00846693
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-06-21",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-07-13",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-08-09",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-09-10",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2021-09-27",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "P1",
+      "frac_above_removed_0to1": 0.75
+    },
+    {
+      "event_type": "planting",
+      "date": "2022-01-20",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "P1",
+      "crop_display": "P1",
+      "leaf_c_kg_m2": 0.00653812
+    },
+    {
+      "event_type": "harvest",
+      "date": "2022-05-09",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "P1",
+      "frac_above_removed_0to1": 0.75
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-07-05",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-07-29",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-08-28",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-10-08",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 142.8579,
+      "method": "canopy"
+    },
+    {
+      "event_type": "planting",
+      "date": "2023-03-21",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "P1",
+      "crop_display": "P1",
+      "leaf_c_kg_m2": 0.01418728
+    },
+    {
+      "event_type": "harvest",
+      "date": "2023-05-23",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "P1",
+      "frac_above_removed_0to1": 0.75
+    }
+  ]
+}
