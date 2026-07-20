@@ -553,8 +553,7 @@ run_run_ensembles() {
   check_r_libs_for_step 0
 
   run_script --cwd "$run_dir" "${STEPS[0]}" \
-    --settings "$settings_xml" \
-    --continue "FALSE"
+    --settings "$settings_xml"
 }
 
 # --- Main ---

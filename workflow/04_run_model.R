@@ -12,13 +12,6 @@ options <- list(
       "working directory of the process that invokes run_model.R,",
       "not relative to the settings file path"
     )
-  ),
-  optparse::make_option(c("-c", "--continue"),
-    default = FALSE,
-    help = paste(
-      "Attempt to pick up in the middle of a previously interrupted workflow?",
-      "Does not work reliably. Use at your own risk"
-    )
   )
 ) |>
   # Show default values in help message
@@ -50,20 +43,19 @@ options(error = quote({
 library("PEcAn.all")
 
 
-# Report package versions for provenance
-PEcAn.all::pecan_version()
-
 # Open and read in settings file for PEcAn run.
 settings <- PEcAn.settings::read.settings(args$settings)
+
+# Report package and model versions for provenance
+PEcAn.all::pecan_version()
+PEcAn.logger::logger.info(system2(settings$model$binary, "-v", stdout = TRUE))
 
 if (!dir.exists(settings$outdir)) {
   dir.create(settings$outdir, recursive = TRUE)
 }
 
-
-# start from scratch if no continue is passed in
 status_file <- file.path(settings$outdir, "STATUS")
-if (args$continue && file.exists(status_file)) {
+if (file.exists(status_file)) {
   file.remove(status_file)
 }
 

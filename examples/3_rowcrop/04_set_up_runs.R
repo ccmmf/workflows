@@ -56,10 +56,25 @@ PEcAn.logger::logger.setLevel("WARN")
 
 PEcAn.utils::status.start("DESIGN")
 ens_design <- PEcAn.uncertainty::generate_joint_ensemble_design(
-  settings[[1]],
-  settings$ensemble$size
-)$X
-write.csv(ens_design, file.path(settings$outdir, "input_design.csv"))
+  settings = settings[[1]],
+  ensemble_size = settings$ensemble$size
+)
+write.csv(ens_design$X, file.path(settings$outdir, "input_design.csv"))
+
+# Temporary hack:
+# generate_joint_ensemble_design used to write samples.Rdata as a side effect,
+# but recently changed to include the samples in its return value instead.
+# Passing these directly to runModule.run.write.configs and
+# write_segmented_configs is still to be implemented on the PEcAn side;
+# meanwhile we write them back out to disk (which is handy for post-run
+# provenance too).
+sample_env <- list2env(ens_design$samples)
+save(
+  list = ls(sample_env),
+  envir = sample_env,
+  file = file.path(settings$outdir, "samples.Rdata")
+)
+
 settings$ensemble$id <- rlang::hash(ens_design)
 PEcAn.utils::status.end()
 
@@ -68,7 +83,7 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
   PEcAn.utils::status.start("CONFIG")
   settings <- PEcAn.workflow::runModule.run.write.configs(
     settings,
-    input_design = ens_design
+    input_design = ens_design$X
   )
   PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
   PEcAn.utils::status.end()
@@ -77,6 +92,6 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
 PEcAn.utils::status.start("CONFIG_SEGMENTS")
 run_script_paths <- papply(
   settings,
-  \(s) PEcAn.SIPNET::write_segmented_configs.SIPNET(s, ens_design)
+  \(s) PEcAn.SIPNET::write_segmented_configs.SIPNET(s, ens_design$X)
 )
 PEcAn.utils::status.end()

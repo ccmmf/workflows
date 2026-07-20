@@ -41,19 +41,13 @@ work on HPC by "just" adding a system-specific prefix, e.g.
 
 ### 0. Copy prebuilt artifacts and set up validation data
 
-TODO. Should include:
-	- PFT definitions including new row crop PFT
-	- ERA5 data as nc (clim conversion runs locally)
-	- ca_half_degree_grid.csv too
-	- data/events/
-	- data_raw/management, copied from s3://carb/management/
-	- DWR map?
-	- initial conditions
-		- Decide: deliver full files, site-level mean/sd, or other?
-	- site_info.csv
-	- validation info. Key constraint: datapoints are private,
-		probably need a "drop into this directory with this format"
-		step. do NOT include validation_site_info.csv
+```sh
+export AWS_PROFILE=magic
+aws s3 sync --exclude='mslsp/*' s3://carb/management/ ./data_raw/management
+aws s3 sync s3://carb/data_raw/ERA5_CA_nc ./data_raw/ERA5_CA_nc
+aws s3 cp s3://carb/data/workflows/phase_3/magic_example3_input_data_20260711.tgz .
+tar xf magic_example3_input_data_20260711.tgz
+```
 
 #### Validation data
 
@@ -82,7 +76,7 @@ TODO: show how to pass n_cores from host_args
 [host_args] ./01_ERA5_nc_to_clim.R \
 	--site_era5_path=data_raw/ERA5_CA_nc \
 	--site_sipnet_met_path=data/ERA5_CA_SIPNET \
-	--site_info_file=data_raw/ERA5_CA_SIPNET/ca_half_degree_grid.csv \
+	--site_info_file=data_raw/ERA5_CA_nc/ca_half_degree_grid.csv \
 	--start_date=2016-01-01 \
 	--end_date=2023-12-31 \
 	--n_cores=7
@@ -98,7 +92,7 @@ so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/
 
 
 ```{sh}
-[host_args] ./02_ic_build.R \
+[host_args] ../../workflow/02_ic_build.R \
 	--site_info_path=validation_site_info.csv \
 	--pft_dir=data_raw/pfts \
 	--data_dir=data/IC_prep_val \
@@ -106,7 +100,7 @@ so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/
 
 ../../tools/build_site_info.R --location_file=../../data/design_points.csv
 
-[host_args] ./02_ic_build.R \
+[host_args] ../../workflow/02_ic_build.R \
 	--site_info_path=site_info.csv \
 	--pft_dir=data_raw/pfts \
 	--data_dir=data/IC_prep \
@@ -122,11 +116,13 @@ Future versions of the event_build script may support passing separate paths per
 ```{sh}
 [host_args] ./02a_build_events.R \
   --site_info_path=validation_site_info.csv \
-  --mgmt_file_dir=data_raw/management \
+  --raw_parquet_dir=data_raw/management \
   --event_outdir=data/val_events
+# empty raw_parquet_dir to avoid redoing cleaning already done for val
+# (Cleaning runs on whole statewide file, not just selected sites)
 [host_args] ./02a_build_events.R \
   --site_info_path=site_info.csv \
-  --mgmt_file_dir=data_raw/management \
+  --raw_parquet_dir='' \
   --event_outdir=data/events
 ```
 
@@ -193,7 +189,7 @@ stage instead of in xml_build.
 
 ```{sh}
 [host_args] ./04_set_up_runs.R --settings=validation_settings.xml
-host_args] ./04_set_up_runs.R --settings=settings.xml
+[host_args] ./04_set_up_runs.R --settings=settings.xml
 ```
 
 ### 5. Run model

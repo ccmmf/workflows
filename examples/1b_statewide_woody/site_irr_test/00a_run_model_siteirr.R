@@ -13,8 +13,7 @@ if (length(raw_args) == 2) {
     raw_args[[1]] == "--settings",
     grepl(".xml$", raw_args[[2]]))
   args <- list(
-    settings = raw_args[[2]],
-    continue = FALSE)
+    settings = raw_args[[2]])
 } else if (length(raw_args) == 4) {
   stopifnot(
     raw_args[[1]] == "--settings",
@@ -23,8 +22,7 @@ if (length(raw_args) == 2) {
     dir.exists(raw_args[[4]]))
   args <- list(
     settings = raw_args[[2]],
-    event_dir = raw_args[[4]],
-    continue = FALSE)
+    event_dir = raw_args[[4]])
 } else {
   stop("Bad script arguments")
 }
@@ -55,10 +53,10 @@ if (!dir.exists(settings$outdir)) {
 }
 
 
-# start from scratch if no continue is passed in
+# Do not attempt to continue an existing run (it breaks in weird ways)
 status_file <- file.path(settings$outdir, "STATUS")
-if (args$continue && file.exists(status_file)) {
-  file.remove(status_file)
+if (file.exists(status_file)) {
+  PEcAn.logger::logger.severe("A run has already been started in this directory")
 }
 
 

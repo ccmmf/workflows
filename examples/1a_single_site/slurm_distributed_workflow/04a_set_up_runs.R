@@ -12,7 +12,7 @@ library("PEcAn.all")
 #
 # Simpler approaches that may work as well:
 # - If you only plan to run this with one settings file, hard-code it here
-#     as args <- list(settings = "/path/to/single_site_almond.xml", continue = FALSE)
+#     as args <- list(settings = "/path/to/single_site_almond.xml")
 # - To accept the settings file as an argument but with less typing,
 #   edit this to args$settings <- commandArgs(trailingOnly = TRUE)[[1]]
 args <- get_args()
@@ -45,10 +45,10 @@ if (!dir.exists(settings$outdir)) {
 }
 
 
-# start from scratch if no continue is passed in
+# Do not attempt to continue an existing run (it breaks in weird ways)
 status_file <- file.path(settings$outdir, "STATUS")
-if (args$continue && file.exists(status_file)) {
-  file.remove(status_file)
+if (file.exists(status_file)) {
+  PEcAn.logger::logger.severe("A run has already been started in this directory")
 }
 
 

@@ -79,16 +79,25 @@ for (i in seq_len(nrow(events_files))) {
   # For today let's go with what's easy
   ensdir <- file.path(args$event_dir, events_files[["ensemble_id"]][[i]])
   PEcAn.SIPNET::write.events.SIPNET(path, ensdir)
+
+  # Write CSVs of crop changes, used to pick restart times later.
+  # Sites with no changes drop out of the events_to_crop_cycle_starts result;
+  # we add them back to write a zero-row CSV for these sites.
   PEcAn.data.land::events_to_crop_cycle_starts(path) |>
+    dplyr::full_join(
+      data.frame(site_id = as.character(site_ids)),
+      by = "site_id"
+    ) |>
     dplyr::group_by(site_id) |>
     dplyr::group_walk(~write.csv(
-      .x,
+      .x |> tidyr::drop_na(),
       file = file.path(
         ensdir,
         paste0("cycles-", .y$site_id, ".csv")
       ),
       row.names = FALSE
     ))
+
   utils::setTxtProgressBar(pb, i)
 }
 close(pb)
