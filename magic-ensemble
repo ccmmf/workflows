@@ -447,7 +447,8 @@ patch_xml_block() {
   fi
   xml_block=$(yq eval "$yq_path" "$MANIFEST" \
     | sed "s|@SIF@|./${sif_name}|g" \
-    | sed "s|@PARTITION@|${partition_flag}|g")
+    | sed "s|@PARTITION@|${partition_flag}|g" \
+    | sed "s|@SIPNET_BINARY@|${run_dir}/sipnet.git|g")
 
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
