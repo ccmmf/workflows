@@ -1,15 +1,17 @@
 name: Test Example 2a (Conda)
 
-# Runs the 2a grass example end-to-end using a conda-pack environment fetched
-# from S3 for R (no Apptainer), with Slurm dispatch for ensemble members.
+# Runs the 2a grass example end-to-end using a pre-built pecan-all conda
+# environment for R (no Apptainer), with Slurm dispatch for ensemble members.
+# This workflow does not build the environment — it must already exist at
+# $RUNNER_TOOL_CACHE/pecan-all-<version> on the runner.
 # Requires a self-hosted runner with Slurm and the aws CLI.
 
 on:
   workflow_dispatch:
     inputs:
       pecan_env_version:
-        description: 'pecan-all conda-pack version (e.g. 1.10)'
-        default: '1.10'
+        description: 'pecan-all conda env version (e.g. 1.11)'
+        default: '1.11'
         required: false
   push:
     branches: [main]
@@ -23,7 +25,7 @@ on:
       - '.github/ci/site_info_2a.csv'
 
 env:
-  PECAN_ENV_VERSION: ${{ github.event.inputs.pecan_env_version || '1.10' }}
+  PECAN_ENV_VERSION: ${{ github.event.inputs.pecan_env_version || '1.11' }}
   CONFIG: .github/ci/example_2a_conda_config.yaml
 
 jobs:
@@ -41,18 +43,23 @@ jobs:
         with:
           submodules: false
 
-      - name: Setup conda environment
+      - name: Locate conda environment
         run: |
-          aws s3 cp s3://carb/deploy/setup-pecan-env.sh setup-pecan-env.sh \
-            --endpoint-url https://s3.garage.ccmmf.ncsa.cloud
-          bash setup-pecan-env.sh "${PECAN_ENV_VERSION}" ./conda-env
-          echo "RETICULATE_PYTHON=${GITHUB_WORKSPACE}/conda-env/bin/python" >> "$GITHUB_ENV"
+          PECAN_ENV_PATH="${RUNNER_TOOL_CACHE}/pecan-all-${PECAN_ENV_VERSION}"
+          if [[ ! -d "${PECAN_ENV_PATH}" ]]; then
+            echo "::error::No pecan-all conda environment found for version ${PECAN_ENV_VERSION} at ${PECAN_ENV_PATH}."
+            echo "Set it up there before dispatching this workflow with pecan_env_version=${PECAN_ENV_VERSION}."
+            exit 1
+          fi
+          echo "Using pecan-all ${PECAN_ENV_VERSION} at ${PECAN_ENV_PATH}"
+          echo "PECAN_ENV_PATH=${PECAN_ENV_PATH}" >> "$GITHUB_ENV"
+          echo "RETICULATE_PYTHON=${PECAN_ENV_PATH}/bin/python" >> "$GITHUB_ENV"
 
       - name: Get demo data
         run: |
           set +u
           eval "$(conda shell.bash hook)"
-          conda activate ./conda-env
+          conda activate "${PECAN_ENV_PATH}"
           set -u
           ./magic-ensemble get-demo-data --verbose --config "$CONFIG"
 
@@ -60,7 +67,7 @@ jobs:
         run: |
           set +u
           eval "$(conda shell.bash hook)"
-          conda activate ./conda-env
+          conda activate "${PECAN_ENV_PATH}"
           set -u
           ./magic-ensemble prepare-example-2a --verbose --config "$CONFIG"
 
@@ -68,10 +75,10 @@ jobs:
         run: |
           set +u
           eval "$(conda shell.bash hook)"
-          conda activate ./conda-env
+          conda activate "${PECAN_ENV_PATH}"
           set -u
           ./magic-ensemble run-ensembles --verbose --config "$CONFIG"
 
       - name: Cleanup
         if: always()
-        run: rm -rf ci-2a-conda-rundir conda-env setup-pecan-env.sh
+        run: rm -rf ci-2a-conda-rundir
