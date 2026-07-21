@@ -165,6 +165,7 @@ pecan_dispatch:
              <name>localhost</name>
              <outdir>output/out</outdir>
              <rundir>output/run</rundir>
+             <prerun>@BINARY@ --version</prerun>
              <qstat>squeue -j @JOBID@ || echo DONE</qstat>
              <modellauncher>
               <binary>parallel --will-cite -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
@@ -176,6 +177,7 @@ pecan_dispatch:
              <name>localhost</name>
              <outdir>output/out</outdir>
              <rundir>output/run</rundir>
+             <prerun>@BINARY@ --version</prerun>
              <qstat>squeue -j @JOBID@ || echo DONE</qstat>
              <modellauncher>
               <binary>parallel --will-cite -j ${NCPUS:-1} --skip-first-line 'apptainer run @SIF@ {}/job.sh' ::::</binary>
@@ -187,6 +189,7 @@ pecan_dispatch:
         host_xml: |
             <host>
              <name>localhost</name>
+             <prerun>@BINARY@ --version</prerun>
              <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @PARTITION@</qsub>
              <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
              <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
@@ -196,6 +199,7 @@ pecan_dispatch:
         host_xml_apptainer: |
             <host>
              <name>localhost</name>
+             <prerun>@BINARY@ --version</prerun>
              <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @PARTITION@ apptainer run @SIF@ </qsub>
              <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
              <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>

@@ -72,6 +72,7 @@
   <name>localhost</name>
   <outdir><!-- altered at config time -->output/out</outdir>
   <rundir><!-- altered at config time -->output/run</rundir>
+  <prerun>@BINARY@ --version</prerun>
   <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
   <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>
