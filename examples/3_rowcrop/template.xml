@@ -72,10 +72,10 @@
   <name>localhost</name>
   <outdir><!-- altered at config time -->output/out</outdir>
   <rundir><!-- altered at config time -->output/run</rundir>
+  <prerun>@BINARY@ --version</prerun>
   <!-- <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@</qsub> -->
   <!-- <qsub.jobid>.*job ([0-9]+).*</qsub.jobid> -->
   <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-  <prerun>@BINARY@ --version</prerun>
   <modellauncher>
     <binary>parallel -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
     <!-- <qsub.extra>-a 1-@NJOBS@</qsub.extra> -->
