@@ -67,6 +67,7 @@
  </run>
  <host>
   <name>localhost</name>
+  <prerun>@BINARY@ --version</prerun>
   <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ apptainer run ./sipnet-carb_develop.sif </qsub>
   <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
   <!-- <qstat>squeue -h -j  @JOBID@ || echo "DONE"</qstat> -->
