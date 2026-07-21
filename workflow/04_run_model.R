@@ -48,7 +48,6 @@ settings <- PEcAn.settings::read.settings(args$settings)
 
 # Report package and model versions for provenance
 PEcAn.all::pecan_version()
-PEcAn.logger::logger.info(system2(settings$model$binary, "-v", stdout = TRUE))
 
 if (!dir.exists(settings$outdir)) {
   dir.create(settings$outdir, recursive = TRUE)

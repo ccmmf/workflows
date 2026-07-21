@@ -267,6 +267,28 @@ ensure_sif_present() {
   APPTAINER_SIF="$sif_path"
 }
 
+# --- Minimal log line, styled loosely after PEcAn.logger output ---
+log_info() {
+  printf '%s %s : %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "INFO" "$1"
+}
+
+# --- Prepare summary: SIF/sipnet/R versions, printed after a successful prepare ---
+report_prepare_summary() {
+  local sipnet_version r_version sif_tag
+  r_version=$(Rscript --version 2>&1 | head -1)
+
+  if [[ $use_apptainer -eq 1 ]]; then
+    sif_tag=$(yq eval '.apptainer.tag' "$MANIFEST")
+    sipnet_version=$(apptainer run "$APPTAINER_SIF" sipnet.git -v 2>&1 | head -1)
+    log_info "SIF: ${APPTAINER_SIF} (tag ${sif_tag})"
+  else
+    sipnet_version=$("${run_dir}/sipnet.git" -v 2>&1 | head -1)
+  fi
+
+  log_info "sipnet version: ${sipnet_version}"
+  log_info "R version: ${r_version}"
+}
+
 # --- Get list of script paths for current command (from manifest steps) ---
 get_steps() {
   yq eval '.steps["'"$COMMAND"'"] | .[].script' "$MANIFEST"
@@ -447,7 +469,8 @@ patch_xml_block() {
   fi
   xml_block=$(yq eval "$yq_path" "$MANIFEST" \
     | sed "s|@SIF@|./${sif_name}|g" \
-    | sed "s|@PARTITION@|${partition_flag}|g")
+    | sed "s|@PARTITION@|${partition_flag}|g" \
+    | sed "s|@SIPNET_BINARY@|${run_dir}/sipnet.git|g")
 
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
@@ -537,6 +560,7 @@ run_prepare() {
     echo "magic-ensemble: prepare step $step_num completed"
   done
   echo "magic-ensemble: prepare finished (all ${#STEPS[@]} steps)"
+  report_prepare_summary
 }
 
 # --- Run-ensembles: run single step from manifest (04); never inside Apptainer.
