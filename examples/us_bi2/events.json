@@ -1,0 +1,236 @@
+{
+  "pecan_events_version": "0.1.1",
+  "site_id": "US-Bi2",
+  "provenance": {
+    "parcel_id": 565118,
+    "member": "ens_001",
+    "generator": "adey2:step3_assemble_events",
+    "note": "single-member; 2017 synthesized (corn); irrigation zeros are real; flood config handled separately"
+  },
+  "events": [
+    {
+      "event_type": "planting",
+      "date": "2016-06-01",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "G2",
+      "crop_display": "G2",
+      "leaf_c_kg_m2": 0.02079758
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2016-06-25",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.01311958,
+      "no3_n_kg_m2": 0.01311958,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "harvest",
+      "date": "2016-09-23",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "G2",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "planting",
+      "date": "2017-05-04",
+      "source": "synthesized:median_doy(2018-2023 F16)",
+      "crop_code": "F16",
+      "crop_display": "F16",
+      "leaf_c_kg_m2": 0.01999472,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2017-06-08",
+      "source": "synthesized:median_doy(2018-2023 F16)",
+      "nh4_n_kg_m2": 0.0121744,
+      "no3_n_kg_m2": 0.0121744,
+      "org_n_kg_m2": 0,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2017-10-13",
+      "source": "synthesized:median_doy(2018-2023 F16)",
+      "crop_display": "F16",
+      "frac_above_removed_0to1": 0.8,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "planting",
+      "date": "2018-04-09",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "F16",
+      "crop_display": "F16",
+      "leaf_c_kg_m2": 0.01868568
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2018-07-02",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.01156293,
+      "no3_n_kg_m2": 0.01156293,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "harvest",
+      "date": "2018-10-08",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "F16",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "planting",
+      "date": "2019-02-05",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "G6",
+      "crop_display": "G6",
+      "leaf_c_kg_m2": 0.0070965
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2019-03-05",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.01074077,
+      "no3_n_kg_m2": 0.01074077,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2019-03-05",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00641738,
+      "no3_n_kg_m2": 0.00641738,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "planting",
+      "date": "2019-05-17",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "F16",
+      "crop_display": "F16",
+      "leaf_c_kg_m2": 0.0198329
+    },
+    {
+      "event_type": "harvest",
+      "date": "2019-05-22",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "G6",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "harvest",
+      "date": "2019-10-03",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "F16",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "planting",
+      "date": "2020-04-05",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "F16",
+      "crop_display": "F16",
+      "leaf_c_kg_m2": 0.02110408
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2020-06-07",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00858245,
+      "no3_n_kg_m2": 0.00858245,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "harvest",
+      "date": "2020-09-23",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "F16",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "planting",
+      "date": "2021-05-03",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "F16",
+      "crop_display": "F16",
+      "leaf_c_kg_m2": 0.02151273
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2021-06-08",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.01391238,
+      "no3_n_kg_m2": 0.01391238,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-09-08",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 124.1428,
+      "method": "canopy"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2021-10-21",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "F16",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "planting",
+      "date": "2022-05-14",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "F16",
+      "crop_display": "F16",
+      "leaf_c_kg_m2": 0.02100643
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2022-06-07",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.01387999,
+      "no3_n_kg_m2": 0.01387999,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-10-16",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 124.1428,
+      "method": "canopy"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2022-10-19",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "F16",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "planting",
+      "date": "2023-05-05",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "F16",
+      "crop_display": "F16",
+      "leaf_c_kg_m2": 0.01782648
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2023-06-22",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.0143679,
+      "no3_n_kg_m2": 0.0143679,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "harvest",
+      "date": "2023-11-03",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "F16",
+      "frac_above_removed_0to1": 0.8
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+run_dir: "/projectnb2/dietzelab/ccmmf/usr/adey2/runs/salinas-socs"
+
+start_date: "2003-01-01"
+end_date:   "2011-12-31"
+run_LAI_date: "2003-07-01"
+
+n_ens: 20
+n_met: 10
+ic_ensemble_size: 100
+
+external_paths:
+    template_file: "workflow/template.xml"
+    site_info_file: "examples/salinas_socs/salinas_site_info.csv"
+
+n_workers: 1
+use_apptainer: false
+pecan_dispatch: slurm-dispatch

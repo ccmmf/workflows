@@ -1,0 +1,1144 @@
+{
+  "pecan_events_version": "0.1.1",
+  "site_id": "US-Twt",
+  "provenance": {
+    "parcel_id": 590073,
+    "crop": "R1",
+    "member": "ens_001",
+    "generator": "adey2:step3_delta_assemble",
+    "note": "single-member; 2017 synthesized; events filtered to run window"
+  },
+  "events": [
+    {
+      "event_type": "planting",
+      "date": "2017-05-20",
+      "source": "synthesized:median_doy",
+      "crop_code": "R1",
+      "crop_display": "R1",
+      "leaf_c_kg_m2": 0.02618692,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2017-07-05",
+      "source": "synthesized:median_doy",
+      "nh4_n_kg_m2": 0.00572063,
+      "no3_n_kg_m2": 0.00572063,
+      "org_n_kg_m2": 0.00310691,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-07-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-08-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-09-09",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2017-10-09",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2017-11-14",
+      "source": "synthesized:median_doy",
+      "crop_display": "R1",
+      "frac_above_removed_0to1": 0.8,
+      "prior_filled": "date<-synthesized:2017_excluded_year"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2018-02-02",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0,
+      "no3_n_kg_m2": 0,
+      "org_n_kg_m2": 0.01864148
+    },
+    {
+      "event_type": "planting",
+      "date": "2018-05-23",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "R1",
+      "crop_display": "R1",
+      "leaf_c_kg_m2": 0.02478044
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-05-30",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.7997,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-06-07",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.2761,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-06-14",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.6142,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-06-22",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.7394,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-06-29",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.5725,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-07-06",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 65.7156,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-07-13",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.6476,
+      "method": "flood"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2018-07-15",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00649159,
+      "no3_n_kg_m2": 0.00649159,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-07-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.0214,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-07-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.6319,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-08-04",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 75.2596,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-08-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.4969,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-08-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.9684,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-08-29",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.6796,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-09-07",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.4078,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-09-18",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.7569,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-09-30",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.1332,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-10-15",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.2611,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-11-01",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.6284,
+      "method": "flood"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2018-11-15",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "R1",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2018-11-21",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.5282,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-04-07",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.744,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-04-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.395,
+      "method": "flood"
+    },
+    {
+      "event_type": "planting",
+      "date": "2019-04-24",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "R1",
+      "crop_display": "R1",
+      "leaf_c_kg_m2": 0.02443199
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-04-26",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 74.1261,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-05-04",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.373,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-05-13",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.7986,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-05-28",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.9608,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-06-05",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 74.9693,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-06-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.3684,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-06-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.3396,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-06-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.7662,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-07-05",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 74.015,
+      "method": "flood"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2019-07-07",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00704283,
+      "no3_n_kg_m2": 0.00704283,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-07-13",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 74.7882,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-07-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.9112,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-07-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.3846,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-08-03",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.6065,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-08-11",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.1568,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-08-19",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.3104,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-08-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.0404,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-09-05",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.147,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-09-15",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.4355,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-09-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.3727,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-10-11",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 65.6321,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-10-26",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.9053,
+      "method": "flood"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2019-10-27",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "R1",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2019-11-10",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.806,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-01-26",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.4594,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-02-11",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.4314,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-02-24",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.2111,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-03-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.1984,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-03-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.0369,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-04-13",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.7213,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-04-22",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.0469,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-04-30",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.6486,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-05-08",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.3808,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-05-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.6573,
+      "method": "flood"
+    },
+    {
+      "event_type": "planting",
+      "date": "2020-05-19",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "R1",
+      "crop_display": "R1",
+      "leaf_c_kg_m2": 0.02455947
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-05-25",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.7809,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-06-02",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.5187,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-06-09",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.4658,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-06-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.3862,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-06-24",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.243,
+      "method": "flood"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2020-06-29",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00625163,
+      "no3_n_kg_m2": 0.00625163,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-07-01",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.8595,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-07-08",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.6418,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-07-15",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.9668,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-07-23",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.5631,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-07-30",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.7632,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-08-07",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.8226,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-08-14",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.2928,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-08-21",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.4078,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-08-29",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.5837,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-09-07",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.1525,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-09-18",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 65.8669,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-09-30",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.15,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-10-16",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.7271,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-10-31",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.2225,
+      "method": "flood"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2020-11-13",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "R1",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-11-23",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.2363,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2020-12-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.0158,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-01-18",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 65.6257,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-02-23",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.4421,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-03-08",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.2578,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-03-24",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.2421,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-04-02",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.2136,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-04-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.9601,
+      "method": "flood"
+    },
+    {
+      "event_type": "planting",
+      "date": "2021-04-19",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "R1",
+      "crop_display": "R1",
+      "leaf_c_kg_m2": 0.02333066
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-04-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.2792,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-04-29",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.6252,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-05-06",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.5813,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-05-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.0749,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-05-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.7709,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-05-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.5229,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-06-03",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.9647,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-06-10",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 65.9035,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-06-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.5423,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-06-24",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.8923,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-07-01",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.0563,
+      "method": "flood"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2021-07-05",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00765569,
+      "no3_n_kg_m2": 0.00765569,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-07-08",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.5666,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-07-15",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.2098,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-07-22",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.1076,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-07-29",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.9869,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-08-05",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.4307,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-08-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 65.6285,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-08-20",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.5248,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-08-28",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 65.6551,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-09-06",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.7828,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-09-15",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.2249,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-09-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.3977,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-10-11",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.7402,
+      "method": "flood"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2021-11-14",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "R1",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2021-12-06",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.6931,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-02-02",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.6475,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-02-16",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.2488,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-03-02",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.7824,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-03-13",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.2365,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-03-25",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.8172,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-04-06",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.9165,
+      "method": "flood"
+    },
+    {
+      "event_type": "planting",
+      "date": "2022-04-08",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "G2",
+      "crop_display": "G2",
+      "leaf_c_kg_m2": 0.01151624
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-04-08",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-04-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2022-05-02",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00574111,
+      "no3_n_kg_m2": 0.00574111,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-07-11",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2022-09-25",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 157.4418,
+      "method": "canopy"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2022-10-25",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "G2",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "planting",
+      "date": "2023-05-27",
+      "source": "monitoring_product:planting/v1.0",
+      "crop_code": "R1",
+      "crop_display": "R1",
+      "leaf_c_kg_m2": 0.03383203
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-06-02",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.8159,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-06-11",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.7622,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-06-19",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 72.0665,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-06-27",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.742,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-07-04",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.4517,
+      "method": "flood"
+    },
+    {
+      "event_type": "fertilization",
+      "date": "2023-07-05",
+      "source": "akash:fertilization.parquet",
+      "nh4_n_kg_m2": 0.00688203,
+      "no3_n_kg_m2": 0.00688203,
+      "org_n_kg_m2": 0
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-07-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 71.7926,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-07-19",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.5127,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-07-26",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.093,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-08-03",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.6366,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-08-11",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 73.1068,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-08-18",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.1367,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-08-26",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 67.0375,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-09-04",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.1861,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-09-14",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 68.5631,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-09-26",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.78,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-10-12",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 70.1513,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-10-29",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 69.3803,
+      "method": "flood"
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-11-17",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.1297,
+      "method": "flood"
+    },
+    {
+      "event_type": "harvest",
+      "date": "2023-11-26",
+      "source": "monitoring_product:harvest/v1.0",
+      "crop_display": "R1",
+      "frac_above_removed_0to1": 0.8
+    },
+    {
+      "event_type": "irrigation",
+      "date": "2023-12-13",
+      "source": "monitoring_product:irrigation/v1.1",
+      "amount_mm": 66.5396,
+      "method": "flood"
+    }
+  ]
+}
