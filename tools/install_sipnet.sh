@@ -18,6 +18,13 @@ if [[ $# -lt 3 ]]; then
   exit 1
 fi
 
+# Likely only relevant on Macs: BSD's realpath does not have a -m option.
+# Bailing to skip the mild annoyance of writing a portable workaround.
+if [[ -z $(realpath -m / 2> /dev/null) ]]; then
+  echo "install_sipnet: 'realpath -m' required but not available. Stopping."
+  exit 1
+fi
+
 SIPNET_SRC="$1"
 BIN_DIR="$2"
 LINK_DEST="$3"
