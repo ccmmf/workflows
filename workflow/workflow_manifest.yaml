@@ -19,7 +19,7 @@ steps:
         - script: "workflow/00_fetch_s3_and_prepare_run_dir.sh"
           r_libraries: []
           inputs: []
-          outputs: [data_dir, ic_outdir, site_sipnet_met_path]
+          outputs: [data_dir, ic_outdir, site_sipnet_met_path, management_raw_dir]
 
     prepare:
         - script: "workflow/00_stage_external_inputs.sh"
@@ -105,6 +105,39 @@ steps:
           inputs: [site_file, template_file, ic_dir, met_dir]
           outputs: [output_file]
 
+    prepare-example-3:
+        - script: "workflow/00_stage_external_inputs.sh"
+          r_libraries: []
+          inputs: []
+          outputs: []
+
+        - script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
+          r_libraries: [future, furrr]
+          inputs: [site_info_file, site_era5_path]
+          outputs: [site_sipnet_met_path]
+
+        - script: "workflow/02_ic_build.R"
+          r_libraries: [tidyverse]
+          inputs:
+              [
+                  site_info_file,
+                  field_shape_path,
+                  pft_dir,
+                  data_dir,
+                  landtrendr_raw_files,
+              ]
+          outputs: [ic_outdir, data_dir]
+
+        - script: "examples/3_rowcrop/02a_build_events.R"
+          r_libraries: [tidyverse, callr]
+          inputs: [site_info_file, management_raw_dir]
+          outputs: [management_clean_dir, event_dir]
+
+        - script: "examples/3_rowcrop/03_xml_build.R"
+          r_libraries: [PEcAn.settings]
+          inputs: [site_file, template_file, ic_dir, met_dir, event_dir]
+          outputs: [output_file]
+
     run-ensembles:
         - script: "workflow/04_run_model.R"
           r_libraries: [PEcAn.all]
@@ -118,11 +151,11 @@ steps:
 paths:
     site_info_file: "site_info.csv"
     site_sipnet_met_path: "data/ERA5_SIPNET"
-    site_era5_path: "data_raw/ERA5_nc"
-    field_shape_path: "data_raw/dwr_map/i15_Crop_Mapping_2018.gdb"
+    site_era5_path: "data_raw/ERA5_CA_nc"
+    field_shape_path: "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
     data_dir: "data/IC_prep"
     ic_outdir: "IC_files"
-    pft_dir: "pfts"
+    pft_dir: "data_raw/pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
     site_file: "site_info.csv"
     template_file: "template.xml"
@@ -130,9 +163,12 @@ paths:
     met_dir: "data/ERA5_SIPNET"
     ic_dir: "IC_files"
     settings_xml: "settings.xml"
+    management_raw_dir: "data_raw/management"
+    management_clean_dir: "data/management_ensembles"
+    event_dir: "data/events"
 
 # Fixed workflow values (not user overrides)
-params_from_pft: "SLA,leafC"
+params_from_pft: "SLA,leafC,leafGrowth"
 additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005"
 
 # S3 resources (not in user config). Remote resources are localized before R runs.
@@ -152,6 +188,22 @@ s3:
     soil_moisture_tgz:
         key_prefix: "data_raw"
         filename: "moisture_20160101_20160110.tgz"
+    example3_input_data_tgz:
+        key_prefix: "data/workflows/phase_3"
+        filename: "magic_example3_input_data_20260714.tgz"
+    era5_ca_nc_tgz:
+        key_prefix: "data_raw"
+        filename: "ERA5_CA_nc_2016_2024.tgz"
+    parcels_gpkg:
+        key_prefix: "management/crops/v4.1"
+        filename: "parcels-consolidated.gpkg"
+    crops_all_years_parq:
+        key_prefix: "management/crops/v4.1"
+        filename: "crops_all_years.parq"
+    management_events:
+        # Synced (not cp'd) directly into paths.management_raw_dir; excludes
+        # mslsp/ (unused) and crops/ (covered by parcels_gpkg/crops_all_years_parq above).
+        key_prefix: "management"
 
 # Dispatch options for run-ensembles. The user config selects one by name via pecan_dispatch.
 # host_xml is the complete <host>...</host> block to inject into the staged template.xml

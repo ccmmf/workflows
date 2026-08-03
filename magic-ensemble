@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # magic-ensemble: minimal CLI for CCMMF ensemble workflows.
 # Usage: ./magic-ensemble <command> [--verbose] --config <path>
-# Commands: help | get-demo-data | prepare | prepare-example-1b | prepare-example-2a | run-ensembles
+# Commands: help | get-demo-data | prepare | prepare-example-1b | prepare-example-2a | prepare-example-3 | run-ensembles
 
 set -euo pipefail
 
@@ -21,6 +21,7 @@ Commands:
   prepare               Run canonical preparation steps using workflow/ scripts.
   prepare-example-1b    Run preparation steps using the 1b statewide woody crops example scripts.
   prepare-example-2a    Run preparation steps using the 2a grass example scripts.
+  prepare-example-3     Run preparation steps using the 3 row crop example scripts (adds a management-events step).
   run-ensembles         Run step 04 (run model) using existing settings.xml and prepared inputs.
 
 Global options (after command):
@@ -34,6 +35,7 @@ Examples:
   ./magic-ensemble prepare --config my_config.yaml --verbose
   ./magic-ensemble prepare-example-2a --config examples/2a_grass/example_user_config.yaml
   ./magic-ensemble prepare-example-1b --config examples/1b_statewide_woody/example_user_config.yaml
+  ./magic-ensemble prepare-example-3 --config examples/3_rowcrop/example_user_config.yaml
   ./magic-ensemble run-ensembles --config my_config.yaml
 EOF
 }
@@ -56,7 +58,7 @@ VERBOSE=0
 CONFIG_FILE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    help|get-demo-data|prepare|prepare-example-1b|prepare-example-2a|run-ensembles)
+    help|get-demo-data|prepare|prepare-example-1b|prepare-example-2a|prepare-example-3|run-ensembles)
       if [[ -z "$COMMAND" ]]; then COMMAND="$1"; shift; continue; fi
       ;;
     --verbose)   VERBOSE=1; shift; continue ;;
@@ -86,7 +88,7 @@ if [[ -z "$COMMAND" || "$COMMAND" == "help" ]]; then
   exit 0
 fi
 
-if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "prepare-example-1b" && "$COMMAND" != "prepare-example-2a" && "$COMMAND" != "run-ensembles" ]]; then
+if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "prepare-example-1b" && "$COMMAND" != "prepare-example-2a" && "$COMMAND" != "prepare-example-3" && "$COMMAND" != "run-ensembles" ]]; then
   echo "magic-ensemble: Unknown command: $COMMAND" >&2
   usage >&2
   exit 1
@@ -141,6 +143,9 @@ p_output_file=$(yq eval '.paths.output_file' "$MANIFEST")
 p_met_dir=$(yq eval '.paths.met_dir' "$MANIFEST")
 p_ic_dir=$(yq eval '.paths.ic_dir' "$MANIFEST")
 p_settings_xml=$(yq eval '.paths.settings_xml' "$MANIFEST")
+p_management_raw_dir=$(yq eval '.paths.management_raw_dir' "$MANIFEST")
+p_management_clean_dir=$(yq eval '.paths.management_clean_dir' "$MANIFEST")
+p_event_dir=$(yq eval '.paths.event_dir' "$MANIFEST")
 params_from_pft=$(yq eval '.params_from_pft' "$MANIFEST")
 additional_params=$(yq eval '.additional_params' "$MANIFEST")
 
@@ -152,6 +157,7 @@ run_LAI_date_default="2016-07-01"
 n_ens_default="20"
 n_met_default="10"
 ic_ensemble_size_default="100"
+n_event_default="20"
 n_workers_default="1"
 use_apptainer_default="false"
 
@@ -180,6 +186,7 @@ run_LAI_date=$(get_val "run_LAI_date" "$run_LAI_date_default")
 n_ens=$(get_val "n_ens" "$n_ens_default")
 n_met=$(get_val "n_met" "$n_met_default")
 ic_ensemble_size=$(get_val "ic_ensemble_size" "$ic_ensemble_size_default")
+n_event=$(get_val "n_event" "$n_event_default")
 n_workers=$(get_val "n_workers" "$n_workers_default")
 use_apptainer_raw=$(get_val "use_apptainer" "$use_apptainer_default")
 # Normalize: true/yes/1 (case-insensitive) => 1; else 0
@@ -210,6 +217,9 @@ output_file=$(resolve_path "$p_output_file")
 met_dir=$(resolve_path "$p_met_dir")
 ic_dir=$(resolve_path "$p_ic_dir")
 settings_xml=$(resolve_path "$p_settings_xml")
+management_raw_dir=$(resolve_path "$p_management_raw_dir")
+management_clean_dir=$(resolve_path "$p_management_clean_dir")
+event_dir=$(resolve_path "$p_event_dir")
 # landtrendr_raw_files is comma-separated; resolve each segment (manifest only for now)
 landtrendr_raw_files=""
 while IFS= read -r segment; do
@@ -544,16 +554,46 @@ run_prepare() {
              --params_read_from_pft "$params_from_pft" \
              --landtrendr_raw_files "$landtrendr_raw_files" \
              --additional_params "$additional_params" ;;
-        3) run_script $apptainer_arg "$script" \
-             --n_ens "$n_ens" \
-             --n_met "$n_met" \
-             --start_date "$start_date" \
-             --end_date "$end_date" \
-             --ic_dir "$ic_dir" \
-             --met_dir "$met_dir" \
-             --site_file "$site_file" \
-             --template_file "$template_file" \
-             --output_file "$output_file" ;;
+        3)
+          if [[ "$COMMAND" == "prepare-example-3" ]]; then
+            run_script $apptainer_arg "$script" \
+              --site_info_path "$site_info_file" \
+              --raw_parquet_dir "$management_raw_dir" \
+              --clean_parquet_dir "$management_clean_dir" \
+              --event_outdir "$event_dir" \
+              --start_date "$start_date" \
+              --end_date "$end_date"
+          else
+            run_script $apptainer_arg "$script" \
+              --n_ens "$n_ens" \
+              --n_met "$n_met" \
+              --start_date "$start_date" \
+              --end_date "$end_date" \
+              --ic_dir "$ic_dir" \
+              --met_dir "$met_dir" \
+              --site_file "$site_file" \
+              --template_file "$template_file" \
+              --output_file "$output_file"
+          fi ;;
+        4)
+          if [[ "$COMMAND" == "prepare-example-3" ]]; then
+            run_script $apptainer_arg "$script" \
+              --n_ens "$n_ens" \
+              --n_met "$n_met" \
+              --n_ic "$ic_ensemble_size" \
+              --n_event "$n_event" \
+              --start_date "$start_date" \
+              --end_date "$end_date" \
+              --ic_dir "$ic_dir" \
+              --met_dir "$met_dir" \
+              --event_dir "$event_dir" \
+              --site_file "$site_file" \
+              --template_file "$template_file" \
+              --output_file "$output_file" \
+              --output_dir "output"
+          else
+            echo "magic-ensemble: No argument mapping for prepare step index $i (script $script)" >&2; exit 1
+          fi ;;
         *) echo "magic-ensemble: No argument mapping for prepare step index $i (script $script)" >&2; exit 1 ;;
       esac
     fi
@@ -586,6 +626,7 @@ case "$COMMAND" in
   prepare)              run_prepare ;;
   prepare-example-1b)   run_prepare ;;
   prepare-example-2a)   run_prepare ;;
+  prepare-example-3)    run_prepare ;;
   run-ensembles)        run_run_ensembles ;;
   *)                    echo "magic-ensemble: Unknown command: $COMMAND" >&2; exit 1 ;;
 esac

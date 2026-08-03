@@ -25,31 +25,36 @@ direct observations of soil carbon and/or biomass are available during the
 simulation period.
 
 
-## Caveats
-
-Instructions assume a local run on MacOS and will be updated for a
-Linux + Slurm + Apptainer HPC environment as we finish testing and deployment.
-
-Aspirationally, any command prefixed with `[host_args]` is one that ought to
-work on HPC by "just" adding a system-specific prefix, e.g.
-`./01_ERA5_nc_to_clim.R --start_date=2016-01-01` on my machine becomes
-`sbatch -n16 --mem=12G --mail-type=ALL --uid=jdoe \
-	./01_ERA5_nc_to_clim.R --start_date=2016-01-01` on yours.
-
-
 ## Running the workflow
 
-### 0. Copy prebuilt artifacts and set up validation data
+This example is driven by `./magic-ensemble` from the repo root. Copy
+`example_user_config.yaml`, edit `run_dir` and any other overrides you need,
+then run:
 
 ```sh
-export AWS_PROFILE=magic
-aws s3 sync --exclude='mslsp/*' s3://carb/management/ ./data_raw/management
-aws s3 sync s3://carb/data_raw/ERA5_CA_nc ./data_raw/ERA5_CA_nc
-aws s3 cp s3://carb/data/workflows/phase_3/magic_example3_input_data_20260711.tgz .
-tar xf magic_example3_input_data_20260711.tgz
+./magic-ensemble get-demo-data     --verbose --config <your config>
+./magic-ensemble prepare-example-3 --verbose --config <your config>
+./magic-ensemble run-ensembles     --verbose --config <your config>
 ```
 
-#### Validation data
+* `get-demo-data` fetches all confirmed S3 sources into `run_dir`: the
+  example-3 input tarball (site_info.csv, PFT posteriors, IC-prep caches), the
+  CA-specific ERA5 archive, `parcels-consolidated.gpkg`/`crops_all_years.parq`,
+  and the management event sources (harvest/irrigation/phenology/planting/tillage).
+* `prepare-example-3` runs, in order: climate-driver conversion
+  (`01_ERA5_nc_to_clim.R`), the canonical IC build (`workflow/02_ic_build.R`),
+  management-event generation (`02a_build_events.R`), and settings assembly
+  (`03_xml_build.R`), producing `settings.xml` in `run_dir`.
+* `run-ensembles` dispatches ensemble members (Slurm or local, per
+  `pecan_dispatch` in your config).
+
+`site_info.csv` is not checked into this repo -- it ships pre-built inside the
+get-demo-data tarball. It was generated once via
+`tools/build_site_info.R --location_file=<design points> --out_file=site_info.csv`
+against `parcels-consolidated.gpkg`/`crops_all_years.parq`; only rerun that
+script if you need to change the set of design points.
+
+### Validation data
 
 To set up validation runs, you need access to the cropland soil carbon data
 files `Harmonized_SiteMngmt_Croplands.csv` and `Harmonized_Data_Croplands.csv`.
@@ -60,148 +65,16 @@ consented to use of their data for internal research purposes but explicitly
 did not consent to public distribution of the data.
 Contact chelsea.carey@arb.ca.gov for more information about the dataset.
 
-Once obtained, place them in `data_raw/private/HSP` and run
+Once obtained, place them in `data_raw/private/HSP` (inside `run_dir`) and run
 ```{sh}
 ../../tools/build_validation_siteinfo.R
 ```
-to create `validation_site_info.csv`.
+to create `validation_site_info.csv`. Validation runs are not yet wired into
+`magic-ensemble` -- rerun the relevant `prepare-example-3` steps by hand with
+`--site_file=validation_site_info.csv` and a separate `--output_file`/
+`--output_dir`, following the same pattern `03_xml_build.R --help` documents.
 
-
-### 1. Convert climate driver files
-
-TODO: show how to pass n_cores from host_args
-(NSLOTS? SLURM_CPUS_PER_TASK?)
-
-```{sh}
-[host_args] ./01_ERA5_nc_to_clim.R \
-	--site_era5_path=data_raw/ERA5_CA_nc \
-	--site_sipnet_met_path=data/ERA5_CA_SIPNET \
-	--site_info_file=data_raw/ERA5_CA_nc/ca_half_degree_grid.csv \
-	--start_date=2016-01-01 \
-	--end_date=2023-12-31 \
-	--n_cores=7
-```
-
-### 2. Generate initial site conditions
-
-We'll run this twice, once for validation sites and once for statewide anchors.
-It would also be fine to put both together in the same input and run it once.
-
-NOTE: ECMWF soil moisture data calls were failing when I tried to run this for anchor sites on 2025-12-08,
-so I symlinked `data/IC_prep_val/soil_moisture/` to `data/IC_prep/soil_moisture/`. On a day the server is up, this _should_ not be needed... but also isn't a problem, since that subdirectory contains global 0.25 degree/25 km soil moisture data for the first 10 days of 2016 and can be expected to be identical from one downloading to the next. The fact that we cache that output here is a quirk of how `PEcAn.data.land::extract_SM_CDS` is implemented, not a designed part of the IC workflow.
-
-
-```{sh}
-[host_args] ../../workflow/02_ic_build.R \
-	--site_info_path=validation_site_info.csv \
-	--pft_dir=data_raw/pfts \
-	--data_dir=data/IC_prep_val \
-	--ic_outdir=data/IC_files
-
-../../tools/build_site_info.R --location_file=../../data/design_points.csv
-
-[host_args] ../../workflow/02_ic_build.R \
-	--site_info_path=site_info.csv \
-	--pft_dir=data_raw/pfts \
-	--data_dir=data/IC_prep \
-	--ic_outdir=data/IC_files
-```
-
-### 2a. Generate event files
-
-Management events are read from files produced by the monitoring pipeline or equivalent sources.
-The current version assumes all event types are provided as Parquet files, and that they live in subdirectories of `mgmt_file_dir` that include specific, currently hardcoded, version numbers. See script for the details.
-Future versions of the event_build script may support passing separate paths per data product and potentially also add support for alternate storage formats (e.g. allowing csv as well as parquet).
-
-```{sh}
-[host_args] ./02a_build_events.R \
-  --site_info_path=validation_site_info.csv \
-  --raw_parquet_dir=data_raw/management \
-  --event_outdir=data/val_events
-# empty raw_parquet_dir to avoid redoing cleaning already done for val
-# (Cleaning runs on whole statewide file, not just selected sites)
-[host_args] ./02a_build_events.R \
-  --site_info_path=site_info.csv \
-  --raw_parquet_dir='' \
-  --event_outdir=data/events
-```
-
-For validation we need an additional hack:
-`02a_build_events.R` created event files named by their *parcel* id,
-but the validation dataset uses a separate set of *site* ids derived by hashing locations, experiment names, and treatment codes.
-This is done to (1) keep locations opaque since the validation data are nonpublic, and (2) allow simulation of separate plots (treatments) whose locations all fall in a single parcel of the statewide map.
-A future solution would be to teach `03_xml_build.R` how to find event files that are named by parcel id, so that sites which share a parcel do not need to duplicate the file.
-For now though, let's duplicate the files of interest so they're named after the site IDs PEcAn will use. For now, I'm not cleaning up the originals afterwards -- they're small and might be used by other runs that reuse this data directory.
-
-```{r}
-vsi <- read.csv("validation_site_info.csv") |>
-  dplyr::distinct(id, field_id) |>
-  dplyr::rename(site_id = id)
-vsi |> purrr::pwalk(
-  \(site_id, field_id) file.copy(
-    paste0("data/val_events/events-", field_id, ".in"),
-    paste0("data/val_events/events-", site_id, ".in")
-  )
-)
-
-# Rename sites inside JSON file, so restart code can match it for PFT changes
-# Doing this by pure substitution, not parsing anything
-evt_json_txt <- readLines("data/val_events/combined_events.json")
-for (i in seq_along(vsi$site_id)) {
-	evt_json_txt <- gsub(
-		pattern = paste0('"site_id":"', vsi$field_id[[i]], '"'),
-		replacement = paste0('"site_id":"', vsi$site_id[[i]], '"'),
-		x = evt_json_txt
-	)
-}
-writeLines(evt_json_txt, "data/val_events/combined_events.json")
-
-# And rename inside the phenology file, too
-read.csv("data/val_events/phenology.csv") |>
-  dplyr::rename(field_id = site_id) |>
-  dplyr::left_join(vsi) |>
-  write.csv("data/val_events/phenology.csv", row.names = FALSE)
-```
-
-
-### 3. Generate settings file
-
-```{sh}
-[host_args] ./03_xml_build.R \
-	--end_date=2023-12-31 \
-	--ic_dir=data/IC_files \
-	--site_file=validation_site_info.csv \
-	--event_dir=data/val_events \
-	--output_file=validation_settings.xml \
-	--output_dir=val_out
-[host_args] ./03_xml_build.R \
-	--ic_dir=data/IC_files \
-	--end_date=2023-12-31 \
-	--site_file=site_info.csv \
-	--output_file=settings.xml \
-	--output_dir=output
-```
-
-### 4. Set up model run directories
-
-TODO: Yes, it's unintuitive that we can't rename the output dir at this
-stage instead of in xml_build.
-
-```{sh}
-[host_args] ./04_set_up_runs.R --settings=validation_settings.xml
-[host_args] ./04_set_up_runs.R --settings=settings.xml
-```
-
-### 5. Run model
-
-```{sh}
-export NCPUS=8
-ln -s [your/path/to]/sipnet/sipnet sipnet
-[host_args] ./05_run_model.R --settings=val_out/pecan.CONFIGS.xml
-[host_args] ./05_run_model.R --settings=output/pecan.CONFIGS.xml
-```
-
-### 6. Validate
+### Validate
 
 ```{sh}
 [host_args] ./validate.R \

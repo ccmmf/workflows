@@ -1,0 +1,37 @@
+# Example user config for the 3 row crop workflow.
+# Copy this file and edit before running. Only run_dir and pecan_dispatch are required;
+# all other keys fall back to the defaults shown.
+#
+# Unlike 1b/2a, site_info.csv is not staged from this repo -- it ships inside the
+# get-demo-data tarball (magic_example3_input_data_20260714.tgz) and lands directly
+# in run_dir. It was generated once via tools/build_site_info.R against the phase-3
+# design points; only regenerate it if you need a different set of design points.
+#
+# Run with:
+#   ./magic-ensemble get-demo-data     --config <this file>
+#   ./magic-ensemble prepare-example-3 --config <this file>
+#   ./magic-ensemble run-ensembles     --config <this file>
+
+run_dir: "3-rowcrop-run-directory/"
+
+start_date: "2016-01-01"
+end_date: "2023-12-31"
+run_LAI_date: "2016-07-01"
+n_ens: 20
+n_met: 10
+ic_ensemble_size: 100
+# Number of management-event ensemble members available in event_dir (set by
+# prepare-example-3's event-build step; only override if you regenerate events
+# with a different ensemble size).
+n_event: 20
+n_workers: 1
+use_apptainer: false
+pecan_dispatch: slurm-dispatch
+# slurm_partition: ""  # Slurm partition for sbatch jobs (slurm-dispatch only). Omit to use the cluster default.
+
+# AWS CLI named profile for S3 access (get-demo-data command).
+aws_profile: magic
+
+# Stage example-specific input files into run_dir before prepare runs.
+external_paths:
+  template_file: "examples/3_rowcrop/template.xml"

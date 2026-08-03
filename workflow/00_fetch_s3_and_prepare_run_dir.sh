@@ -230,4 +230,77 @@ fi
 echo "00_fetch_s3_and_prepare_run_dir: Extracting soil moisture data into run directory"
 tar -xzf "$sm_local" -C "$RUN_DIR_ABS"
 
+# --- Example 3 (row crop): download example-3 input tarball and extract ---
+ex3_key_prefix=$(yq eval '.s3.example3_input_data_tgz.key_prefix' "$MANIFEST")
+ex3_filename=$(yq eval '.s3.example3_input_data_tgz.filename' "$MANIFEST")
+ex3_s3_key=$(s3_key "$ex3_key_prefix" "$ex3_filename")
+ex3_s3_uri="s3://${s3_bucket}/${ex3_s3_key}"
+ex3_local="${RUN_DIR_ABS}/${ex3_filename}"
+ex3_report=$(report_path "$ex3_local")
+if [[ -f "$ex3_local" ]]; then
+  echo "00_fetch_s3_and_prepare_run_dir: Example-3 input tarball already present: $ex3_report"
+else
+  echo "00_fetch_s3_and_prepare_run_dir: Downloading example-3 input tarball from S3"
+  echo "00_fetch_s3_and_prepare_run_dir: Saving to: $ex3_report"
+  (cd "$RUN_DIR_ABS" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$ex3_s3_uri" "$ex3_filename")
+fi
+echo "00_fetch_s3_and_prepare_run_dir: Extracting example-3 input tarball into run directory"
+tar -xzf "$ex3_local" -C "$RUN_DIR_ABS"
+
+# --- Example 3 (row crop): download CA-specific ERA5 archive and extract into data_raw/ ---
+era5_ca_key_prefix=$(yq eval '.s3.era5_ca_nc_tgz.key_prefix' "$MANIFEST")
+era5_ca_filename=$(yq eval '.s3.era5_ca_nc_tgz.filename' "$MANIFEST")
+era5_ca_s3_key=$(s3_key "$era5_ca_key_prefix" "$era5_ca_filename")
+era5_ca_s3_uri="s3://${s3_bucket}/${era5_ca_s3_key}"
+era5_ca_local="${RUN_DIR_ABS}/${era5_ca_filename}"
+era5_ca_report=$(report_path "$era5_ca_local")
+if [[ -f "$era5_ca_local" ]]; then
+  echo "00_fetch_s3_and_prepare_run_dir: ERA5 CA archive already present: $era5_ca_report"
+else
+  echo "00_fetch_s3_and_prepare_run_dir: Downloading ERA5 CA archive from S3"
+  echo "00_fetch_s3_and_prepare_run_dir: Saving to: $era5_ca_report"
+  (cd "$RUN_DIR_ABS" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$era5_ca_s3_uri" "$era5_ca_filename")
+fi
+echo "00_fetch_s3_and_prepare_run_dir: Extracting ERA5 CA archive into run directory"
+mkdir -p "${RUN_DIR_ABS}/data_raw"
+tar -xzf "$era5_ca_local" -C "${RUN_DIR_ABS}/data_raw"
+
+# --- Example 3 (row crop): download parcels-consolidated.gpkg and crops_all_years.parq ---
+# NOTE: do not grab the sibling `parcels.gpkg` at the same prefix -- similarly
+# named/sized but the wrong file. build_site_info.R and 02_ic_build.R both
+# default to parcels-consolidated.gpkg specifically.
+crops_v41_dir="${RUN_DIR_ABS}/data_raw/management/crops/v4.1"
+mkdir -p "$crops_v41_dir"
+
+download_single_file() {
+  local manifest_key="$1" label="$2"
+  local key_prefix filename s3_key_val s3_uri local_path
+  key_prefix=$(yq eval ".s3.${manifest_key}.key_prefix" "$MANIFEST")
+  filename=$(yq eval ".s3.${manifest_key}.filename" "$MANIFEST")
+  s3_key_val=$(s3_key "$key_prefix" "$filename")
+  s3_uri="s3://${s3_bucket}/${s3_key_val}"
+  local_path="${crops_v41_dir}/${filename}"
+  if [[ -f "$local_path" ]]; then
+    echo "00_fetch_s3_and_prepare_run_dir: ${label} already present: $(report_path "$local_path")"
+  else
+    echo "00_fetch_s3_and_prepare_run_dir: Downloading ${label} from S3"
+    echo "00_fetch_s3_and_prepare_run_dir: Saving to: $(report_path "$local_path")"
+    (cd "$crops_v41_dir" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$s3_uri" "$filename")
+  fi
+}
+download_single_file "parcels_gpkg" "parcels-consolidated.gpkg"
+download_single_file "crops_all_years_parq" "crops_all_years.parq"
+
+# --- Example 3 (row crop): sync management event sources (harvest/irrigation/phenology/planting/tillage) ---
+# Excludes mslsp/ (unused) and crops/ (parcels-consolidated.gpkg/crops_all_years.parq handled above).
+mgmt_events_key_prefix=$(yq eval '.s3.management_events.key_prefix' "$MANIFEST")
+mgmt_events_s3_uri="s3://${s3_bucket}/${mgmt_events_key_prefix}/"
+mgmt_raw_dir_value=$(yq eval '.paths.management_raw_dir' "$MANIFEST")
+mgmt_raw_dir=$(resolve_run_path "$mgmt_raw_dir_value")
+mkdir -p "$mgmt_raw_dir"
+echo "00_fetch_s3_and_prepare_run_dir: Syncing management event sources from S3 into $(report_path "$mgmt_raw_dir")"
+aws s3 sync --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" \
+  --exclude 'mslsp/*' --exclude 'crops/*' \
+  "$mgmt_events_s3_uri" "$mgmt_raw_dir"
+
 echo "00_fetch_s3_and_prepare_run_dir: Done."
