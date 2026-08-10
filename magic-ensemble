@@ -519,6 +519,9 @@ run_prepare() {
     script="${STEPS[i]}"
     local script_basename="${script##*/}"
     echo "magic-ensemble: prepare step $step_num of ${#STEPS[@]}: $script"
+    if [[ "$pecan_dispatch" == "local-gnu-parallel" ]]; then
+      export NCPUS="$n_workers"
+    fi
     if [[ "$script" == *.sh ]]; then
       run_shell_script "$script" "$i"
       if [[ "$i" -eq 0 ]]; then
