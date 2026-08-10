@@ -143,6 +143,7 @@ p_output_file=$(yq eval '.paths.output_file' "$MANIFEST")
 p_met_dir=$(yq eval '.paths.met_dir' "$MANIFEST")
 p_ic_dir=$(yq eval '.paths.ic_dir' "$MANIFEST")
 p_settings_xml=$(yq eval '.paths.settings_xml' "$MANIFEST")
+p_config_xml=$(yq eval '.paths.config_xml' "$MANIFEST")
 p_management_raw_dir=$(yq eval '.paths.management_raw_dir' "$MANIFEST")
 p_management_clean_dir=$(yq eval '.paths.management_clean_dir' "$MANIFEST")
 p_event_dir=$(yq eval '.paths.event_dir' "$MANIFEST")
@@ -217,6 +218,7 @@ output_file=$(resolve_path "$p_output_file")
 met_dir=$(resolve_path "$p_met_dir")
 ic_dir=$(resolve_path "$p_ic_dir")
 settings_xml=$(resolve_path "$p_settings_xml")
+config_xml=$(resolve_path "$p_config_xml")
 management_raw_dir=$(resolve_path "$p_management_raw_dir")
 management_clean_dir=$(resolve_path "$p_management_clean_dir")
 event_dir=$(resolve_path "$p_event_dir")
@@ -619,10 +621,20 @@ run_run_ensembles() {
     ensure_apptainer_available
     ensure_sif_present
   fi
-  check_r_libs_for_step 0
-
-  run_script --cwd "$run_dir" "${STEPS[0]}" \
-    --settings "$settings_xml"
+  for i in "${!STEPS[@]}"; do
+    check_r_libs_for_step $i
+    script="${STEPS[i]}"
+    local script_basename="${script##*/}"
+    case "$script_basename" in
+      04_set_up_runs.R)
+        run_script --cwd "$run_dir" "$script" \
+          --settings "$settings_xml" ;;
+      05_run_model.R)
+        run_script --cwd "$run_dir" "$script" \
+          --settings "$config_xml" ;;
+      *) echo "magic-ensemble: No argument mapping for run step index $i (script $script)" >&2; exit 1 ;;
+    esac
+  done
 }
 
 # --- Main ---

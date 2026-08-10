@@ -139,9 +139,13 @@ steps:
           outputs: [output_file]
 
     run-ensembles:
-        - script: "workflow/04_run_model.R"
+        - script: "workflow/04_set_up_runs.R"
           r_libraries: [PEcAn.all]
           inputs: [settings_xml]
+          outputs: [config_xml] # TODO list output dir too?
+        - script: "workflow/05_run_model.R"
+          r_libraries: [PEcAn.all]
+          inputs: [config_xml]
           outputs: []
 
 # Path definitions: all contained within the run directory.
@@ -163,6 +167,7 @@ paths:
     met_dir: "data/ERA5_SIPNET"
     ic_dir: "IC_files"
     settings_xml: "settings.xml"
+    config_xml: "output/pecan.CONFIG.xml"
     management_raw_dir: "data_raw/management"
     management_clean_dir: "data/management_ensembles"
     event_dir: "data/events"
