@@ -517,6 +517,7 @@ run_prepare() {
   for i in "${!STEPS[@]}"; do
     step_num=$((i + 1))
     script="${STEPS[i]}"
+    local script_basename="${script##*/}"
     echo "magic-ensemble: prepare step $step_num of ${#STEPS[@]}: $script"
     if [[ "$script" == *.sh ]]; then
       run_shell_script "$script" "$i"
@@ -533,8 +534,9 @@ run_prepare() {
         fi
       fi
     else
-      case "$i" in
-        1) run_script $apptainer_arg "$script" \
+      case "$script_basename" in
+        01_ERA5_nc_to_clim.R)
+          run_script $apptainer_arg "$script" \
              --site_era5_path "$site_era5_path" \
              --site_sipnet_met_path "$site_sipnet_met_path" \
              --site_info_file "$site_info_file" \
@@ -542,7 +544,8 @@ run_prepare() {
              --end_date "$end_date" \
              --n_cores "$n_workers" \
              --parallel_strategy "multisession" ;;
-        2) run_script $apptainer_arg "$script" \
+        02_ic_build.R)
+          run_script $apptainer_arg "$script" \
              --site_info_path "$site_info_file" \
              --field_shape_path "$field_shape_path" \
              --ic_ensemble_size "$ic_ensemble_size" \
@@ -554,28 +557,17 @@ run_prepare() {
              --params_read_from_pft "$params_from_pft" \
              --landtrendr_raw_files "$landtrendr_raw_files" \
              --additional_params "$additional_params" ;;
-        3)
-          if [[ "$COMMAND" == "prepare-example-3" ]]; then
-            run_script $apptainer_arg "$script" \
-              --site_info_path "$site_info_file" \
-              --raw_parquet_dir "$management_raw_dir" \
-              --clean_parquet_dir "$management_clean_dir" \
-              --event_outdir "$event_dir" \
-              --start_date "$start_date" \
-              --end_date "$end_date"
-          else
-            run_script $apptainer_arg "$script" \
-              --n_ens "$n_ens" \
-              --n_met "$n_met" \
-              --start_date "$start_date" \
-              --end_date "$end_date" \
-              --ic_dir "$ic_dir" \
-              --met_dir "$met_dir" \
-              --site_file "$site_file" \
-              --template_file "$template_file" \
-              --output_file "$output_file"
-          fi ;;
-        4)
+        02a_build_events.R)
+          run_script $apptainer_arg "$script" \
+            --site_info_path "$site_info_file" \
+            --raw_parquet_dir "$management_raw_dir" \
+            --clean_parquet_dir "$management_clean_dir" \
+            --event_outdir "$event_dir" \
+            --start_date "$start_date" \
+            --end_date "$end_date" ;;
+        03_xml_build.R)
+          # example 3 uses its own version with extra arguments
+          # TODO propagate to canonical version, update other examples to match
           if [[ "$COMMAND" == "prepare-example-3" ]]; then
             run_script $apptainer_arg "$script" \
               --n_ens "$n_ens" \
@@ -592,7 +584,17 @@ run_prepare() {
               --output_file "$output_file" \
               --output_dir "output"
           else
-            echo "magic-ensemble: No argument mapping for prepare step index $i (script $script)" >&2; exit 1
+            run_script $apptainer_arg "$script" \
+              --n_ens "$n_ens" \
+              --n_met "$n_met" \
+              --start_date "$start_date" \
+              --end_date "$end_date" \
+              --ic_dir "$ic_dir" \
+              --met_dir "$met_dir" \
+              --site_file "$site_file" \
+              --template_file "$template_file" \
+              --output_file "$output_file" \
+              --output_dir "output"
           fi ;;
         *) echo "magic-ensemble: No argument mapping for prepare step index $i (script $script)" >&2; exit 1 ;;
       esac
