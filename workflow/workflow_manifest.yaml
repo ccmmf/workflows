@@ -167,7 +167,7 @@ paths:
     met_dir: "data/ERA5_SIPNET"
     ic_dir: "IC_files"
     settings_xml: "settings.xml"
-    config_xml: "output/pecan.CONFIG.xml"
+    config_xml: "output/pecan.CONFIGS.xml"
     management_raw_dir: "data_raw/management"
     management_clean_dir: "data/management_ensembles"
     event_dir: "data/events"
