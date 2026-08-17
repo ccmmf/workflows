@@ -16,23 +16,27 @@
 # Steps per command: script path, R libs to check (empty for shell scripts), input/output path keys
 steps:
     get-demo-data:
-        - script: "workflow/00_fetch_s3_and_prepare_run_dir.sh"
+        - name: get-demo-data
+          script: "workflow/00_fetch_s3_and_prepare_run_dir.sh"
           r_libraries: []
           inputs: []
           outputs: [data_dir, ic_outdir, site_sipnet_met_path, management_raw_dir]
 
     prepare:
-        - script: "workflow/00_stage_external_inputs.sh"
+        - name: stage-inputs
+          script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
           outputs: []
 
-        - script: "workflow/01_ERA5_nc_to_clim.R"
+        - name: convert-clim
+          script: "workflow/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
           outputs: [site_sipnet_met_path]
 
-        - script: "workflow/02_ic_build.R"
+        - name: build-ic
+          script: "workflow/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
               [
@@ -44,23 +48,27 @@ steps:
               ]
           outputs: [ic_outdir, data_dir]
 
-        - script: "workflow/03_xml_build.R"
+        - name: build-xml
+          script: "workflow/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir]
           outputs: [output_file]
 
     prepare-example-2a:
-        - script: "workflow/00_stage_external_inputs.sh"
+        - name: stage-inputs
+          script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
           outputs: []
 
-        - script: "examples/2a_grass/01_ERA5_nc_to_clim.R"
+        - name: convert-clim
+          script: "examples/2a_grass/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
           outputs: [site_sipnet_met_path]
 
-        - script: "examples/2a_grass/02_ic_build.R"
+        - name: build-ic
+          script: "examples/2a_grass/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
               [
@@ -72,23 +80,27 @@ steps:
               ]
           outputs: [ic_outdir, data_dir]
 
-        - script: "examples/2a_grass/03_xml_build.R"
+        - name: build-xml
+          script: "examples/2a_grass/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir]
           outputs: [output_file]
 
     prepare-example-1b:
-        - script: "workflow/00_stage_external_inputs.sh"
+        - name: stage-inputs
+          script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
           outputs: []
 
-        - script: "examples/1b_statewide_woody/01_ERA5_nc_to_clim.R"
+        - name: convert-clim
+          script: "examples/1b_statewide_woody/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
           outputs: [site_sipnet_met_path]
 
-        - script: "examples/1b_statewide_woody/02_ic_build.R"
+        - name: build-ic
+          script: "examples/1b_statewide_woody/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
               [
@@ -100,23 +112,27 @@ steps:
               ]
           outputs: [ic_outdir, data_dir]
 
-        - script: "examples/1b_statewide_woody/03_xml_build.R"
+        - name: build-xml
+          script: "examples/1b_statewide_woody/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir]
           outputs: [output_file]
 
     prepare-example-3:
-        - script: "workflow/00_stage_external_inputs.sh"
+        - name: stage-inputs
+          script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
           outputs: []
 
-        - script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
+        - name: convert-clim
+          script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
           outputs: [site_sipnet_met_path]
 
-        - script: "workflow/02_ic_build.R"
+        - name: build-ic
+          script: "workflow/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
               [
@@ -128,22 +144,26 @@ steps:
               ]
           outputs: [ic_outdir, data_dir]
 
-        - script: "examples/3_rowcrop/02a_build_events.R"
+        - name: build-events
+          script: "examples/3_rowcrop/02a_build_events.R"
           r_libraries: [tidyverse, callr]
           inputs: [site_info_file, management_raw_dir]
           outputs: [management_clean_dir, event_dir]
 
-        - script: "examples/3_rowcrop/03_xml_build.R"
+        - name: build-xml
+          script: "examples/3_rowcrop/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir, event_dir]
           outputs: [output_file]
 
     run-ensembles:
-        - script: "workflow/04_set_up_runs.R"
+        - name: set-up-runs
+          script: "workflow/04_set_up_runs.R"
           r_libraries: [PEcAn.all]
           inputs: [settings_xml]
           outputs: [output_dir]
-        - script: "workflow/05_run_model.R"
+        - name: run-model
+          script: "workflow/05_run_model.R"
           r_libraries: [PEcAn.all]
           inputs: [config_xml]
           outputs: []
