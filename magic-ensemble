@@ -482,7 +482,8 @@ patch_xml_block() {
   xml_block=$(yq eval "$yq_path" "$MANIFEST" \
     | sed "s|@SIF@|./${sif_name}|g" \
     | sed "s|@PARTITION@|${partition_flag}|g" \
-    | sed "s|@SIPNET_BINARY@|${run_dir}/sipnet.git|g")
+    | sed "s|@SIPNET_BINARY@|${run_dir}/sipnet.git|g" \
+    | sed "s|@NCPUS@|${n_workers}|g")
 
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
@@ -521,9 +522,6 @@ run_prepare() {
     script="${STEPS[i]}"
     local script_basename="${script##*/}"
     echo "magic-ensemble: prepare step $step_num of ${#STEPS[@]}: $script"
-    if [[ "$pecan_dispatch" == "local-gnu-parallel" ]]; then
-      export NCPUS="$n_workers"
-    fi
     if [[ "$script" == *.sh ]]; then
       run_shell_script "$script" "$i"
       if [[ "$i" -eq 0 ]]; then

@@ -225,7 +225,7 @@ pecan_dispatch:
              <prerun>@BINARY@ --version</prerun>
              <qstat>squeue -j @JOBID@ || echo DONE</qstat>
              <modellauncher>
-              <binary>parallel --will-cite -j ${NCPUS:-1} --skip-first-line '{}/job.sh' ::::</binary>
+              <binary>parallel --will-cite -j @NCPUS@ --skip-first-line '{}/job.sh' ::::</binary>
               <Njobmax>1000</Njobmax>
              </modellauncher>
             </host>
@@ -237,7 +237,7 @@ pecan_dispatch:
              <prerun>@BINARY@ --version</prerun>
              <qstat>squeue -j @JOBID@ || echo DONE</qstat>
              <modellauncher>
-              <binary>parallel --will-cite -j ${NCPUS:-1} --skip-first-line 'apptainer run @SIF@ {}/job.sh' ::::</binary>
+              <binary>parallel --will-cite -j @NCPUS@ --skip-first-line 'apptainer run @SIF@ {}/job.sh' ::::</binary>
               <Njobmax>1000</Njobmax>
              </modellauncher>
             </host>
