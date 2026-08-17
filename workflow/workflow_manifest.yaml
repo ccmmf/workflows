@@ -8,10 +8,16 @@
 # paths before 'prepare' runs.
 #
 # Steps: Each command has a list of step objects. Each step has:
-#   script:       Script path (relative to repo root)
-#   r_libraries:  R packages to check before running this script
-#   inputs:       List of path keys (from 'paths') this script reads (local paths only)
-#   outputs:      List of path keys this script creates or writes
+#   name:        Short identifier for this step
+#   script:      Script path (relative to repo root)
+#   r_libraries: R packages to check before running this script
+#   inputs:      List of path keys this script reads (each becomes --<key>)
+#   outputs:     List of path keys this script creates or writes
+#                (each becomes --<key>)
+#   params:      List of scalar/list keys this script needs, resolved from
+#                mode_params.$mode.<key> falling back to fixed_values.<key>
+#                (each becomes --<key>); n_cores is the one exception, sourced
+#                from the user config instead (see magic-downscaling)
 
 # Steps per command: script path, R libs to check (empty for shell scripts), input/output path keys
 steps:
@@ -20,6 +26,7 @@ steps:
           script: "workflow/00_fetch_s3_and_prepare_run_dir.sh"
           r_libraries: []
           inputs: []
+          params: []
           outputs: [data_dir, ic_outdir, site_sipnet_met_path, management_raw_dir]
 
     prepare:
@@ -27,12 +34,14 @@ steps:
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
+          params: []
           outputs: []
 
         - name: convert-clim
           script: "workflow/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
+          params: [start_date, end_date, n_cores, parallel_strategy]
           outputs: [site_sipnet_met_path]
 
         - name: build-ic
@@ -46,25 +55,42 @@ steps:
                   data_dir,
                   landtrendr_raw_files,
               ]
+          params:
+              [
+                  ic_ensemble_size,
+                  run_start_date,
+                  run_LAI_date,
+                  params_read_from_pft,
+                  additional_params
+              ]
           outputs: [ic_outdir, data_dir]
 
         - name: build-xml
           script: "workflow/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir]
-          outputs: [output_file]
+          params:
+              [
+                  n_ens,
+                  n_met,
+                  start_date,
+                  end_date
+              ]
+          outputs: [output_file, output_dir]
 
     prepare-example-2a:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
+          params: []
           outputs: []
 
         - name: convert-clim
           script: "examples/2a_grass/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
+          params: [start_date, end_date, n_cores, parallel_strategy]
           outputs: [site_sipnet_met_path]
 
         - name: build-ic
@@ -78,12 +104,27 @@ steps:
                   data_dir,
                   landtrendr_raw_files,
               ]
+          params:
+              [
+                  ic_ensemble_size,
+                  run_start_date,
+                  run_LAI_date,
+                  params_read_from_pft,
+                  additional_params
+              ]
           outputs: [ic_outdir, data_dir]
 
         - name: build-xml
           script: "examples/2a_grass/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir]
+          params:
+              [
+                  n_ens,
+                  n_met,
+                  start_date,
+                  end_date
+              ]
           outputs: [output_file]
 
     prepare-example-1b:
@@ -91,12 +132,14 @@ steps:
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
+          params: []
           outputs: []
 
         - name: convert-clim
           script: "examples/1b_statewide_woody/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
+          params: []
           outputs: [site_sipnet_met_path]
 
         - name: build-ic
@@ -110,12 +153,27 @@ steps:
                   data_dir,
                   landtrendr_raw_files,
               ]
+          params:
+              [
+                  ic_ensemble_size,
+                  run_start_date,
+                  run_LAI_date,
+                  params_read_from_pft,
+                  additional_params
+              ]
           outputs: [ic_outdir, data_dir]
 
         - name: build-xml
           script: "examples/1b_statewide_woody/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir]
+          params:
+              [
+                  n_ens,
+                  n_met,
+                  start_date,
+                  end_date
+              ]
           outputs: [output_file]
 
     prepare-example-3:
@@ -123,12 +181,14 @@ steps:
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
           inputs: []
+          params: []
           outputs: []
 
         - name: convert-clim
           script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
+          params: []
           outputs: [site_sipnet_met_path]
 
         - name: build-ic
@@ -142,18 +202,29 @@ steps:
                   data_dir,
                   landtrendr_raw_files,
               ]
+          params: []
           outputs: [ic_outdir, data_dir]
 
         - name: build-events
           script: "examples/3_rowcrop/02a_build_events.R"
           r_libraries: [tidyverse, callr]
           inputs: [site_info_file, management_raw_dir]
+          params: [start_date, end_date]
           outputs: [management_clean_dir, event_dir]
 
         - name: build-xml
           script: "examples/3_rowcrop/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs: [site_file, template_file, ic_dir, met_dir, event_dir]
+          params:
+              [
+                  n_ens,
+                  n_met,
+                  n_ic,
+                  n_event,
+                  start_date,
+                  end_date
+              ]
           outputs: [output_file]
 
     run-ensembles:
@@ -161,11 +232,13 @@ steps:
           script: "workflow/04_set_up_runs.R"
           r_libraries: [PEcAn.all]
           inputs: [settings_xml]
+          params: []
           outputs: [output_dir]
         - name: run-model
           script: "workflow/05_run_model.R"
           r_libraries: [PEcAn.all]
           inputs: [config_xml]
+          params: []
           outputs: []
 
 # Path definitions: all contained within the run directory.
