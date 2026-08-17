@@ -488,6 +488,64 @@ patch_xml_block() {
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
 
+
+# --- Build the full argument list (STEP_ARGS) for one named step of the
+# current command, entirely from the manifest's inputs/outputs/params for
+# that step. This is the only place that turns manifest declarations into
+# --flag values; no script-specific code lives here or in the command
+# handlers below. ---
+build_step_args() {
+  local name="$1"
+  STEP_ARGS=(--run_dir "$run_dir" --mode "$mode")
+
+  # Every command substitution below is followed by "|| exit 1" explicitly —
+  # do not rely on set -e propagating through "arr+=(\"$(cmd)\")"; that
+  # behavior is not reliable enough across bash versions to trust silently.
+  #
+  # Path variable resolution
+  local key resolved param_value
+  while IFS= read -r key; do
+    [[ -z "$key" || "$key" == "null" ]] && continue
+    resolved=$(resolve_path "$key") || exit 1
+    STEP_ARGS+=("--${key}" "$resolved")
+  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .inputs[]" "$MANIFEST" 2>/dev/null)
+
+# output location resolution
+  while IFS= read -r key; do
+    [[ -z "$key" || "$key" == "null" ]] && continue
+    resolved=$(resolve_path "$key") || exit 1
+    ensure_output_dir "$key" "$resolved"
+    # a key can appear in both inputs and outputs (read-modify-write dirs
+    # like data_dir); don't pass the same flag twice.
+    if [[ " ${STEP_ARGS[*]} " != *" --${key} "* ]]; then
+      STEP_ARGS+=("--${key}" "$resolved")
+    fi
+  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .outputs[]" "$MANIFEST" 2>/dev/null)
+
+# scalar parameter value resolution
+  while IFS= read -r key; do
+    [[ -z "$key" || "$key" == "null" ]] && continue
+    param_value=$(resolve_param "$key") || exit 1
+    STEP_ARGS+=("--${key}" "$param_value")
+  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .params[]" "$MANIFEST" 2>/dev/null)
+}
+
+# Generic handler for every manifest-driven command:
+# step list, script paths, and arguments all come from the manifest.
+# Adding, removing, or reordering a step only requires editing manifest.yaml.
+run_manifest_command() {
+  get_steps_array
+  local total="${#STEPS[@]}" i step_num script name
+  for i in "${!STEPS[@]}"; do
+    script="${STEPS[i]}"; name="${STEP_NAMES[i]}"; step_num=$((i + 1))
+    echo "magic-ensemble: ${COMMAND} step ${step_num} of ${total}: ${script}"
+    build_step_args "$name"
+    run_script "$script" "${STEP_ARGS[@]}"
+    echo "magic-ensemble: ${COMMAND} step ${step_num} completed"
+  done
+  echo "magic-ensemble: ${COMMAND} finished (${total} steps)"
+}
+
 # --- Get-demo-data: run steps from manifest (shell script only) ---
 run_get_demo_data() {
   get_steps_array
@@ -638,10 +696,11 @@ run_run_ensembles() {
 # --- Main ---
 case "$COMMAND" in
   get-demo-data)        run_get_demo_data ;;
-  prepare)              run_prepare ;;
-  prepare-example-1b)   run_prepare ;;
-  prepare-example-2a)   run_prepare ;;
-  prepare-example-3)    run_prepare ;;
+  # prepare)              run_prepare ;;
+  # prepare-example-1b)   run_prepare ;;
+  # prepare-example-2a)   run_prepare ;;
+  # prepare-example-3)    run_prepare ;;
   run-ensembles)        run_run_ensembles ;;
+  prepare|prepare-example-2a) run_manifest_command ;;
   *)                    echo "magic-ensemble: Unknown command: $COMMAND" >&2; exit 1 ;;
 esac
