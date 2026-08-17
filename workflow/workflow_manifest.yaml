@@ -142,7 +142,7 @@ steps:
         - script: "workflow/04_set_up_runs.R"
           r_libraries: [PEcAn.all]
           inputs: [settings_xml]
-          outputs: [config_xml] # TODO list output dir too?
+          outputs: [output_dir]
         - script: "workflow/05_run_model.R"
           r_libraries: [PEcAn.all]
           inputs: [config_xml]
