@@ -56,6 +56,10 @@ options <- list(
   optparse::make_option("--output_file",
     default = "settings.xml",
     help = "path to write output XML"
+  ),
+  optparse::make_option("--output_dir",
+    default = "",
+    help = "Ignored. Exists for compatibility with other examples"
   )
 ) |>
   # Show default values in help message
