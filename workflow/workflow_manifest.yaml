@@ -124,7 +124,7 @@ steps:
                   start_date,
                   end_date
               ]
-          outputs: [output_file]
+          outputs: [output_file, output_dir]
 
     prepare-example-1b:
         - name: stage-inputs
@@ -138,7 +138,7 @@ steps:
           script: "examples/1b_statewide_woody/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
-          params: []
+          params: [start_date, end_date, n_cores, parallel_strategy]
           outputs: [site_sipnet_met_path]
 
         - name: build-ic
@@ -173,7 +173,7 @@ steps:
                   start_date,
                   end_date
               ]
-          outputs: [output_file]
+          outputs: [output_file, output_dir]
 
     prepare-example-3:
         - name: stage-inputs
@@ -187,7 +187,7 @@ steps:
           script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
           inputs: [site_info_file, site_era5_path]
-          params: []
+          params: [start_date, end_date, n_cores, parallel_strategy]
           outputs: [site_sipnet_met_path]
 
         - name: build-ic
@@ -197,8 +197,8 @@ steps:
               [
                   site_info_path,
                   field_shape_path,
-                  pft_dir,
                   data_dir,
+                  pft_dir,
                   landtrendr_raw_files,
               ]
           params:
@@ -214,9 +214,9 @@ steps:
         - name: build-events
           script: "examples/3_rowcrop/02a_build_events.R"
           r_libraries: [tidyverse, callr]
-          inputs: [site_info_file, management_raw_dir]
+          inputs: [site_info_path, raw_parquet_dir]
           params: [start_date, end_date]
-          outputs: [management_clean_dir, event_dir]
+          outputs: [clean_parquet_dir, event_outdir]
 
         - name: build-xml
           script: "examples/3_rowcrop/03_xml_build.R"
@@ -231,7 +231,7 @@ steps:
                   start_date,
                   end_date
               ]
-          outputs: [output_file]
+          outputs: [output_file, output_dir]
 
     run-ensembles:
         - name: set-up-runs
@@ -268,8 +268,8 @@ paths:
     ic_dir: "IC_files"
     settings_xml: "settings.xml"
     config_xml: "output/pecan.CONFIGS.xml"
-    management_raw_dir: "data_raw/management"
-    management_clean_dir: "data/management_ensembles"
+    raw_parquet_dir: "data_raw/management"
+    clean_parquet_dir: "data/management_ensembles"
     event_dir: "data/events"
 
 # Fixed workflow values (not user overrides)
