@@ -547,9 +547,26 @@ build_step_args() {
 # Adding, removing, or reordering a step only requires editing manifest.yaml.
 run_manifest_command() {
   get_steps_array
+  validate_pecan_dispatch
+  local apptainer_arg=""
+  if [[ $use_apptainer -eq 1 ]]; then
+    ensure_apptainer_available
+    ensure_sif_present
+    apptainer_arg="--apptainer"
+    for i in "${!STEPS[@]}"; do
+      check_r_libs_for_step_in_apptainer "$i"
+    done
+  else
+    for i in "${!STEPS[@]}"; do
+      check_r_libs_for_step "$i"
+    done
+  fi
+
   local total="${#STEPS[@]}" i step_num script name
   for i in "${!STEPS[@]}"; do
-    script="${STEPS[i]}"; name="${STEP_NAMES[i]}"; step_num=$((i + 1))
+    script="${STEPS[i]}"
+    name="${STEP_NAMES[i]}"
+    step_num=$((i + 1))
     echo "magic-ensemble: ${COMMAND} step ${step_num} of ${total}: ${script}"
     build_step_args "$name"
     if [[ "$script" == *.sh ]]; then
@@ -568,11 +585,15 @@ run_manifest_command() {
         fi
       fi
     else
-      run_script "$script" "${STEP_ARGS[@]}"
+      run_script "$apptainer_arg" "$script" "${STEP_ARGS[@]}"
     fi
     echo "magic-ensemble: ${COMMAND} step ${step_num} completed"
   done
   echo "magic-ensemble: ${COMMAND} finished (${total} steps)"
+  if [[ "$COMMAND" == "prepare"* ]]; then
+    # TODO make this a step of its own?
+    report_prepare_summary
+  fi
 }
 
 # --- Get-demo-data: run steps from manifest (shell script only) ---
