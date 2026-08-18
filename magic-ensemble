@@ -134,29 +134,6 @@ get_val() {
   echo "$fallback"
 }
 
-# Read manifest paths and fixed values
-# Manifest paths are internal-workflow I/O connections. they should not be altered.
-p_site_info_file=$(yq eval '.paths.site_info_file' "$MANIFEST")
-p_site_sipnet_met_path=$(yq eval '.paths.site_sipnet_met_path' "$MANIFEST")
-p_site_era5_path=$(yq eval '.paths.site_era5_path' "$MANIFEST")
-p_field_shape_path=$(yq eval '.paths.field_shape_path' "$MANIFEST")
-p_data_dir=$(yq eval '.paths.data_dir' "$MANIFEST")
-p_ic_outdir=$(yq eval '.paths.ic_outdir' "$MANIFEST")
-p_pft_dir=$(yq eval '.paths.pft_dir' "$MANIFEST")
-p_landtrendr_raw_files=$(yq eval '.paths.landtrendr_raw_files' "$MANIFEST")
-p_site_file=$(yq eval '.paths.site_file' "$MANIFEST")
-p_template_file=$(yq eval '.paths.template_file' "$MANIFEST")
-p_output_file=$(yq eval '.paths.output_file' "$MANIFEST")
-p_met_dir=$(yq eval '.paths.met_dir' "$MANIFEST")
-p_ic_dir=$(yq eval '.paths.ic_dir' "$MANIFEST")
-p_settings_xml=$(yq eval '.paths.settings_xml' "$MANIFEST")
-p_config_xml=$(yq eval '.paths.config_xml' "$MANIFEST")
-p_management_raw_dir=$(yq eval '.paths.management_raw_dir' "$MANIFEST")
-p_management_clean_dir=$(yq eval '.paths.management_clean_dir' "$MANIFEST")
-p_event_dir=$(yq eval '.paths.event_dir' "$MANIFEST")
-params_from_pft=$(yq eval '.params_from_pft' "$MANIFEST")
-additional_params=$(yq eval '.additional_params' "$MANIFEST")
-
 # Overridable defaults (manifest may not have these; use script defaults if not in user config)
 run_dir_default="magic-ensemble-run-directory/"
 start_date_default="2016-01-01"
@@ -222,23 +199,23 @@ resolve_path() {
 
 
 # All workflow paths come from the manifest only (no user overrides).
-site_info_file=$(resolve_path "$p_site_info_file")
-site_sipnet_met_path=$(resolve_path "$p_site_sipnet_met_path")
-site_era5_path=$(resolve_path "$p_site_era5_path")
-field_shape_path=$(resolve_path "$p_field_shape_path")
-data_dir=$(resolve_path "$p_data_dir")
-ic_outdir=$(resolve_path "$p_ic_outdir")
-pft_dir=$(resolve_path "$p_pft_dir")
-site_file=$(resolve_path "$p_site_file")
-template_file=$(resolve_path "$p_template_file")
-output_file=$(resolve_path "$p_output_file")
-met_dir=$(resolve_path "$p_met_dir")
-ic_dir=$(resolve_path "$p_ic_dir")
-settings_xml=$(resolve_path "$p_settings_xml")
-config_xml=$(resolve_path "$p_config_xml")
-management_raw_dir=$(resolve_path "$p_management_raw_dir")
-management_clean_dir=$(resolve_path "$p_management_clean_dir")
-event_dir=$(resolve_path "$p_event_dir")
+site_info_file=$(resolve_path "site_info_file")
+site_sipnet_met_path=$(resolve_path "site_sipnet_met_path")
+site_era5_path=$(resolve_path "site_era5_path")
+field_shape_path=$(resolve_path "field_shape_path")
+data_dir=$(resolve_path "data_dir")
+ic_outdir=$(resolve_path "ic_outdir")
+pft_dir=$(resolve_path "pft_dir")
+site_file=$(resolve_path "site_file")
+template_file=$(resolve_path "template_file")
+output_file=$(resolve_path "output_file")
+met_dir=$(resolve_path "met_dir")
+ic_dir=$(resolve_path "ic_dir")
+settings_xml=$(resolve_path "settings_xml")
+config_xml=$(resolve_path "config_xml")
+management_raw_dir=$(resolve_path "management_raw_dir")
+management_clean_dir=$(resolve_path "management_clean_dir")
+event_dir=$(resolve_path "event_dir")
 # landtrendr_raw_files is comma-separated; resolve each segment (manifest only for now)
 landtrendr_raw_files=""
 while IFS= read -r segment; do
@@ -316,11 +293,6 @@ report_prepare_summary() {
 
   log_info "sipnet version: ${sipnet_version}"
   log_info "R version: ${r_version}"
-}
-
-# --- Get list of script paths for current command (from manifest steps) ---
-get_steps() {
-  yq eval '.steps["'"$COMMAND"'"] | .[].script' "$MANIFEST"
 }
 
 # --- Populate STEPS array for current command (from manifest) ---
@@ -753,11 +725,10 @@ run_run_ensembles() {
 # --- Main ---
 case "$COMMAND" in
   get-demo-data)        run_get_demo_data ;;
-  # prepare)              run_prepare ;;
-  # prepare-example-1b)   run_prepare ;;
-  # prepare-example-2a)   run_prepare ;;
-  # prepare-example-3)    run_prepare ;;
+  prepare)              run_manifest_command ;;
+  prepare-example-1b)   run_manifest_command ;;
+  prepare-example-2a)   run_manifest_command ;;
+  prepare-example-3)    run_manifest_command ;;
   run-ensembles)        run_run_ensembles ;;
-  prepare|prepare-example-2a) run_manifest_command ;;
   *)                    echo "magic-ensemble: Unknown command: $COMMAND" >&2; exit 1 ;;
 esac

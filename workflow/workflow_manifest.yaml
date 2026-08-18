@@ -275,6 +275,7 @@ paths:
 # Fixed workflow values (not user overrides)
 params_read_from_pft: "SLA,leafC,leafGrowth"
 additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005"
+parallel_strategy: "multisession"
 
 # S3 resources (not in user config). Remote resources are localized before R runs.
 # Stored as endpoint + bucket + per-resource key_prefix and filename (no full URLs).
