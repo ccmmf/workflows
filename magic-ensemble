@@ -313,6 +313,7 @@ run_script() {
   local script_cwd="$REPO_ROOT"
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
+      '') shift ;;
       --apptainer) use_apptainer=1; shift ;;
       --cwd)
         if [[ $# -lt 2 ]]; then
