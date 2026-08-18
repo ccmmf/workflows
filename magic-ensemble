@@ -112,7 +112,6 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 fi
 
 # --- Load effective config: manifest + optional user overrides ---
-# User config may contain: run_dir, start_date, end_date, run_LAI_date, n_ens, n_met, ic_ensemble_size, n_workers, pecan_dispatch
 get_val() {
   local key="$1"
   local fallback="$2"
@@ -134,19 +133,7 @@ get_val() {
   echo "$fallback"
 }
 
-# Overridable defaults (manifest may not have these; use script defaults if not in user config)
-run_dir_default="magic-ensemble-run-directory/"
-start_date_default="2016-01-01"
-end_date_default="2023-12-31"
-run_LAI_date_default="2016-07-01"
-n_ens_default="20"
-n_met_default="10"
-ic_ensemble_size_default="100"
-n_event_default="20"
-n_workers_default="1"
-use_apptainer_default="false"
-
-run_dir=$(get_val "run_dir" "$run_dir_default")
+run_dir=$(get_val "run_dir" "magic-ensemble-run-directory/")
 
 if [[ -z "$run_dir" || "$run_dir" == "null" ]]; then
   echo "magic-ensemble: run_dir is required in config $CONFIG_FILE" >&2
@@ -165,15 +152,9 @@ fi
 # Normalize run_dir to avoid trailing slashes so joined paths do not contain "//"
 run_dir="${run_dir%/}"
 
-start_date=$(get_val "start_date" "$start_date_default")
-end_date=$(get_val "end_date" "$end_date_default")
-run_LAI_date=$(get_val "run_LAI_date" "$run_LAI_date_default")
-n_ens=$(get_val "n_ens" "$n_ens_default")
-n_met=$(get_val "n_met" "$n_met_default")
-ic_ensemble_size=$(get_val "ic_ensemble_size" "$ic_ensemble_size_default")
-n_event=$(get_val "n_event" "$n_event_default")
-n_workers=$(get_val "n_workers" "$n_workers_default")
-use_apptainer_raw=$(get_val "use_apptainer" "$use_apptainer_default")
+n_workers=$(get_val "n_workers" "1")
+
+use_apptainer_raw=$(get_val "use_apptainer" "false")
 # Normalize: true/yes/1 (case-insensitive) => 1; else 0
 use_apptainer=0
 case "$(echo "$use_apptainer_raw" | tr '[:upper:]' '[:lower:]')" in
@@ -199,23 +180,9 @@ resolve_path() {
 
 
 # All workflow paths come from the manifest only (no user overrides).
-site_info_file=$(resolve_path "site_info_file")
-site_sipnet_met_path=$(resolve_path "site_sipnet_met_path")
-site_era5_path=$(resolve_path "site_era5_path")
-field_shape_path=$(resolve_path "field_shape_path")
-data_dir=$(resolve_path "data_dir")
-ic_outdir=$(resolve_path "ic_outdir")
-pft_dir=$(resolve_path "pft_dir")
-site_file=$(resolve_path "site_file")
 template_file=$(resolve_path "template_file")
-output_file=$(resolve_path "output_file")
-met_dir=$(resolve_path "met_dir")
-ic_dir=$(resolve_path "ic_dir")
 settings_xml=$(resolve_path "settings_xml")
 config_xml=$(resolve_path "config_xml")
-management_raw_dir=$(resolve_path "management_raw_dir")
-management_clean_dir=$(resolve_path "management_clean_dir")
-event_dir=$(resolve_path "event_dir")
 # landtrendr_raw_files is comma-separated; resolve each segment (manifest only for now)
 landtrendr_raw_files=""
 while IFS= read -r segment; do
