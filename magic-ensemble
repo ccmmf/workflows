@@ -115,16 +115,23 @@ fi
 # User config may contain: run_dir, start_date, end_date, run_LAI_date, n_ens, n_met, ic_ensemble_size, n_workers, pecan_dispatch
 get_val() {
   local key="$1"
-  local from_manifest="$2"
+  local fallback="$2"
+  local v
   if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
-    local u
-    u=$(yq eval ".$key" "$CONFIG_FILE" 2>/dev/null)
-    if [[ -n "$u" && "$u" != "null" ]]; then
-      echo "$u"
+    v=$(yq eval ".$key" "$CONFIG_FILE" 2>/dev/null)
+    if [[ -n "$v" && "$v" != "null" ]]; then
+      echo "$v"
       return
     fi
   fi
-  echo "$from_manifest"
+  if [[ -n "$MANIFEST" && -f "$MANIFEST" ]]; then
+    v=$(yq eval ".$key" "$MANIFEST" 2>/dev/null)
+    if [[ -n "$v" && "$v" != "null" ]]; then
+      echo "$v"
+      return
+    fi
+  fi
+  echo "$fallback"
 }
 
 # Read manifest paths and fixed values
@@ -202,7 +209,17 @@ aws_profile=$(get_val "aws_profile" "magic")
 
 # Resolve manifest paths relative to run_dir.
 # Effective path = run_dir / manifest_path so R (CWD=REPO_ROOT) sees the correct file.
-resolve_path() { echo "${run_dir}/${1}"; }
+resolve_path() {
+  local key="$1" rel
+  rel=$(get_val "paths.${key}" "" 2>/dev/null)
+  if [[ -z "$rel" || "$rel" == "null" ]]; then
+    echo "magic-ensemble: no path defined for key '${key}' in manifest" >&2
+    exit 1
+  fi
+  echo "${run_dir}/${rel}"
+}
+
+
 
 # All workflow paths come from the manifest only (no user overrides).
 site_info_file=$(resolve_path "$p_site_info_file")
@@ -309,9 +326,16 @@ get_steps() {
 # --- Populate STEPS array for current command (from manifest) ---
 get_steps_array() {
   STEPS=()
-  while IFS= read -r s; do
-    [[ -n "$s" ]] && STEPS+=("$s")
-  done < <(get_steps)
+  STEP_NAMES=()
+  local script name
+  while IFS= read -r script; do
+    [[ -z "$script" || "$script" == "null" ]] && continue
+    STEPS+=("$script")
+  done < <(yq eval ".steps.${COMMAND}[].script" "$MANIFEST" 2>/dev/null)
+  while IFS= read -r name; do
+    [[ -z "$name" || "$name" == "null" ]] && continue
+    STEP_NAMES+=("$name")
+  done < <(yq eval ".steps.${COMMAND}[].name" "$MANIFEST" 2>/dev/null)
 }
 
 # --- R library check for step at index i (reads r_libraries from manifest step; skip if empty or .sh) ---
@@ -432,6 +456,20 @@ ensure_sipnet_binary() {
     "$src_dir" "$bin_dir" "${run_dir}/sipnet.git" "$revision"
 }
 
+# --- Create the directory an output key needs before its script runs.
+# Directory-valued keys (manifest value has no '.', e.g. "cache") are created
+# directly; file-valued keys (e.g. "output_prepare/x.csv") have their parent
+# directory created instead. ---
+ensure_output_dir() {
+  local key="$1" resolved="$2" rel
+  rel=$(yq eval ".paths.${key}" "$MANIFEST" 2>/dev/null)
+  if [[ "$rel" == *.* ]]; then
+    mkdir -p "$(dirname "$resolved")"
+  else
+    mkdir -p "$resolved"
+  fi
+}
+
 # --- Validate pecan_dispatch value against manifest options ---
 validate_pecan_dispatch() {
   if ! yq eval ".pecan_dispatch | has(\"$pecan_dispatch\")" "$MANIFEST" | grep -q '^true$'; then
@@ -496,7 +534,7 @@ patch_xml_block() {
 # handlers below. ---
 build_step_args() {
   local name="$1"
-  STEP_ARGS=(--run_dir "$run_dir" --mode "$mode")
+  STEP_ARGS=()
 
   # Every command substitution below is followed by "|| exit 1" explicitly —
   # do not rely on set -e propagating through "arr+=(\"$(cmd)\")"; that
@@ -525,7 +563,9 @@ build_step_args() {
 # scalar parameter value resolution
   while IFS= read -r key; do
     [[ -z "$key" || "$key" == "null" ]] && continue
-    param_value=$(resolve_param "$key") || exit 1
+    # TODO downscaling uses a `resolve_param` fn for more elaborate validation
+    # of lists and scalars here -- consider copying?
+    param_value=$(get_val "$key" "") || exit 1
     STEP_ARGS+=("--${key}" "$param_value")
   done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .params[]" "$MANIFEST" 2>/dev/null)
 }
@@ -540,7 +580,24 @@ run_manifest_command() {
     script="${STEPS[i]}"; name="${STEP_NAMES[i]}"; step_num=$((i + 1))
     echo "magic-ensemble: ${COMMAND} step ${step_num} of ${total}: ${script}"
     build_step_args "$name"
-    run_script "$script" "${STEP_ARGS[@]}"
+    if [[ "$script" == *.sh ]]; then
+      run_shell_script "$script" "$i"
+      if [[ "$name" == "stage-inputs" ]]; then
+        # TODO give this its own step instead?
+        echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
+        patch_xml_block "host" \
+          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml" \
+          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml_apptainer"
+        patch_xml_block "model" \
+          ".sipnet_model.model_xml" \
+          ".sipnet_model.model_xml_apptainer"
+        if [[ $use_apptainer -eq 0 ]]; then
+          ensure_sipnet_binary
+        fi
+      fi
+    else
+      run_script "$script" "${STEP_ARGS[@]}"
+    fi
     echo "magic-ensemble: ${COMMAND} step ${step_num} completed"
   done
   echo "magic-ensemble: ${COMMAND} finished (${total} steps)"

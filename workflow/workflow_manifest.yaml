@@ -16,8 +16,7 @@
 #                (each becomes --<key>)
 #   params:      List of scalar/list keys this script needs, resolved from
 #                mode_params.$mode.<key> falling back to fixed_values.<key>
-#                (each becomes --<key>); n_cores is the one exception, sourced
-#                from the user config instead (see magic-downscaling)
+#                (each becomes --<key>)
 
 # Steps per command: script path, R libs to check (empty for shell scripts), input/output path keys
 steps:
@@ -49,7 +48,7 @@ steps:
           r_libraries: [tidyverse]
           inputs:
               [
-                  site_info_file,
+                  site_info_path,
                   field_shape_path,
                   pft_dir,
                   data_dir,
@@ -98,7 +97,7 @@ steps:
           r_libraries: [tidyverse]
           inputs:
               [
-                  site_info_file,
+                  site_info_path,
                   field_shape_path,
                   pft_dir,
                   data_dir,
@@ -147,7 +146,7 @@ steps:
           r_libraries: [tidyverse]
           inputs:
               [
-                  site_info_file,
+                  site_info_path,
                   field_shape_path,
                   pft_dir,
                   data_dir,
@@ -196,13 +195,20 @@ steps:
           r_libraries: [tidyverse]
           inputs:
               [
-                  site_info_file,
+                  site_info_path,
                   field_shape_path,
                   pft_dir,
                   data_dir,
                   landtrendr_raw_files,
               ]
-          params: []
+          params:
+              [
+                  ic_ensemble_size,
+                  run_start_date,
+                  run_LAI_date,
+                  params_read_from_pft,
+                  additional_params
+              ]
           outputs: [ic_outdir, data_dir]
 
         - name: build-events
@@ -247,6 +253,7 @@ steps:
 # Values are relative to run_dir; CLI resolves as run_dir + "/" + value.
 paths:
     site_info_file: "site_info.csv"
+    site_info_path: "site_info.csv"
     site_sipnet_met_path: "data/ERA5_SIPNET"
     site_era5_path: "data_raw/ERA5_CA_nc"
     field_shape_path: "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
@@ -266,7 +273,7 @@ paths:
     event_dir: "data/events"
 
 # Fixed workflow values (not user overrides)
-params_from_pft: "SLA,leafC,leafGrowth"
+params_read_from_pft: "SLA,leafC,leafGrowth"
 additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005"
 
 # S3 resources (not in user config). Remote resources are localized before R runs.
