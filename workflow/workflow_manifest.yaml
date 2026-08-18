@@ -287,7 +287,7 @@ n_ens: 20
 n_met: 10
 ic_ensemble_size: 100
 n_event: 20
-n_workers: 1
+n_cores: 1
 use_apptainer: "false"
 
 
