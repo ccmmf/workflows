@@ -1,0 +1,523 @@
+{
+ "pecan_events_version": "0.1.0",
+ "site_id": "US-Twt",
+ "provenance": {
+  "parcel_id": 590073,
+  "crop": "R1",
+  "generator": "tools/us_twt_2010/build_events.py",
+  "note": "2010-2015 management from curated Knox et al. 2016 records (cal-val-data); water events from Knox intervals pending WTD; 2016 synthesized, absent from the monitoring product export"
+ },
+ "events": [
+  {
+   "event_type": "tillage",
+   "date": "2010-03-26",
+   "tillage_eff_0to1": 0.5,
+   "implement": "disking",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0001",
+   "provenance_note": "Knox reports disking before planting without dates; placed 21 d before planting"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2010-04-09",
+   "tillage_eff_0to1": 0.2,
+   "implement": "ring rolling",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0002",
+   "provenance_note": "Knox reports ring rolling before planting without dates; placed 7 d before planting"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2010-04-16",
+   "nh4_n_kg_m2": 0.00123294,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 100.0,
+   "reported_grade": "11-52-0",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0003",
+   "provenance_note": "100.0 lb/ac of 11-52-0 -> 0.00123294 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "planting",
+   "date": "2010-04-16",
+   "crop_code": "R1",
+   "crop_display": "rice (M-206)",
+   "leaf_c_kg_m2": 0.02455947,
+   "prior_filled": "leaf_c_kg_m2<-prior:us_twt_monitoring_product_median",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-planting-0006"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2010-06-05",
+   "nh4_n_kg_m2": 0.00504383,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 150.0,
+   "reported_grade": "30-0-20",
+   "provenance_class": "derived",
+   "source": "calval:managements/delta-fertilization-0004",
+   "provenance_note": "source reports a window 2010-06-05..2010-06-09; earliest date used; 150.0 lb/ac of 30-0-20 -> 0.00504383 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2010-06-07",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-flooding-0006",
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2010-09-21",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-drainage-0001",
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "harvest",
+   "date": "2010-10-28",
+   "crop_display": "rice (M-206)",
+   "frac_above_removed_0to1": 0.8,
+   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "provenance_class": "derived",
+   "source": "calval:managements/delta-harvest-0004",
+   "provenance_note": "source reports a window 2010-10-28..2010-10-29; earliest date used"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2011-04-01",
+   "tillage_eff_0to1": 0.5,
+   "implement": "disking",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0001",
+   "provenance_note": "Knox reports disking before planting without dates; placed 21 d before planting"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2011-04-15",
+   "tillage_eff_0to1": 0.2,
+   "implement": "ring rolling",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0002",
+   "provenance_note": "Knox reports ring rolling before planting without dates; placed 7 d before planting"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2011-04-22",
+   "nh4_n_kg_m2": 0.00123294,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 100.0,
+   "reported_grade": "11-52-0",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0005",
+   "provenance_note": "100.0 lb/ac of 11-52-0 -> 0.00123294 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "planting",
+   "date": "2011-04-22",
+   "crop_code": "R1",
+   "crop_display": "rice (M-104)",
+   "leaf_c_kg_m2": 0.02455947,
+   "prior_filled": "leaf_c_kg_m2<-prior:us_twt_monitoring_product_median",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-planting-0007"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2011-06-13",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-flooding-0006",
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2011-06-14",
+   "nh4_n_kg_m2": 0.0067251,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 200.0,
+   "reported_grade": "30-0-20",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0006",
+   "provenance_note": "200.0 lb/ac of 30-0-20 -> 0.0067251 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2011-09-05",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-drainage-0001",
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "harvest",
+   "date": "2011-10-12",
+   "crop_display": "rice (M-104)",
+   "frac_above_removed_0to1": 0.8,
+   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "provenance_class": "derived",
+   "source": "calval:managements/delta-harvest-0005",
+   "provenance_note": "source reports a window 2011-10-12..2011-10-14; earliest date used"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2012-04-26",
+   "tillage_eff_0to1": 0.5,
+   "implement": "disking",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0001",
+   "provenance_note": "Knox reports disking before planting without dates; placed 21 d before planting"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2012-05-10",
+   "tillage_eff_0to1": 0.2,
+   "implement": "ring rolling",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0002",
+   "provenance_note": "Knox reports ring rolling before planting without dates; placed 7 d before planting"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2012-05-17",
+   "nh4_n_kg_m2": 0.00123294,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 100.0,
+   "reported_grade": "11-52-0",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0007",
+   "provenance_note": "100.0 lb/ac of 11-52-0 -> 0.00123294 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "planting",
+   "date": "2012-05-17",
+   "crop_code": "R1",
+   "crop_display": "rice (M-104)",
+   "leaf_c_kg_m2": 0.02455947,
+   "prior_filled": "leaf_c_kg_m2<-prior:us_twt_monitoring_product_median",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-planting-0008"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2012-06-16",
+   "nh4_n_kg_m2": 0.0067251,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 200.0,
+   "reported_grade": "30-0-20",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0008",
+   "provenance_note": "200.0 lb/ac of 30-0-20 -> 0.0067251 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2012-07-08",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-flooding-0006",
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2012-10-07",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-drainage-0001",
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "harvest",
+   "date": "2012-11-13",
+   "crop_display": "rice (M-104)",
+   "frac_above_removed_0to1": 0.8,
+   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "provenance_class": "derived",
+   "source": "calval:managements/delta-harvest-0006",
+   "provenance_note": "source reports a window 2012-11-13..2012-11-15; earliest date used"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2013-03-12",
+   "tillage_eff_0to1": 0.5,
+   "implement": "disking",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0001",
+   "provenance_note": "Knox reports disking before planting without dates; placed 21 d before planting"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2013-03-26",
+   "tillage_eff_0to1": 0.2,
+   "implement": "ring rolling",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0002",
+   "provenance_note": "Knox reports ring rolling before planting without dates; placed 7 d before planting"
+  },
+  {
+   "event_type": "planting",
+   "date": "2013-04-02",
+   "crop_code": "R1",
+   "crop_display": "rice (M-206)",
+   "leaf_c_kg_m2": 0.02455947,
+   "prior_filled": "leaf_c_kg_m2<-prior:us_twt_monitoring_product_median",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-planting-0009"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2013-05-02",
+   "nh4_n_kg_m2": 0.00168127,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 100.0,
+   "reported_grade": "15-15-15",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0009",
+   "provenance_note": "100.0 lb/ac of 15-15-15 -> 0.00168127 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2013-05-24",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-flooding-0006",
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2013-08-14",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-drainage-0001",
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "harvest",
+   "date": "2013-09-20",
+   "crop_display": "rice (M-206)",
+   "frac_above_removed_0to1": 0.8,
+   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-harvest-0007"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2014-04-07",
+   "tillage_eff_0to1": 0.5,
+   "implement": "disking",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0001",
+   "provenance_note": "Knox reports disking before planting without dates; placed 21 d before planting"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2014-04-21",
+   "tillage_eff_0to1": 0.2,
+   "implement": "ring rolling",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0002",
+   "provenance_note": "Knox reports ring rolling before planting without dates; placed 7 d before planting"
+  },
+  {
+   "event_type": "planting",
+   "date": "2014-04-28",
+   "crop_code": "R1",
+   "crop_display": "rice (M-206)",
+   "leaf_c_kg_m2": 0.02455947,
+   "prior_filled": "leaf_c_kg_m2<-prior:us_twt_monitoring_product_median",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-planting-0010"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2014-06-05",
+   "nh4_n_kg_m2": 0.00252191,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 150.0,
+   "reported_grade": "15-15-15",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0010",
+   "provenance_note": "150.0 lb/ac of 15-15-15 -> 0.00252191 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2014-06-19",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-flooding-0006",
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2014-08-26",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-drainage-0001",
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "harvest",
+   "date": "2014-10-02",
+   "crop_display": "rice (M-206)",
+   "frac_above_removed_0to1": 0.8,
+   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-harvest-0008"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2015-03-26",
+   "tillage_eff_0to1": 0.5,
+   "implement": "disking",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0001",
+   "provenance_note": "Knox reports disking before planting without dates; placed 21 d before planting"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2015-04-09",
+   "tillage_eff_0to1": 0.2,
+   "implement": "ring rolling",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0002",
+   "provenance_note": "Knox reports ring rolling before planting without dates; placed 7 d before planting"
+  },
+  {
+   "event_type": "planting",
+   "date": "2015-04-16",
+   "crop_code": "R1",
+   "crop_display": "rice (M-206)",
+   "leaf_c_kg_m2": 0.02455947,
+   "prior_filled": "leaf_c_kg_m2<-prior:us_twt_monitoring_product_median",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-planting-0011"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2015-05-31",
+   "nh4_n_kg_m2": 0.00168127,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 100.0,
+   "reported_grade": "15-15-15",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-fertilization-0011",
+   "provenance_note": "100.0 lb/ac of 15-15-15 -> 0.00168127 kg N m-2, all as ammonium (these are ammonium/urea-based products); source reports product and rate, not N form"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2015-06-07",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-flooding-0006",
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2015-08-17",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-drainage-0001",
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "harvest",
+   "date": "2015-09-23",
+   "crop_display": "rice (M-206)",
+   "frac_above_removed_0to1": 0.8,
+   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "provenance_class": "published",
+   "source": "calval:managements/delta-harvest-0009"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2016-03-28",
+   "tillage_eff_0to1": 0.5,
+   "implement": "disking",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0001",
+   "provenance_note": "Knox reports disking before planting without dates; placed 21 d before the synthesized 2016 planting"
+  },
+  {
+   "event_type": "tillage",
+   "date": "2016-04-11",
+   "tillage_eff_0to1": 0.2,
+   "implement": "ring rolling",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-tillage-0002",
+   "provenance_note": "Knox reports ring rolling before planting without dates; placed 7 d before the synthesized 2016 planting"
+  },
+  {
+   "event_type": "planting",
+   "date": "2016-04-18",
+   "crop_code": "R1",
+   "crop_display": "R1",
+   "leaf_c_kg_m2": 0.02455947,
+   "prior_filled": "date<-synthesized:median_doy(2010-2015)",
+   "provenance_class": "assumed",
+   "source": "synthesized:median_doy",
+   "provenance_note": "2016 absent from the monitoring product export (covers site_id 0..99999); date is the 2010-2015 median day of year"
+  },
+  {
+   "event_type": "fertilization",
+   "date": "2016-05-30",
+   "nh4_n_kg_m2": 0.00168127,
+   "no3_n_kg_m2": 0.0,
+   "org_n_kg_m2": 0.0,
+   "reported_rate_lb_ac": 100.0,
+   "reported_grade": "15-15-15",
+   "prior_filled": "date,rate<-synthesized:median(2013-2015)",
+   "provenance_class": "assumed",
+   "source": "synthesized:median_doy",
+   "provenance_note": "2016 absent from the monitoring product export; rate and date are the median of the 2013-2015 single-application regime"
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2016-06-09",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-flooding-0006",
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2016-08-30",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "assumed",
+   "source": "calval:managements/delta-drainage-0001",
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+  },
+  {
+   "event_type": "harvest",
+   "date": "2016-10-06",
+   "crop_display": "R1",
+   "frac_above_removed_0to1": 0.8,
+   "prior_filled": "date<-synthesized:median_doy(2010-2015)",
+   "provenance_class": "assumed",
+   "source": "synthesized:median_doy",
+   "provenance_note": "2016 absent from the monitoring product export; date is the 2010-2015 median DOY"
+  }
+ ]
+}

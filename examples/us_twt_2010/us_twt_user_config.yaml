@@ -1,0 +1,24 @@
+# US-Twt over the years its CH4 and NEE observations cover (ccmmf/organization#261).
+# The 2017-2023 configuration in examples/us_twt/ shares no years with those
+# observations, so the site contributes nothing to the joint calibration.
+#
+# run_dir and data_dir are deliberately NOT the ones used by examples/us_twt:
+# 02_ic_build.R caches by site id only, not by date, so reusing them would
+# silently return initial conditions built for a 2016/2017 start.
+run_dir: "/projectnb2/dietzelab/ccmmf/usr/adey2/runs/us-twt-2010"
+
+start_date: "2010-01-01"
+end_date:   "2016-12-31"
+run_LAI_date: "2013-07-01"   # mid-window; MODIS LAI is searched +/- 30 days
+
+n_ens: 20
+n_met: 10
+ic_ensemble_size: 100
+
+external_paths:
+    template_file: "examples/us_twt_2010/template.xml"
+    site_info_file: "examples/us_twt_2010/us_twt_site_info.csv"
+
+n_workers: 1
+use_apptainer: false
+pecan_dispatch: local-gnu-parallel
