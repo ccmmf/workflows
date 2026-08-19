@@ -5,9 +5,19 @@
   "parcel_id": 590073,
   "crop": "R1",
   "generator": "tools/us_twt_2010/build_events.py",
-  "note": "management 2010-2015 from curated Knox et al. 2016 records (cal-val-data); flood and drain dates derived from the AmeriFlux BASE WTD series where it resolves them; 2016 synthesized, absent from the monitoring product export"
+  "note": "management 2010-2015 from curated Knox et al. 2016 records (cal-val-data); all flood and drain dates - growing season and winter - derived from the AmeriFlux BASE WTD series; 2016 planting, harvest, tillage and fertilizer synthesized, absent from the monitoring product export"
  },
  "events": [
+  {
+   "event_type": "irrigation",
+   "date": "2010-02-01",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter drain from the WTD series: first observed day back below the surface after the winter reflood. Zero amount is a drain marker; SIPNET has no drain event type."
+  },
   {
    "event_type": "tillage",
    "date": "2010-03-26",
@@ -67,16 +77,18 @@
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 60 d after planting; Knox reports 45-60 d."
+   "season": "growing",
+   "provenance_note": "Growing-season flood onset from the WTD series: first 14 consecutive observed days at or above the surface (short breaks of <=7 d merged). 60 d after planting, within the 45-60 d Knox reports. Standing water 103 d; Knox reports 64-112 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2010-09-27",
+   "date": "2010-09-26",
    "amount_mm": 0.0,
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 31 d before harvest; Knox reports 30-45 d."
+   "season": "growing",
+   "provenance_note": "Growing-season drain from the WTD series: first observed day back below the surface after the sustained flooded period. 32 d before harvest, within the 30-45 d Knox reports."
   },
   {
    "event_type": "harvest",
@@ -88,6 +100,26 @@
    "source": "calval:managements/delta-harvest-0004",
    "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
    "frac_above_to_litter_0to1": 0.5
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2010-11-19",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter reflood onset from the WTD series, same rule. Flooded 114 d, within the 65-135 d Knox reports."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2011-03-13",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter drain from the WTD series: first observed day back below the surface after the winter reflood. Zero amount is a drain marker; SIPNET has no drain event type."
   },
   {
    "event_type": "tillage",
@@ -148,16 +180,18 @@
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 56 d after planting; Knox reports 45-60 d."
+   "season": "growing",
+   "provenance_note": "Growing-season flood onset from the WTD series: first 14 consecutive observed days at or above the surface (short breaks of <=7 d merged). 56 d after planting, within the 45-60 d Knox reports. Standing water 83 d; Knox reports 64-112 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2011-09-09",
+   "date": "2011-09-08",
    "amount_mm": 0.0,
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 33 d before harvest; Knox reports 30-45 d."
+   "season": "growing",
+   "provenance_note": "Growing-season drain from the WTD series: first observed day back below the surface after the sustained flooded period. 34 d before harvest, within the 30-45 d Knox reports."
   },
   {
    "event_type": "harvest",
@@ -169,6 +203,26 @@
    "source": "calval:managements/delta-harvest-0005",
    "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
    "frac_above_to_litter_0to1": 0.5
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2011-11-10",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter reflood onset from the WTD series, same rule. Flooded 106 d, within the 65-135 d Knox reports."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2012-02-24",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter drain from the WTD series: first observed day back below the surface after the winter reflood. Zero amount is a drain marker; SIPNET has no drain event type."
   },
   {
    "event_type": "tillage",
@@ -229,16 +283,18 @@
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 32 d after planting; Knox reports 45-60 d, so this year sits outside the reported range."
+   "season": "growing",
+   "provenance_note": "Growing-season flood onset from the WTD series: first 14 consecutive observed days at or above the surface (short breaks of <=7 d merged). 32 d after planting, outside the 45-60 d Knox reports. Standing water 100 d; Knox reports 64-112 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2012-09-27",
+   "date": "2012-09-26",
    "amount_mm": 0.0,
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 47 d before harvest; Knox reports 30-45 d, so this year sits outside the reported range."
+   "season": "growing",
+   "provenance_note": "Growing-season drain from the WTD series: first observed day back below the surface after the sustained flooded period. 48 d before harvest, outside the 30-45 d Knox reports."
   },
   {
    "event_type": "harvest",
@@ -250,6 +306,26 @@
    "source": "calval:managements/delta-harvest-0006",
    "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
    "frac_above_to_litter_0to1": 0.5
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2012-11-30",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter reflood onset from the WTD series, same rule. Flooded 77 d, within the 65-135 d Knox reports."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2013-02-15",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter drain from the WTD series: first observed day back below the surface after the winter reflood. Zero amount is a drain marker; SIPNET has no drain event type."
   },
   {
    "event_type": "tillage",
@@ -298,16 +374,18 @@
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 46 d after planting; Knox reports 45-60 d."
+   "season": "growing",
+   "provenance_note": "Growing-season flood onset from the WTD series: first 14 consecutive observed days at or above the surface (short breaks of <=7 d merged). 46 d after planting, within the 45-60 d Knox reports. Standing water 95 d; Knox reports 64-112 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2013-08-24",
+   "date": "2013-08-21",
    "amount_mm": 0.0,
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 27 d before harvest; Knox reports 30-45 d, so this year sits outside the reported range."
+   "season": "growing",
+   "provenance_note": "Growing-season drain from the WTD series: first observed day back below the surface after the sustained flooded period. 30 d before harvest, within the 30-45 d Knox reports."
   },
   {
    "event_type": "harvest",
@@ -319,6 +397,26 @@
    "source": "calval:managements/delta-harvest-0007",
    "frac_above_to_litter_0to1": 0.5,
    "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2013-10-16",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter reflood onset from the WTD series, same rule. Flooded 143 d, outside the 65-135 d Knox reports."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2014-03-08",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter drain from the WTD series: first observed day back below the surface after the winter reflood. Zero amount is a drain marker; SIPNET has no drain event type."
   },
   {
    "event_type": "tillage",
@@ -367,16 +465,18 @@
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 43 d after planting; Knox reports 45-60 d, so this year sits outside the reported range."
+   "season": "growing",
+   "provenance_note": "Growing-season flood onset from the WTD series: first 14 consecutive observed days at or above the surface (short breaks of <=7 d merged). 43 d after planting, outside the 45-60 d Knox reports. Standing water 78 d; Knox reports 64-112 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2014-08-28",
+   "date": "2014-08-27",
    "amount_mm": 0.0,
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 35 d before harvest; Knox reports 30-45 d."
+   "season": "growing",
+   "provenance_note": "Growing-season drain from the WTD series: first observed day back below the surface after the sustained flooded period. 36 d before harvest, within the 30-45 d Knox reports."
   },
   {
    "event_type": "harvest",
@@ -389,6 +489,26 @@
    "frac_above_to_litter_0to1": 0.5,
    "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed. Knox does not state the 2014 residue treatment, so this year's fraction is carried from the others rather than sourced.",
    "residue_treatment_resolved": false
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2014-10-31",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter reflood onset from the WTD series, same rule. Flooded 95 d, within the 65-135 d Knox reports."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2015-02-03",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter drain from the WTD series: first observed day back below the surface after the winter reflood. Zero amount is a drain marker; SIPNET has no drain event type."
   },
   {
    "event_type": "tillage",
@@ -437,16 +557,18 @@
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 52 d after planting; Knox reports 45-60 d."
+   "season": "growing",
+   "provenance_note": "Growing-season flood onset from the WTD series: first 14 consecutive observed days at or above the surface (short breaks of <=7 d merged). 52 d after planting, within the 45-60 d Knox reports. Standing water 68 d; Knox reports 64-112 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2015-08-15",
+   "date": "2015-08-14",
    "amount_mm": 0.0,
    "method": "flood",
    "provenance_class": "derived",
    "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
-   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 39 d before harvest; Knox reports 30-45 d."
+   "season": "growing",
+   "provenance_note": "Growing-season drain from the WTD series: first observed day back below the surface after the sustained flooded period. 40 d before harvest, within the 30-45 d Knox reports."
   },
   {
    "event_type": "harvest",
@@ -458,6 +580,26 @@
    "source": "calval:managements/delta-harvest-0009",
    "frac_above_to_litter_0to1": 0.5,
    "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2015-11-04",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter reflood onset from the WTD series, same rule. Flooded 36 d, outside the 65-135 d Knox reports. Short: WTD is -0.37 m in Feb 2016 and -0.35 m in Mar 2016, so the field was genuinely not reflooded that winter rather than unobserved - consistent with the 2012-2016 drought."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2015-12-10",
+   "amount_mm": 0.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter drain from the WTD series: first observed day back below the surface after the winter reflood. Zero amount is a drain marker; SIPNET has no drain event type."
   },
   {
    "event_type": "tillage",
@@ -503,21 +645,23 @@
   },
   {
    "event_type": "irrigation",
-   "date": "2016-06-09",
+   "date": "2016-06-24",
    "amount_mm": 150.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date. WTD could not resolve this year, so the Knox interval midpoint is retained."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "growing",
+   "provenance_note": "Growing-season flood onset from the WTD series: first 14 consecutive observed days at or above the surface (short breaks of <=7 d merged). 67 d after planting, outside the 45-60 d Knox reports. Standing water 56 d; Knox reports 64-112 d. The 2016 planting date is itself synthesized (median DOY), so the offset is the weaker half of this comparison; the WTD rise on 2016-06-19..24 is continuously observed."
   },
   {
    "event_type": "irrigation",
-   "date": "2016-08-30",
+   "date": "2016-08-19",
    "amount_mm": 0.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date. WTD could not resolve this year, so the Knox interval midpoint is retained."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "growing",
+   "provenance_note": "Growing-season drain from the WTD series: first observed day back below the surface after the sustained flooded period. 48 d before harvest, outside the 30-45 d Knox reports."
   },
   {
    "event_type": "harvest",
@@ -529,6 +673,16 @@
    "source": "synthesized:median_doy",
    "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
    "frac_above_to_litter_0to1": 0.5
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2016-11-17",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "season": "winter",
+   "provenance_note": "Winter reflood onset from the WTD series, same rule. Flooded 114 d, within the 65-135 d Knox reports."
   }
  ]
 }
