@@ -11,241 +11,295 @@
 #   name:        Short identifier for this step
 #   script:      Script path (relative to repo root)
 #   r_libraries: R packages to check before running this script
-#   inputs:      List of path keys this script reads (each becomes --<key>)
-#   outputs:     List of path keys this script creates or writes
-#                (each becomes --<key>)
-#   params:      List of scalar/list keys this script needs, resolved from
-#                mode_params.$mode.<key> falling back to fixed_values.<key>
-#                (each becomes --<key>)
+#   inputs:      Dict of {cli_flag: path_key} for path-valued flags this script reads
+#   outputs:     Dict of {cli_flag: path_key} for path-valued flags this script
+#                creates or writes
+#   params:      Dict of {cli_flag: value_key} for scalar/list flags this script
+#                needs; value_key is resolved via get_val (config override,
+#                falling back to the manifest's own top-level value)
+#
+# cli_flag is the literal "--<cli_flag>" passed on the command line; path_key/
+# value_key name where the actual value comes from (a 'paths' entry, or a
+# top-level manifest/config scalar). They're often the same string, but not
+# always — e.g. build-ic's --site_info_path flag is fed from the site_info_file
+# path (one file, one canonical path key, no need to duplicate paths just to
+# satisfy a script's flag name), and --run_start_date is fed from start_date.
 
-# Steps per command: script path, R libs to check (empty for shell scripts), input/output path keys
+# Steps per command: script path, R libs to check (empty for shell scripts), input/output/param flag maps
 steps:
     get-demo-data:
         - name: get-demo-data
           script: "workflow/00_fetch_s3_and_prepare_run_dir.sh"
           r_libraries: []
-          inputs: []
-          params: []
-          outputs: [data_dir, ic_outdir, site_sipnet_met_path, management_raw_dir]
+          inputs: {}
+          params: {}
+          outputs:
+              data_dir: data_dir
+              ic_outdir: ic_outdir
+              site_sipnet_met_path: site_sipnet_met_path
+              management_raw_dir: management_raw_dir
 
     prepare:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
-          inputs: []
-          params: []
-          outputs: []
+          inputs: {}
+          params: {}
+          outputs: {}
 
         - name: convert-clim
           script: "workflow/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
-          inputs: [site_info_file, site_era5_path]
-          params: [start_date, end_date, n_cores, parallel_strategy]
-          outputs: [site_sipnet_met_path]
+          inputs:
+              site_era5_path: site_era5_path
+              site_info_file: site_info_file
+          params:
+              start_date: start_date
+              end_date: end_date
+              n_cores: n_cores
+              parallel_strategy: parallel_strategy
+          outputs:
+              site_sipnet_met_path: site_sipnet_met_path
 
         - name: build-ic
           script: "workflow/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
-              [
-                  site_info_path,
-                  field_shape_path,
-                  pft_dir,
-                  data_dir,
-                  landtrendr_raw_files,
-              ]
+              site_info_path: site_info_file
+              field_shape_path: field_shape_path
+              pft_dir: pft_dir
+              data_dir: data_dir
+              landtrendr_raw_files: landtrendr_raw_files
           params:
-              [
-                  ic_ensemble_size,
-                  run_start_date,
-                  run_LAI_date,
-                  params_read_from_pft,
-                  additional_params
-              ]
-          outputs: [ic_outdir, data_dir]
+              ic_ensemble_size: ic_ensemble_size
+              run_start_date: start_date
+              run_LAI_date: run_LAI_date
+              params_read_from_pft: params_read_from_pft
+              additional_params: additional_params
+          outputs:
+              ic_outdir: ic_outdir
+              data_dir: data_dir
 
         - name: build-xml
           script: "workflow/03_xml_build.R"
           r_libraries: [PEcAn.settings]
-          inputs: [site_file, template_file, ic_dir, met_dir]
+          inputs:
+              site_file: site_file
+              template_file: template_file
+              ic_dir: ic_dir
+              met_dir: met_dir
           params:
-              [
-                  n_ens,
-                  n_met,
-                  start_date,
-                  end_date
-              ]
-          outputs: [output_file, output_dir]
+              n_ens: n_ens
+              n_met: n_met
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              output_file: output_file
 
     prepare-example-2a:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
-          inputs: []
-          params: []
-          outputs: []
+          inputs: {}
+          params: {}
+          outputs: {}
 
         - name: convert-clim
           script: "examples/2a_grass/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
-          inputs: [site_info_file, site_era5_path]
-          params: [start_date, end_date, n_cores, parallel_strategy]
-          outputs: [site_sipnet_met_path]
+          inputs:
+              site_era5_path: site_era5_path
+              site_info_file: site_info_file
+          params:
+              start_date: start_date
+              end_date: end_date
+              n_cores: n_cores
+              parallel_strategy: parallel_strategy
+          outputs:
+              site_sipnet_met_path: site_sipnet_met_path
 
         - name: build-ic
           script: "examples/2a_grass/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
-              [
-                  site_info_path,
-                  field_shape_path,
-                  pft_dir,
-                  data_dir,
-                  landtrendr_raw_files,
-              ]
+              site_info_path: site_info_file
+              field_shape_path: field_shape_path
+              pft_dir: pft_dir
+              data_dir: data_dir
+              landtrendr_raw_files: landtrendr_raw_files
           params:
-              [
-                  ic_ensemble_size,
-                  run_start_date,
-                  run_LAI_date,
-                  params_read_from_pft,
-                  additional_params
-              ]
-          outputs: [ic_outdir, data_dir]
+              ic_ensemble_size: ic_ensemble_size
+              run_start_date: start_date
+              run_LAI_date: run_LAI_date
+              params_read_from_pft: params_read_from_pft
+              additional_params: additional_params
+          outputs:
+              ic_outdir: ic_outdir
+              data_dir: data_dir
 
         - name: build-xml
           script: "examples/2a_grass/03_xml_build.R"
           r_libraries: [PEcAn.settings]
-          inputs: [site_file, template_file, ic_dir, met_dir]
+          inputs:
+              site_file: site_file
+              template_file: template_file
+              ic_dir: ic_dir
+              met_dir: met_dir
           params:
-              [
-                  n_ens,
-                  n_met,
-                  start_date,
-                  end_date
-              ]
-          outputs: [output_file, output_dir]
+              n_ens: n_ens
+              n_met: n_met
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              output_file: output_file
+              output_dir: output_dir
 
     prepare-example-1b:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
-          inputs: []
-          params: []
-          outputs: []
+          inputs: {}
+          params: {}
+          outputs: {}
 
         - name: convert-clim
           script: "examples/1b_statewide_woody/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
-          inputs: [site_info_file, site_era5_path]
-          params: [start_date, end_date, n_cores, parallel_strategy]
-          outputs: [site_sipnet_met_path]
+          inputs:
+              site_era5_path: site_era5_path
+              site_info_file: site_info_file
+          params:
+              start_date: start_date
+              end_date: end_date
+              n_cores: n_cores
+              parallel_strategy: parallel_strategy
+          outputs:
+              site_sipnet_met_path: site_sipnet_met_path
 
         - name: build-ic
           script: "examples/1b_statewide_woody/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
-              [
-                  site_info_path,
-                  field_shape_path,
-                  pft_dir,
-                  data_dir,
-                  landtrendr_raw_files,
-              ]
+              site_info_path: site_info_file
+              field_shape_path: field_shape_path
+              pft_dir: pft_dir
+              data_dir: data_dir
+              landtrendr_raw_files: landtrendr_raw_files
           params:
-              [
-                  ic_ensemble_size,
-                  run_start_date,
-                  run_LAI_date,
-                  params_read_from_pft,
-                  additional_params
-              ]
-          outputs: [ic_outdir, data_dir]
+              ic_ensemble_size: ic_ensemble_size
+              run_start_date: start_date
+              run_LAI_date: run_LAI_date
+              params_read_from_pft: params_read_from_pft
+              additional_params: additional_params
+          outputs:
+              ic_outdir: ic_outdir
+              data_dir: data_dir
 
         - name: build-xml
           script: "examples/1b_statewide_woody/03_xml_build.R"
           r_libraries: [PEcAn.settings]
-          inputs: [site_file, template_file, ic_dir, met_dir]
+          inputs:
+              site_file: site_file
+              template_file: template_file
+              ic_dir: ic_dir
+              met_dir: met_dir
           params:
-              [
-                  n_ens,
-                  n_met,
-                  start_date,
-                  end_date
-              ]
-          outputs: [output_file, output_dir]
+              n_ens: n_ens
+              n_met: n_met
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              output_file: output_file
 
     prepare-example-3:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
           r_libraries: []
-          inputs: []
-          params: []
-          outputs: []
+          inputs: {}
+          params: {}
+          outputs: {}
 
         - name: convert-clim
           script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
           r_libraries: [future, furrr]
-          inputs: [site_info_file, site_era5_path]
-          params: [start_date, end_date, n_cores, parallel_strategy]
-          outputs: [site_sipnet_met_path]
+          inputs:
+              site_era5_path: site_era5_path
+              site_info_file: site_info_file
+          params:
+              start_date: start_date
+              end_date: end_date
+              n_cores: n_cores
+              parallel_strategy: parallel_strategy
+          outputs:
+              site_sipnet_met_path: site_sipnet_met_path
 
         - name: build-ic
           script: "workflow/02_ic_build.R"
           r_libraries: [tidyverse]
           inputs:
-              [
-                  site_info_path,
-                  field_shape_path,
-                  data_dir,
-                  pft_dir,
-                  landtrendr_raw_files,
-              ]
+              site_info_path: site_info_file
+              field_shape_path: field_shape_path
+              data_dir: data_dir
+              pft_dir: pft_dir
+              landtrendr_raw_files: landtrendr_raw_files
           params:
-              [
-                  ic_ensemble_size,
-                  run_start_date,
-                  run_LAI_date,
-                  params_read_from_pft,
-                  additional_params
-              ]
-          outputs: [ic_outdir, data_dir]
+              ic_ensemble_size: ic_ensemble_size
+              run_start_date: start_date
+              run_LAI_date: run_LAI_date
+              params_read_from_pft: params_read_from_pft
+              additional_params: additional_params
+          outputs:
+              ic_outdir: ic_outdir
+              data_dir: data_dir
 
         - name: build-events
           script: "examples/3_rowcrop/02a_build_events.R"
           r_libraries: [tidyverse, callr]
-          inputs: [site_info_path, raw_parquet_dir]
-          params: [start_date, end_date]
-          outputs: [clean_parquet_dir, event_outdir]
+          inputs:
+              site_info_path: site_info_file
+              raw_parquet_dir: raw_parquet_dir
+          params:
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              clean_parquet_dir: clean_parquet_dir
+              event_outdir: event_dir
 
         - name: build-xml
           script: "examples/3_rowcrop/03_xml_build.R"
           r_libraries: [PEcAn.settings]
-          inputs: [site_file, template_file, ic_dir, met_dir, event_dir]
+          inputs:
+              site_file: site_file
+              template_file: template_file
+              ic_dir: ic_dir
+              met_dir: met_dir
+              event_dir: event_dir
           params:
-              [
-                  n_ens,
-                  n_met,
-                  n_ic,
-                  n_event,
-                  start_date,
-                  end_date
-              ]
-          outputs: [output_file, output_dir]
+              n_ens: n_ens
+              n_met: n_met
+              n_ic: n_ic
+              n_event: n_event
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              output_file: output_file
+              output_dir: output_dir
 
     run-ensembles:
         - name: set-up-runs
           script: "workflow/04_set_up_runs.R"
           r_libraries: [PEcAn.all]
-          inputs: [settings_xml]
-          params: []
-          outputs: [output_dir]
+          inputs:
+              settings: settings_xml
+          params: {}
+          outputs: {}
         - name: run-model
           script: "workflow/05_run_model.R"
           r_libraries: [PEcAn.all]
-          inputs: [config_xml]
-          params: []
-          outputs: []
+          inputs:
+              settings: config_xml
+          params: {}
+          outputs: {}
 
 # Path definitions: all contained within the run directory.
 # note that these paths are the internal-workflow expected I/O paths.
@@ -253,7 +307,6 @@ steps:
 # Values are relative to run_dir; CLI resolves as run_dir + "/" + value.
 paths:
     site_info_file: "site_info.csv"
-    site_info_path: "site_info.csv"
     site_sipnet_met_path: "data/ERA5_SIPNET"
     site_era5_path: "data_raw/ERA5_CA_nc"
     field_shape_path: "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
@@ -272,7 +325,6 @@ paths:
     raw_parquet_dir: "data_raw/management"
     clean_parquet_dir: "data/management_ensembles"
     event_dir: "data/events"
-    event_outdir: "data/events"
 
 # Fixed workflow values (not user overrides)
 params_read_from_pft: "SLA,leafC,leafGrowth"
