@@ -82,11 +82,12 @@
    "event_type": "harvest",
    "date": "2010-10-28",
    "crop_display": "rice (M-206)",
-   "frac_above_removed_0to1": 0.8,
-   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "frac_above_removed_0to1": 0.5,
+   "prior_filled": "frac_above_removed_0to1,frac_above_to_litter_0to1<-prior:rice_harvest_index",
    "provenance_class": "derived",
    "source": "calval:managements/delta-harvest-0004",
-   "provenance_note": "source reports a window 2010-10-28..2010-10-29; earliest date used"
+   "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
+   "frac_above_to_litter_0to1": 0.5
   },
   {
    "event_type": "tillage",
@@ -162,11 +163,12 @@
    "event_type": "harvest",
    "date": "2011-10-12",
    "crop_display": "rice (M-104)",
-   "frac_above_removed_0to1": 0.8,
-   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "frac_above_removed_0to1": 0.5,
+   "prior_filled": "frac_above_removed_0to1,frac_above_to_litter_0to1<-prior:rice_harvest_index",
    "provenance_class": "derived",
    "source": "calval:managements/delta-harvest-0005",
-   "provenance_note": "source reports a window 2011-10-12..2011-10-14; earliest date used"
+   "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
+   "frac_above_to_litter_0to1": 0.5
   },
   {
    "event_type": "tillage",
@@ -242,11 +244,12 @@
    "event_type": "harvest",
    "date": "2012-11-13",
    "crop_display": "rice (M-104)",
-   "frac_above_removed_0to1": 0.8,
-   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "frac_above_removed_0to1": 0.5,
+   "prior_filled": "frac_above_removed_0to1,frac_above_to_litter_0to1<-prior:rice_harvest_index",
    "provenance_class": "derived",
    "source": "calval:managements/delta-harvest-0006",
-   "provenance_note": "source reports a window 2012-11-13..2012-11-15; earliest date used"
+   "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
+   "frac_above_to_litter_0to1": 0.5
   },
   {
    "event_type": "tillage",
@@ -310,10 +313,12 @@
    "event_type": "harvest",
    "date": "2013-09-20",
    "crop_display": "rice (M-206)",
-   "frac_above_removed_0to1": 0.8,
-   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "frac_above_removed_0to1": 0.5,
+   "prior_filled": "frac_above_removed_0to1,frac_above_to_litter_0to1<-prior:rice_harvest_index",
    "provenance_class": "published",
-   "source": "calval:managements/delta-harvest-0007"
+   "source": "calval:managements/delta-harvest-0007",
+   "frac_above_to_litter_0to1": 0.5,
+   "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed."
   },
   {
    "event_type": "tillage",
@@ -377,10 +382,13 @@
    "event_type": "harvest",
    "date": "2014-10-02",
    "crop_display": "rice (M-206)",
-   "frac_above_removed_0to1": 0.8,
-   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "frac_above_removed_0to1": 0.5,
+   "prior_filled": "frac_above_removed_0to1,frac_above_to_litter_0to1<-prior:rice_harvest_index",
    "provenance_class": "published",
-   "source": "calval:managements/delta-harvest-0008"
+   "source": "calval:managements/delta-harvest-0008",
+   "frac_above_to_litter_0to1": 0.5,
+   "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed. Knox does not state the 2014 residue treatment, so this year's fraction is carried from the others rather than sourced.",
+   "residue_treatment_resolved": false
   },
   {
    "event_type": "tillage",
@@ -444,10 +452,12 @@
    "event_type": "harvest",
    "date": "2015-09-23",
    "crop_display": "rice (M-206)",
-   "frac_above_removed_0to1": 0.8,
-   "prior_filled": "frac_above_removed_0to1<-prior:R1_default",
+   "frac_above_removed_0to1": 0.5,
+   "prior_filled": "frac_above_removed_0to1,frac_above_to_litter_0to1<-prior:rice_harvest_index",
    "provenance_class": "published",
-   "source": "calval:managements/delta-harvest-0009"
+   "source": "calval:managements/delta-harvest-0009",
+   "frac_above_to_litter_0to1": 0.5,
+   "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed."
   },
   {
    "event_type": "tillage",
@@ -513,11 +523,12 @@
    "event_type": "harvest",
    "date": "2016-10-06",
    "crop_display": "R1",
-   "frac_above_removed_0to1": 0.8,
-   "prior_filled": "date<-synthesized:median_doy(2010-2015)",
+   "frac_above_removed_0to1": 0.5,
+   "prior_filled": "frac_above_removed_0to1,frac_above_to_litter_0to1<-prior:rice_harvest_index",
    "provenance_class": "assumed",
    "source": "synthesized:median_doy",
-   "provenance_note": "2016 absent from the monitoring product export; date is the 2010-2015 median DOY"
+   "provenance_note": "Grain removed, straw chopped and left on the field as Knox et al. (2016) describe. 0.5 is the harvest index for medium-grain Calrose rice (M-104, M-206), so grain is about half of aboveground biomass. Replaces the monitoring product's generic annual-crop default of 0.8, which is not rice- or site-specific and would remove the straw the source says stayed.",
+   "frac_above_to_litter_0to1": 0.5
   }
  ]
 }
