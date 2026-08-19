@@ -43,7 +43,7 @@
  <model>
   <id>99000000003</id>
   <type>SIPNET</type>
-  <revision>git</revision>
+  <revision>2.1.0</revision>
   <delete.raw>TRUE</delete.raw>
   <binary>/usr/local/bin/sipnet.git</binary>
   <prerun>cp data/events.in @RUNDIR@</prerun>

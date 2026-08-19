@@ -47,7 +47,7 @@
  <model>
   <id>99000000003</id>
   <type>SIPNET</type>
-  <revision>git</revision>
+  <revision>1.3.0</revision>
   <delete.raw>FALSE</delete.raw>
   <binary>/usr/local/bin/sipnet.git</binary>
  </model>
