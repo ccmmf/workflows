@@ -5,7 +5,7 @@
   "parcel_id": 590073,
   "crop": "R1",
   "generator": "tools/us_twt_2010/build_events.py",
-  "note": "2010-2015 management from curated Knox et al. 2016 records (cal-val-data); water events from Knox intervals pending WTD; 2016 synthesized, absent from the monitoring product export"
+  "note": "management 2010-2015 from curated Knox et al. 2016 records (cal-val-data); flood and drain dates derived from the AmeriFlux BASE WTD series where it resolves them; 2016 synthesized, absent from the monitoring product export"
  },
  "events": [
   {
@@ -62,21 +62,21 @@
   },
   {
    "event_type": "irrigation",
-   "date": "2010-06-07",
+   "date": "2010-06-15",
    "amount_mm": 150.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 60 d after planting; Knox reports 45-60 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2010-09-21",
+   "date": "2010-09-27",
    "amount_mm": 0.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 31 d before harvest; Knox reports 30-45 d."
   },
   {
    "event_type": "harvest",
@@ -129,15 +129,6 @@
    "source": "calval:managements/delta-planting-0007"
   },
   {
-   "event_type": "irrigation",
-   "date": "2011-06-13",
-   "amount_mm": 150.0,
-   "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
-  },
-  {
    "event_type": "fertilization",
    "date": "2011-06-14",
    "nh4_n_kg_m2": 0.0067251,
@@ -151,12 +142,21 @@
   },
   {
    "event_type": "irrigation",
-   "date": "2011-09-05",
+   "date": "2011-06-17",
+   "amount_mm": 150.0,
+   "method": "flood",
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 56 d after planting; Knox reports 45-60 d."
+  },
+  {
+   "event_type": "irrigation",
+   "date": "2011-09-09",
    "amount_mm": 0.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 33 d before harvest; Knox reports 30-45 d."
   },
   {
    "event_type": "harvest",
@@ -222,21 +222,21 @@
   },
   {
    "event_type": "irrigation",
-   "date": "2012-07-08",
+   "date": "2012-06-18",
    "amount_mm": 150.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 32 d after planting; Knox reports 45-60 d, so this year sits outside the reported range."
   },
   {
    "event_type": "irrigation",
-   "date": "2012-10-07",
+   "date": "2012-09-27",
    "amount_mm": 0.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 47 d before harvest; Knox reports 30-45 d, so this year sits outside the reported range."
   },
   {
    "event_type": "harvest",
@@ -290,21 +290,21 @@
   },
   {
    "event_type": "irrigation",
-   "date": "2013-05-24",
+   "date": "2013-05-18",
    "amount_mm": 150.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 46 d after planting; Knox reports 45-60 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2013-08-14",
+   "date": "2013-08-24",
    "amount_mm": 0.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 27 d before harvest; Knox reports 30-45 d, so this year sits outside the reported range."
   },
   {
    "event_type": "harvest",
@@ -357,21 +357,21 @@
   },
   {
    "event_type": "irrigation",
-   "date": "2014-06-19",
+   "date": "2014-06-10",
    "amount_mm": 150.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 43 d after planting; Knox reports 45-60 d, so this year sits outside the reported range."
   },
   {
    "event_type": "irrigation",
-   "date": "2014-08-26",
+   "date": "2014-08-28",
    "amount_mm": 0.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 35 d before harvest; Knox reports 30-45 d."
   },
   {
    "event_type": "harvest",
@@ -427,18 +427,18 @@
    "date": "2015-06-07",
    "amount_mm": 150.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Flood onset from the WTD series: first 14 consecutive observed days with the water table at or above the surface. 52 d after planting; Knox reports 45-60 d."
   },
   {
    "event_type": "irrigation",
-   "date": "2015-08-17",
+   "date": "2015-08-15",
    "amount_mm": 0.0,
    "method": "flood",
-   "provenance_class": "assumed",
-   "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+   "provenance_class": "derived",
+   "source": "ameriflux:US-Twt BASE-BADM 7-5 WTD",
+   "provenance_note": "Drain from the WTD series: first 14 consecutive observed days with the water table clearly below the surface. 39 d before harvest; Knox reports 30-45 d."
   },
   {
    "event_type": "harvest",
@@ -498,7 +498,7 @@
    "method": "flood",
    "provenance_class": "assumed",
    "source": "calval:managements/delta-flooding-0006",
-   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date."
+   "provenance_note": "Knox reports flood-up 45-60 d after planting; midpoint used. Replace with WTD-derived date. WTD could not resolve this year, so the Knox interval midpoint is retained."
   },
   {
    "event_type": "irrigation",
@@ -507,7 +507,7 @@
    "method": "flood",
    "provenance_class": "assumed",
    "source": "calval:managements/delta-drainage-0001",
-   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date."
+   "provenance_note": "Knox reports drain 30-45 d before harvest; midpoint used. amount 0 marks the drain. Replace with WTD-derived date. WTD could not resolve this year, so the Knox interval midpoint is retained."
   },
   {
    "event_type": "harvest",
