@@ -11,6 +11,11 @@ REPO_ROOT="$SCRIPT_DIR"
 MANIFEST="${REPO_ROOT}/workflow/workflow_manifest.yaml"
 INVOCATION_CWD="${INVOCATION_CWD:-$(pwd)}"
 
+# Minimum mikefarah/yq version: the manifest's inputs/outputs/params maps are
+# read with 'keys', which is not implemented in early v4 releases (e.g. 4.2.0).
+# Bump this if the CLI comes to depend on newer yq features.
+MIN_YQ_VERSION="4.53.4"
+
 usage() {
   cat <<'EOF'
 Usage: ./magic-ensemble <command> [global options]
@@ -40,7 +45,22 @@ Examples:
 EOF
 }
 
-# --- Require yq (mikefarah/yq, jq-style) ---
+# --- Compare dotted version strings "a.b.c"; returns success (0) if $1 >= $2 ---
+version_at_least() {
+  local v1="$1" v2="$2"
+  local IFS=.
+  local -a v1parts=($v1) v2parts=($v2)
+  local i a b
+  for i in 0 1 2; do
+    a="${v1parts[i]:-0}"
+    b="${v2parts[i]:-0}"
+    if ((10#$a > 10#$b)); then return 0; fi
+    if ((10#$a < 10#$b)); then return 1; fi
+  done
+  return 0
+}
+
+# --- Require yq (mikefarah/yq, jq-style) at or above MIN_YQ_VERSION ---
 require_yq() {
   if ! command -v yq &>/dev/null; then
     echo "magic-ensemble: yq is required to read YAML. Install mikefarah/yq: https://github.com/mikefarah/yq" >&2
@@ -48,6 +68,19 @@ require_yq() {
   fi
   if ! yq eval '.' "$MANIFEST" &>/dev/null; then
     echo "magic-ensemble: Could not parse manifest with yq. This CLI requires mikefarah/yq (jq-style). Your 'yq' may be a different implementation." >&2
+    exit 1
+  fi
+
+  local version_output found_version
+  version_output=$(yq --version 2>&1)
+  found_version=$(echo "$version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  if [[ -z "$found_version" ]]; then
+    echo "magic-ensemble: Could not determine yq version from '${version_output}'. This CLI requires mikefarah/yq >= ${MIN_YQ_VERSION}." >&2
+    exit 1
+  fi
+  if ! version_at_least "$found_version" "$MIN_YQ_VERSION"; then
+    echo "magic-ensemble: yq ${found_version} is too old (found via '$(command -v yq)'). This CLI requires mikefarah/yq >= ${MIN_YQ_VERSION} — older versions don't support 'keys', which the CLI needs to read the workflow manifest's step inputs/outputs/params." >&2
+    echo "magic-ensemble: Obtain the newest pecan environment (it ships an up-to-date yq on PATH), or install mikefarah/yq >= ${MIN_YQ_VERSION} directly: https://github.com/mikefarah/yq" >&2
     exit 1
   fi
 }
@@ -179,10 +212,6 @@ resolve_path() {
 
 
 
-# All workflow paths come from the manifest only (no user overrides).
-template_file=$(resolve_path "template_file")
-settings_xml=$(resolve_path "settings_xml")
-config_xml=$(resolve_path "config_xml")
 # landtrendr_raw_files is comma-separated; resolve each segment (manifest only for now)
 landtrendr_raw_files=""
 while IFS= read -r segment; do
@@ -471,7 +500,15 @@ patch_xml_block() {
 # current command, entirely from the manifest's inputs/outputs/params for
 # that step. This is the only place that turns manifest declarations into
 # --flag values; no script-specific code lives here or in the command
-# handlers below. ---
+# handlers below.
+#
+# inputs/outputs/params are dicts of {cli_flag: value_key}: the dict key is
+# the literal flag name passed on the command line, the dict value names
+# where the value actually comes from (a 'paths' entry for inputs/outputs,
+# a get_val-resolvable key for params). Flag name and value key are often
+# identical, but don't have to be — this is what lets a script's flag name
+# differ from a path's canonical identity without duplicating manifest
+# paths just to satisfy it. ---
 build_step_args() {
   local name="$1"
   STEP_ARGS=()
@@ -480,34 +517,37 @@ build_step_args() {
   # do not rely on set -e propagating through "arr+=(\"$(cmd)\")"; that
   # behavior is not reliable enough across bash versions to trust silently.
   #
-  # Path variable resolution
-  local key resolved param_value
-  while IFS= read -r key; do
-    [[ -z "$key" || "$key" == "null" ]] && continue
-    resolved=$(resolve_path "$key") || exit 1
-    STEP_ARGS+=("--${key}" "$resolved")
-  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .inputs[]" "$MANIFEST" 2>/dev/null)
+  # Path-valued inputs
+  local flag value_key resolved param_value
+  while IFS= read -r flag; do
+    [[ -z "$flag" || "$flag" == "null" ]] && continue
+    value_key=$(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .inputs[\"${flag}\"]" "$MANIFEST" 2>/dev/null)
+    resolved=$(resolve_path "$value_key") || exit 1
+    STEP_ARGS+=("--${flag}" "$resolved")
+  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .inputs | keys | .[]?" "$MANIFEST" 2>/dev/null)
 
-# output location resolution
-  while IFS= read -r key; do
-    [[ -z "$key" || "$key" == "null" ]] && continue
-    resolved=$(resolve_path "$key") || exit 1
-    ensure_output_dir "$key" "$resolved"
-    # a key can appear in both inputs and outputs (read-modify-write dirs
+# path-valued outputs
+  while IFS= read -r flag; do
+    [[ -z "$flag" || "$flag" == "null" ]] && continue
+    value_key=$(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .outputs[\"${flag}\"]" "$MANIFEST" 2>/dev/null)
+    resolved=$(resolve_path "$value_key") || exit 1
+    ensure_output_dir "$value_key" "$resolved"
+    # a flag can appear in both inputs and outputs (read-modify-write dirs
     # like data_dir); don't pass the same flag twice.
-    if [[ " ${STEP_ARGS[*]} " != *" --${key} "* ]]; then
-      STEP_ARGS+=("--${key}" "$resolved")
+    if [[ " ${STEP_ARGS[*]} " != *" --${flag} "* ]]; then
+      STEP_ARGS+=("--${flag}" "$resolved")
     fi
-  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .outputs[]" "$MANIFEST" 2>/dev/null)
+  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .outputs | keys | .[]?" "$MANIFEST" 2>/dev/null)
 
-# scalar parameter value resolution
-  while IFS= read -r key; do
-    [[ -z "$key" || "$key" == "null" ]] && continue
+# scalar parameter values
+  while IFS= read -r flag; do
+    [[ -z "$flag" || "$flag" == "null" ]] && continue
+    value_key=$(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .params[\"${flag}\"]" "$MANIFEST" 2>/dev/null)
     # TODO magic-downscaling uses a `resolve_param` fn for more elaborate validation
     # of lists and scalars here -- consider copying?
-    param_value=$(get_val "$key" "") || exit 1
-    STEP_ARGS+=("--${key}" "$param_value")
-  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .params[]" "$MANIFEST" 2>/dev/null)
+    param_value=$(get_val "$value_key" "") || exit 1
+    STEP_ARGS+=("--${flag}" "$param_value")
+  done < <(yq eval ".steps.${COMMAND}[] | select(.name == \"${name}\") | .params | keys | .[]?" "$MANIFEST" 2>/dev/null)
 }
 
 # Generic handler for every manifest-driven command:
@@ -575,10 +615,11 @@ run_get_demo_data() {
 }
 
 
-# --- Run-ensembles: run single step from manifest (04); never inside Apptainer.
-# When use_apptainer=1, the SIF must be present for dispatched jobs (already patched
-# into template.xml via patch_xml_block during prepare); 04_run_model.R itself always
-# runs on the host so it can submit further jobs to Slurm.
+# --- Run-ensembles: run steps from manifest (set-up-runs, run-model); never
+# inside Apptainer. When use_apptainer=1, the SIF must be present for
+# dispatched jobs (already patched into template.xml via patch_xml_block
+# during prepare); these scripts themselves always run on the host so they
+# can submit further jobs to Slurm.
 run_run_ensembles() {
   get_steps_array
 
@@ -586,19 +627,13 @@ run_run_ensembles() {
     ensure_apptainer_available
     ensure_sif_present
   fi
+  local i script name
   for i in "${!STEPS[@]}"; do
-    check_r_libs_for_step $i
+    check_r_libs_for_step "$i"
     script="${STEPS[i]}"
-    local script_basename="${script##*/}"
-    case "$script_basename" in
-      04_set_up_runs.R)
-        run_script --cwd "$run_dir" "$script" \
-          --settings "$settings_xml" ;;
-      05_run_model.R)
-        run_script --cwd "$run_dir" "$script" \
-          --settings "$config_xml" ;;
-      *) echo "magic-ensemble: No argument mapping for run step index $i (script $script)" >&2; exit 1 ;;
-    esac
+    name="${STEP_NAMES[i]}"
+    build_step_args "$name"
+    run_script --cwd "$run_dir" "$script" "${STEP_ARGS[@]}"
   done
 }
 
