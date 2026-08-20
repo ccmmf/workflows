@@ -5,7 +5,7 @@
 
 options <- list(
   optparse::make_option(c("-s", "--settings"),
-    default = "settings.xml",
+    default = "output/pecan.CONFIGS.xml",
     help = paste(
       "path to the XML settings file you want to use for this run.",
       "Be aware all paths inside the file are interpreted relative to the",
@@ -48,28 +48,7 @@ settings <- PEcAn.settings::read.settings(args$settings)
 
 # Report package and model versions for provenance
 PEcAn.all::pecan_version()
-
-if (!dir.exists(settings$outdir)) {
-  dir.create(settings$outdir, recursive = TRUE)
-}
-
-status_file <- file.path(settings$outdir, "STATUS")
-if (file.exists(status_file)) {
-  file.remove(status_file)
-}
-
-
-# Write model specific configs
-if (PEcAn.utils::status.check("CONFIG") == 0) {
-  PEcAn.utils::status.start("CONFIG")
-  settings <- PEcAn.workflow::runModule.run.write.configs(settings)
-  PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
-  PEcAn.utils::status.end()
-} else if (file.exists(file.path(settings$outdir, "pecan.CONFIGS.xml"))) {
-  settings <- PEcAn.settings::read.settings(
-    file.path(settings$outdir, "pecan.CONFIGS.xml")
-  )
-}
+PEcAn.logger::logger.info(system2(settings$model$binary, "-v", stdout = TRUE))
 
 # Start ecosystem model runs
 if (PEcAn.utils::status.check("MODEL") == 0) {
