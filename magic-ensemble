@@ -584,7 +584,7 @@ run_manifest_command() {
         echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
         patch_xml_block "host" \
           ".pecan_dispatch[\"$pecan_dispatch\"].host_xml"
-        patch_xml_block "model" ".sipnet_model.model_xml"
+        patch_xml_block "model/binary" ".sipnet_model.model_binary"
         if [[ $use_apptainer -eq 0 ]]; then
           ensure_sipnet_binary
         fi
