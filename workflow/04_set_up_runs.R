@@ -60,14 +60,6 @@ ens_design <- PEcAn.uncertainty::generate_joint_ensemble_design(
   ensemble_size = settings$ensemble$size
 )
 write.csv(ens_design$X, file.path(settings$outdir, "input_design.csv"))
-
-# Temporary hack:
-# generate_joint_ensemble_design used to write samples.Rdata as a side effect,
-# but recently changed to include the samples in its return value instead.
-# Passing these directly to runModule.run.write.configs and
-# write_segmented_configs is still to be implemented on the PEcAn side;
-# meanwhile we write them back out to disk (which is handy for post-run
-# provenance too).
 sample_env <- list2env(ens_design$samples)
 save(
   list = ls(sample_env),
@@ -83,7 +75,7 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
   PEcAn.utils::status.start("CONFIG")
   settings <- PEcAn.workflow::runModule.run.write.configs(
     settings,
-    input_design = ens_design$X
+    input_design = ens_design
   )
   PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
   PEcAn.utils::status.end()

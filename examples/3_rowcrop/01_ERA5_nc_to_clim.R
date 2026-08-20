@@ -65,10 +65,16 @@ args <- optparse::OptionParser(option_list = options) |>
 future::plan(args$parallel_strategy, workers = args$n_cores)
 
 file_info <- read.csv(args$site_info_file) |>
-  dplyr::distinct(id) |>
+  dplyr::distinct(id, lat, lon) |>
   dplyr::mutate(
     start_date = args$start_date,
-    end_date = args$end_date
+    end_date = args$end_date,
+    # match locations to half-degree ERA5 grid cell centers
+    # CAUTION: Calculation only correct when all lats are N and all lons are W!
+    ERA5_grid_cell = paste0(
+      ((lat + 0.25) %/% 0.5) * 0.5, "N_",
+      ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
+    )
   ) |>
   dplyr::cross_join(data.frame(ens_id = 1:10))
 
@@ -77,16 +83,16 @@ if (!dir.exists(args$site_sipnet_met_path)) {
 }
 furrr::future_pwalk(
   file_info,
-  function(id, start_date, end_date, ens_id, ...) {
+  function(start_date, end_date, ens_id, ERA5_grid_cell, ...) {
     PEcAn.SIPNET::met2model.SIPNET(
       in.path = file.path(
         args$site_era5_path,
-        paste("ERA5", id, ens_id, sep = "_")
+        paste("ERA5", ERA5_grid_cell, ens_id, sep = "_")
       ),
       start_date = start_date,
       end_date = end_date,
       in.prefix = paste0("ERA5.", ens_id),
-      outfolder = file.path(args$site_sipnet_met_path, id)
+      outfolder = file.path(args$site_sipnet_met_path, ERA5_grid_cell)
     )
   }
 )

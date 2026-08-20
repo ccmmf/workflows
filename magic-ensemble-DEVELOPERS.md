@@ -244,17 +244,21 @@ In `workflow/workflow_manifest.yaml`, add:
 ```yaml
 steps:
   prepare-example-3:
-    - script: "workflow/00_stage_external_inputs.sh"
+    - name: stage_external
+      script: "workflow/00_stage_external_inputs.sh"
       r_libraries: []
       inputs: []
       outputs: []
-    - script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
+    - name: convert_clim
+      script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
       r_libraries: [future, furrr]
       ...
-    - script: "examples/3_rowcrop/02_ic_build.R"
+    - name: ic
+      script: "examples/3_rowcrop/02_ic_build.R"
       r_libraries: [tidyverse]
       ...
-    - script: "examples/3_rowcrop/03_xml_build.R"
+    - name: xml_build
+      script: "examples/3_rowcrop/03_xml_build.R"
       r_libraries: [PEcAn.settings]
       ...
 ```

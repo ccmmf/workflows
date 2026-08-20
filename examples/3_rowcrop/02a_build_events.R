@@ -53,6 +53,15 @@ args <- optparse::OptionParser(option_list = options) |>
 
 library(tidyverse)
 
+# Locate tools/event_prep/ relative to this script's own file location, so it
+# works regardless of the caller's working directory (magic-ensemble invokes
+# with cwd = repo root; the README's manual workflow uses cwd = this directory).
+this_file <- function() {
+  cmd_args <- commandArgs(trailingOnly = FALSE)
+  normalizePath(sub("^--file=", "", grep("^--file=", cmd_args, value = TRUE)))
+}
+event_prep_dir <- normalizePath(file.path(dirname(this_file()), "..", "..", "tools", "event_prep"))
+
 # TODO these probably deserve to be runtime args,
 # but first better fix other version-specific assumptions below
 mgmt_subdirs <- list(
@@ -76,7 +85,7 @@ cargs <- function(...) {
 if (args$raw_parquet_dir != "") {
   PEcAn.logger::logger.info("Cleaning irrigation files")
   callr::rscript(
-    "../../tools/event_prep/01a-clean-irrigation.R",
+    file.path(event_prep_dir, "01a-clean-irrigation.R"),
     cmdargs = cargs(
       irr_path = mgmt_subdirs$irri,
       outdir = args$clean_parquet_dir
@@ -84,7 +93,7 @@ if (args$raw_parquet_dir != "") {
   )
   PEcAn.logger::logger.info("Cleaning other management files")
   callr::rscript(
-    "../../tools/event_prep/01b-clean-other-events.R",
+    file.path(event_prep_dir, "01b-clean-other-events.R"),
     cmdargs = cargs(
       pheno_dir = mgmt_subdirs$pheno,
       planting_dir = mgmt_subdirs$plant,
@@ -98,7 +107,7 @@ if (args$raw_parquet_dir != "") {
 
 PEcAn.logger::logger.info("converting management files to events")
 callr::rscript(
-  "../../tools/event_prep/02-events-to-json-and-sipnet.R",
+  file.path(event_prep_dir, "02-events-to-json-and-sipnet.R"),
   cmdargs = cargs(
     site_info_path = args$site_info_path,
     parquet_dir = args$clean_parquet_dir,
