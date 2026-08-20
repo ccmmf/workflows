@@ -415,14 +415,18 @@ run_shell_script() {
 # --- Ensure SIPNET binary is present in run_dir (host-native runs only) ---
 ensure_sipnet_binary() {
   local src_dir bin_dir revision
-  src_dir="${REPO_ROOT}/$(yq eval '.sipnet_install.src_dir' "$MANIFEST")"
-  bin_dir="${REPO_ROOT}/$(yq eval '.sipnet_install.bin_dir' "$MANIFEST")"
-  revision=$(yq eval '.sipnet_install.revision' "$MANIFEST")
+  src_dir="${REPO_ROOT}/$(get_val '.sipnet_install.src_dir' '')"
+  bin_dir="${REPO_ROOT}/$(get_val '.sipnet_install.bin_dir' '')"
+  revision=$(get_val '.sipnet_install.revision' "")
   [[ "$revision" == "null" ]] && revision=""
 
   echo "magic-ensemble: ensuring SIPNET binary in $run_dir"
-  bash "${REPO_ROOT}/tools/install_sipnet.sh" \
-    "$src_dir" "$bin_dir" "${run_dir}/sipnet.git" "$revision"
+  local expected_bin="${run_dir}/sipnet.git"
+  local rev_substr="${revision//v}" #NB allows hashes too (sipnet -v output includes first 10 digits)
+  if [[ ! -x "$expected_bin" ]] || [[ $("$expected_bin" -v 2>/dev/null) != *"$rev_substr"* ]]; then
+    bash "${REPO_ROOT}/tools/install_sipnet.sh" \
+      "$src_dir" "$bin_dir" "$expected_bin" "$revision"
+  fi
 }
 
 # --- Create the directory an output key needs before its script runs.
