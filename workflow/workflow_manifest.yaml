@@ -56,7 +56,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -113,7 +113,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -124,7 +124,7 @@ steps:
           inputs:
               site_info_path: site_info_file
               field_shape_path: field_shape_path
-              pft_dir: pft_dir
+              pft_dir: ex1_and_2_pfts_dir
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
@@ -171,7 +171,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -182,7 +182,7 @@ steps:
           inputs:
               site_info_path: site_info_file
               field_shape_path: field_shape_path
-              pft_dir: pft_dir
+              pft_dir: ex1_and_2_pfts_dir
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
@@ -228,7 +228,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -313,6 +313,7 @@ paths:
     data_dir: "data/IC_prep"
     ic_outdir: "IC_files"
     pft_dir: "data_raw/pfts"
+    ex1_and_2_pfts_dir: "pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
     site_file: "site_info.csv"
     template_file: "template.xml"
@@ -342,7 +343,7 @@ n_met: 10
 n_ic: 100
 ic_ensemble_size: 100
 n_event: 20
-n_cores: 1
+n_workers: 1
 use_apptainer: "false"
 
 
