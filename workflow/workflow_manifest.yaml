@@ -396,19 +396,7 @@ pecan_dispatch:
              <prerun>@BINARY@ --version</prerun>
              <qstat>squeue -j @JOBID@ || echo DONE</qstat>
              <modellauncher>
-              <binary>parallel --will-cite -j @NCPUS@ --skip-first-line '{}/job.sh' ::::</binary>
-              <Njobmax>1000</Njobmax>
-             </modellauncher>
-            </host>
-        host_xml_apptainer: |
-            <host>
-             <name>localhost</name>
-             <outdir>output/out</outdir>
-             <rundir>output/run</rundir>
-             <prerun>@BINARY@ --version</prerun>
-             <qstat>squeue -j @JOBID@ || echo DONE</qstat>
-             <modellauncher>
-              <binary>parallel --will-cite -j @NCPUS@ --skip-first-line 'apptainer run @SIF@ {}/job.sh' ::::</binary>
+              <binary>parallel --will-cite -j @NCPUS@ --skip-first-line '@SIF@ {}/job.sh' ::::</binary>
               <Njobmax>1000</Njobmax>
              </modellauncher>
             </host>
@@ -418,17 +406,7 @@ pecan_dispatch:
             <host>
              <name>localhost</name>
              <prerun>@BINARY@ --version</prerun>
-             <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @PARTITION@</qsub>
-             <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
-             <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
-             <outdir>output/out</outdir>
-             <rundir>output/run</rundir>
-            </host>
-        host_xml_apptainer: |
-            <host>
-             <name>localhost</name>
-             <prerun>@BINARY@ --version</prerun>
-             <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @PARTITION@ apptainer run @SIF@ </qsub>
+             <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @PARTITION@ @SIF@</qsub>
              <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
              <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
              <outdir>output/out</outdir>
@@ -450,15 +428,6 @@ sipnet_model:
          <binary>@SIPNET_BINARY@</binary>
          <prerun>cp data/events.in @RUNDIR@</prerun>
         </model>
-    model_xml_apptainer: |
-        <model>
-         <id>99000000003</id>
-         <type>SIPNET</type>
-         <revision>2.1.0</revision>
-         <delete.raw>TRUE</delete.raw>
-         <binary>/usr/local/bin/sipnet.git</binary>
-         <prerun>cp data/events.in @RUNDIR@</prerun>
-        </model>
 
 # SIPNET installation paths for host-native runs (use_apptainer: false).
 # src_dir and bin_dir are relative to the repo root.
@@ -476,3 +445,4 @@ apptainer:
         name: "sipnet-carb"
     tag: "develop"
     sif: "sipnet-carb_develop.sif"
+    sipnet_binary: "/usr/local/bin/sipnet.git"

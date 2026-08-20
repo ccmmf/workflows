@@ -449,13 +449,13 @@ validate_pecan_dispatch() {
 }
 
 # --- Patch a named XML block in the staged template.xml from manifest values ---
-# Usage: patch_xml_block <xml_tag> <plain_yq_path> <apptainer_yq_path>
+# Usage: patch_xml_block <xml_tag> <yq_path>
 #
-# Reads the XML block from the manifest at <plain_yq_path>. If use_apptainer=1
-# and <apptainer_yq_path> resolves to a non-null value in the manifest, uses
-# that instead. Always runs @SIF@ substitution (no-op when @SIF@ is absent).
+# Reads the XML block from the manifest at <yq_path>.
+# If use_apptainer=1, runs @SIF@ substitution (no-op when @SIF@ is absent) and
+# overrides @SIPNET_BINARY@ to the correct path for the container
 patch_xml_block() {
-  local xml_tag="$1" plain_yq_path="$2" apptainer_yq_path="$3"
+  local xml_tag="$1" yq_path="$2"
 
   if ! command -v python3 &>/dev/null; then
     echo "magic-ensemble: python3 is required to patch <${xml_tag}> in template.xml." >&2
@@ -468,28 +468,28 @@ patch_xml_block() {
     exit 1
   fi
 
-  local yq_path="$plain_yq_path"
+  local sif_name=""
+  local sipnet_binary="${run_dir}/sipnet.git"
   if [[ $use_apptainer -eq 1 ]]; then
-    local apptainer_val
-    apptainer_val=$(yq eval "$apptainer_yq_path" "$MANIFEST" 2>/dev/null)
-    if [[ -n "$apptainer_val" && "$apptainer_val" != "null" ]]; then
-      yq_path="$apptainer_yq_path"
+    sif_name=$(yq eval '.apptainer.sif' "$MANIFEST")
+    if [[ -n "$sif_name" ]]; then
+      sif_name="apptainer run ./${sif_name}"
     fi
+    sipnet_binary=$(yq eval '.apptainer.sipnet_binary' "$MANIFEST")
   fi
 
   if [[ $VERBOSE -eq 1 ]]; then
     echo "magic-ensemble: patching <${xml_tag}> block in $template_path (yq_path=${yq_path})" >&2
   fi
 
-  local sif_name xml_block partition_flag=""
-  sif_name=$(yq eval '.apptainer.sif' "$MANIFEST")
+  local xml_block partition_flag=""
   if [[ -n "$slurm_partition" && "$slurm_partition" != "null" ]]; then
     partition_flag="-p ${slurm_partition}"
   fi
   xml_block=$(yq eval "$yq_path" "$MANIFEST" \
-    | sed "s|@SIF@|./${sif_name}|g" \
+    | sed "s|@SIF@|${sif_name}|g" \
     | sed "s|@PARTITION@|${partition_flag}|g" \
-    | sed "s|@SIPNET_BINARY@|${run_dir}/sipnet.git|g" \
+    | sed "s|@SIPNET_BINARY@|${sipnet_binary}|g" \
     | sed "s|@NCPUS@|${n_cores}|g")
 
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
@@ -583,11 +583,8 @@ run_manifest_command() {
         # TODO give this its own step instead?
         echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
         patch_xml_block "host" \
-          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml" \
-          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml_apptainer"
-        patch_xml_block "model" \
-          ".sipnet_model.model_xml" \
-          ".sipnet_model.model_xml_apptainer"
+          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml"
+        patch_xml_block "model" ".sipnet_model.model_xml"
         if [[ $use_apptainer -eq 0 ]]; then
           ensure_sipnet_binary
         fi
