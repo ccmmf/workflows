@@ -32,7 +32,7 @@ external_paths:
 
 # Parallelism (e.g. for step 01 --n_cores).
 #  site_info_file: ".github/ci/site_info_2a.csv"
-n_cores: 1
+n_workers: 1
 
 # Run prepare steps inside Apptainer (single image from workflow manifest; pull-if-not-present).
 # When true: 'module load apptainer' is attempted, then apptainer must be on PATH; SIF is
