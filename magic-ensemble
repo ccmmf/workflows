@@ -558,51 +558,55 @@ build_step_args() {
 # step list, script paths, and arguments all come from the manifest.
 # Adding, removing, or reordering a step only requires editing manifest.yaml.
 run_manifest_command() {
-  get_steps_array
-  validate_pecan_dispatch
-  local apptainer_arg=""
-  if [[ $use_apptainer -eq 1 ]]; then
-    ensure_apptainer_available
-    ensure_sif_present
-    apptainer_arg="--apptainer"
-    for i in "${!STEPS[@]}"; do
-      check_r_libs_for_step_in_apptainer "$i"
-    done
-  else
-    for i in "${!STEPS[@]}"; do
-      check_r_libs_for_step "$i"
-    done
-  fi
-
-  local total="${#STEPS[@]}" i step_num script name
-  for i in "${!STEPS[@]}"; do
-    script="${STEPS[i]}"
-    name="${STEP_NAMES[i]}"
-    step_num=$((i + 1))
-    echo "magic-ensemble: ${COMMAND} step ${step_num} of ${total}: ${script}"
-    build_step_args "$name"
-    if [[ "$script" == *.sh ]]; then
-      run_shell_script "$script" "$i"
-      if [[ "$name" == "stage-inputs" ]]; then
-        # TODO give this its own step instead?
-        echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
-        patch_xml_block "host" \
-          ".pecan_dispatch[\"$pecan_dispatch\"].host_xml"
-        patch_xml_block "model/binary" ".sipnet_model.model_binary"
-        if [[ $use_apptainer -eq 0 ]]; then
-          ensure_sipnet_binary
-        fi
-      fi
+  local logfile="$run_dir"/"$COMMAND"_$(date +'%Y%m%d_%H%M%S').log
+  { # block for output redirection
+    get_steps_array
+    validate_pecan_dispatch
+    local apptainer_arg=""
+    if [[ $use_apptainer -eq 1 ]]; then
+      ensure_apptainer_available
+      ensure_sif_present
+      apptainer_arg="--apptainer"
+      for i in "${!STEPS[@]}"; do
+        check_r_libs_for_step_in_apptainer "$i"
+      done
     else
-      run_script "$apptainer_arg" "$script" "${STEP_ARGS[@]}"
+      for i in "${!STEPS[@]}"; do
+        check_r_libs_for_step "$i"
+      done
     fi
-    echo "magic-ensemble: ${COMMAND} step ${step_num} completed"
-  done
-  echo "magic-ensemble: ${COMMAND} finished (${total} steps)"
-  if [[ "$COMMAND" == "prepare"* ]]; then
-    # TODO make this a step of its own?
-    report_prepare_summary
-  fi
+
+    local total="${#STEPS[@]}" i step_num script name
+    for i in "${!STEPS[@]}"; do
+      script="${STEPS[i]}"
+      name="${STEP_NAMES[i]}"
+      step_num=$((i + 1))
+      echo "magic-ensemble: ${COMMAND} step ${step_num} of ${total}: ${script}"
+      build_step_args "$name"
+      if [[ "$script" == *.sh ]]; then
+        run_shell_script "$script" "$i"
+        if [[ "$name" == "stage-inputs" ]]; then
+          # TODO give this its own step instead?
+          echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
+          patch_xml_block "host" \
+            ".pecan_dispatch[\"$pecan_dispatch\"].host_xml"
+          patch_xml_block "model/binary" ".sipnet_model.model_binary"
+          if [[ $use_apptainer -eq 0 ]]; then
+            ensure_sipnet_binary
+          fi
+        fi
+      else
+        run_script "$apptainer_arg" "$script" "${STEP_ARGS[@]}"
+      fi
+      echo "magic-ensemble: ${COMMAND} step ${step_num} completed"
+    done
+    echo "magic-ensemble: ${COMMAND} finished (${total} steps)"
+    echo "magic-ensemble: output logged to ${logfile}."
+    if [[ "$COMMAND" == "prepare"* ]]; then
+      # TODO make this a step of its own?
+      report_prepare_summary
+    fi
+  } 2>&1 | tee -a ${logfile}
 }
 
 # --- Get-demo-data: run steps from manifest (shell script only) ---
@@ -622,20 +626,24 @@ run_get_demo_data() {
 # during prepare); these scripts themselves always run on the host so they
 # can submit further jobs to Slurm.
 run_run_ensembles() {
-  get_steps_array
+  local logfile="$run_dir"/"$COMMAND"_$(date +'%Y%m%d_%H%M%S').log
+  { # block for output redirection
+    get_steps_array
 
-  if [[ $use_apptainer -eq 1 ]]; then
-    ensure_apptainer_available
-    ensure_sif_present
-  fi
-  local i script name
-  for i in "${!STEPS[@]}"; do
-    check_r_libs_for_step "$i"
-    script="${STEPS[i]}"
-    name="${STEP_NAMES[i]}"
-    build_step_args "$name"
-    run_script --cwd "$run_dir" "$script" "${STEP_ARGS[@]}"
-  done
+    if [[ $use_apptainer -eq 1 ]]; then
+      ensure_apptainer_available
+      ensure_sif_present
+    fi
+    local i script name
+    for i in "${!STEPS[@]}"; do
+      check_r_libs_for_step "$i"
+      script="${STEPS[i]}"
+      name="${STEP_NAMES[i]}"
+      build_step_args "$name"
+      run_script --cwd "$run_dir" "$script" "${STEP_ARGS[@]}"
+    done
+    echo "magic-ensemble: output logged to ${logfile}."
+  } 2>&1 | tee -a ${logfile}
 }
 
 # --- Main ---
