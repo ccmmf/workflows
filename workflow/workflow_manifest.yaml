@@ -84,7 +84,7 @@ steps:
           script: "workflow/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -141,7 +141,7 @@ steps:
           script: "examples/2a_grass/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -199,7 +199,7 @@ steps:
           script: "examples/1b_statewide_woody/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -269,7 +269,7 @@ steps:
           script: "examples/3_rowcrop/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -315,7 +315,6 @@ paths:
     pft_dir: "data_raw/pfts"
     ex1_and_2_pfts_dir: "pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
-    site_file: "site_info.csv"
     template_file: "template.xml"
     output_file: "settings.xml"
     output_dir: "output"
