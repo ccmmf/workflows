@@ -56,7 +56,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -84,7 +84,7 @@ steps:
           script: "workflow/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -113,7 +113,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -124,7 +124,7 @@ steps:
           inputs:
               site_info_path: site_info_file
               field_shape_path: field_shape_path
-              pft_dir: pft_dir
+              pft_dir: ex1_and_2_pfts_dir
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
@@ -141,7 +141,7 @@ steps:
           script: "examples/2a_grass/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -171,7 +171,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -182,7 +182,7 @@ steps:
           inputs:
               site_info_path: site_info_file
               field_shape_path: field_shape_path
-              pft_dir: pft_dir
+              pft_dir: ex1_and_2_pfts_dir
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
@@ -199,7 +199,7 @@ steps:
           script: "examples/1b_statewide_woody/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -228,7 +228,7 @@ steps:
           params:
               start_date: start_date
               end_date: end_date
-              n_cores: n_cores
+              n_cores: n_workers
               parallel_strategy: parallel_strategy
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
@@ -269,7 +269,7 @@ steps:
           script: "examples/3_rowcrop/03_xml_build.R"
           r_libraries: [PEcAn.settings]
           inputs:
-              site_file: site_file
+              site_file: site_info_file
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
@@ -313,8 +313,8 @@ paths:
     data_dir: "data/IC_prep"
     ic_outdir: "IC_files"
     pft_dir: "data_raw/pfts"
+    ex1_and_2_pfts_dir: "pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
-    site_file: "site_info.csv"
     template_file: "template.xml"
     output_file: "settings.xml"
     output_dir: "output"
@@ -342,7 +342,7 @@ n_met: 10
 n_ic: 100
 ic_ensemble_size: 100
 n_event: 20
-n_cores: 1
+n_workers: 1
 use_apptainer: "false"
 
 
@@ -405,12 +405,12 @@ pecan_dispatch:
         host_xml: |
             <host>
              <name>localhost</name>
+             <outdir>output/out</outdir>
+             <rundir>output/run</rundir>
              <prerun>@BINARY@ --version</prerun>
              <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @PARTITION@ @SIF@</qsub>
              <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
              <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
-             <outdir>output/out</outdir>
-             <rundir>output/run</rundir>
             </host>
 
 # SIPNET model XML block injected into template.xml during prepare.
@@ -419,15 +419,7 @@ pecan_dispatch:
 # creates at <run_dir>/sipnet.git).
 # model_xml_apptainer is used when use_apptainer=true (binary path is inside container).
 sipnet_model:
-    model_xml: |
-        <model>
-         <id>99000000003</id>
-         <type>SIPNET</type>
-         <revision>2.1.0</revision>
-         <delete.raw>TRUE</delete.raw>
-         <binary>@SIPNET_BINARY@</binary>
-         <prerun>cp data/events.in @RUNDIR@</prerun>
-        </model>
+    model_binary: <binary>@SIPNET_BINARY@</binary>
 
 # SIPNET installation paths for host-native runs (use_apptainer: false).
 # src_dir and bin_dir are relative to the repo root.
