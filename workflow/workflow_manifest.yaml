@@ -37,7 +37,7 @@ steps:
               data_dir: data_dir
               ic_outdir: ic_outdir
               site_sipnet_met_path: site_sipnet_met_path
-              management_raw_dir: management_raw_dir
+              management_raw_dir: raw_parquet_dir
 
     prepare:
         - name: stage-inputs
