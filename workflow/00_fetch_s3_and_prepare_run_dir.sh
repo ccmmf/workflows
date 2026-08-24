@@ -295,7 +295,7 @@ download_single_file "crops_all_years_parq" "crops_all_years.parq"
 # Excludes mslsp/ (unused) and crops/ (parcels-consolidated.gpkg/crops_all_years.parq handled above).
 mgmt_events_key_prefix=$(yq eval '.s3.management_events.key_prefix' "$MANIFEST")
 mgmt_events_s3_uri="s3://${s3_bucket}/${mgmt_events_key_prefix}/"
-mgmt_raw_dir_value=$(yq eval '.paths.management_raw_dir' "$MANIFEST")
+mgmt_raw_dir_value=$(yq eval '.paths.raw_parquet_dir' "$MANIFEST")
 mgmt_raw_dir=$(resolve_run_path "$mgmt_raw_dir_value")
 mkdir -p "$mgmt_raw_dir"
 echo "00_fetch_s3_and_prepare_run_dir: Syncing management event sources from S3 into $(report_path "$mgmt_raw_dir")"
