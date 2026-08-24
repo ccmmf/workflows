@@ -88,13 +88,15 @@ if (args$raw_parquet_dir != "") {
     file.path(event_prep_dir, "01a-clean-irrigation.R"),
     cmdargs = cargs(
       irr_path = mgmt_subdirs$irri,
-      outdir = args$clean_parquet_dir
+      outdir = args$clean_parquet_dir,
+      site_info_path = args$site_info_path
     )
   )
   PEcAn.logger::logger.info("Cleaning other management files")
   callr::rscript(
     file.path(event_prep_dir, "01b-clean-other-events.R"),
     cmdargs = cargs(
+      site_info_path = args$site_info_path,
       pheno_dir = mgmt_subdirs$pheno,
       planting_dir = mgmt_subdirs$plant,
       harvest_dir = mgmt_subdirs$harv,

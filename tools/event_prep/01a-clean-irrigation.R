@@ -17,6 +17,10 @@ options <- list(
       "Format will be Parquet organized by ensemble member,",
       "with subdirectories named in 'hive partion' style."
     )
+  ),
+  optparse::make_option("--site_info_path",
+    default = "site_info.csv",
+    help = "CSV giving ids to be extracted. Only column 'field_id' is used"
   )
 ) |>
   # Show default values in help message
@@ -31,6 +35,10 @@ args <- optparse::OptionParser(option_list = options) |>
 ## -------------------------- end option parsing ------------------------------
 
 dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
+siteids <- read.csv(args$site_info_path) |>
+  _$field_id |>
+  unique() |>
+  glue::glue_collapse(",")
 
 dbdir <- tempfile("duckdb", fileext = ".duckdb")
 conn <- DBI::dbConnect(duckdb::duckdb(dbdir = dbdir))
@@ -58,6 +66,7 @@ DBI::dbExecute(conn, glue::glue("
       CAST (amount_mm AS DECIMAL(6, 2)) AS amount_mm,
       method
     FROM read_parquet('{args$irr_path}')
+    WHERE site_id IN ({siteids})
     ORDER BY event_member_id, site_id, date
   ) TO
   '{args$outdir}/irrigation.parquet' 

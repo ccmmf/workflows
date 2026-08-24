@@ -6,6 +6,10 @@
 
 ## ---------------------- parse command-line options --------------------------
 options <- list(
+  optparse::make_option("--site_info_path",
+    default = "site_info.csv",
+    help = "CSV giving ids to be extracted. Only column 'field_id' is used"
+  ),
   optparse::make_option("--pheno_dir",
     default = "data_raw/management/phenology/v1.0",
     help = "Directory containing Parquet files of phenology (leafon/leafoff) events"
@@ -53,6 +57,9 @@ args <- optparse::OptionParser(option_list = options) |>
 
 ## -------------------------- end option parsing ------------------------------
 
+siteids <- read.csv(args$site_info_path) |>
+  _$field_id |>
+  unique()
 
 harvest_files <- list.files(args$harvest_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
 planting_files <- list.files(args$planting_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
@@ -62,6 +69,7 @@ dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
 
 message("Writing harvest output")
 harvest <- arrow::open_dataset(harvest_files, format = "parquet") |>
+dplyr::filter(site_id %in% siteids) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = as.Date(date)
@@ -74,6 +82,7 @@ harvest <- arrow::open_dataset(harvest_files, format = "parquet") |>
 
 message("Writing planting output")
 planting <- arrow::open_dataset(planting_files, format = "parquet") |>
+  dplyr::filter(site_id %in% siteids) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = pmax(as.Date(date), as.Date(args$adjust_start)) # push earlier plantings forward to avoid beginning-of-run boundary error
@@ -96,6 +105,7 @@ planting <- arrow::open_dataset(planting_files, format = "parquet") |>
 
 message("Writing tillage output")
 tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
+  dplyr::filter(site_id %in% siteids) |>
   dplyr::filter(
     is.finite(.data$ndti_pct_change),
     .data$ndti_pct_change >= 0
@@ -121,6 +131,7 @@ tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
 message("Writing phenology output")
 phenology <- arrow::open_dataset(phenology_files, format = "parquet")
 leafon <- phenology |>
+  dplyr::filter(site_id %in% siteids) |>
   dplyr::select("site_id", date = "leafonday") |>
   dplyr::mutate(
     site_id = as.integer(.data$site_id),
@@ -131,6 +142,7 @@ leafon <- phenology |>
     compression = "ZSTD"
   )
 leafoff <- phenology |>
+  dplyr::filter(site_id %in% siteids) |>
   dplyr::select("site_id", date = "leafoffday") |>
   dplyr::mutate(
     site_id = as.integer(.data$site_id),
