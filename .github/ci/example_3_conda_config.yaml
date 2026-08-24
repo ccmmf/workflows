@@ -1,0 +1,16 @@
+run_dir: "ci-3-conda-rundir/"
+start_date: "2016-01-01"
+end_date: "2017-12-31"
+run_LAI_date: "2016-07-01"
+n_ens: 5
+n_met: 3
+ic_ensemble_size: 20
+n_event: 5
+n_workers: 2
+use_apptainer: false
+pecan_dispatch: slurm-dispatch
+slurm_partition: node
+aws_profile: magic
+external_paths:
+  template_file: "examples/3_rowcrop/template.xml"
+  site_info_file: ".github/ci/site_info_3.csv"
