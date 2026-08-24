@@ -11,8 +11,8 @@ on:
   workflow_dispatch:
     inputs:
       pecan_env_version:
-        description: 'pecan-all conda env version (e.g. 1.11)'
-        default: '1.11'
+        description: 'pecan-all conda env version (e.g. 1.16)'
+        default: '1.16'
         required: false
   push:
     branches: [main]
@@ -26,7 +26,7 @@ on:
       - '.github/ci/site_info_2a.csv'
 
 env:
-  PECAN_ENV_VERSION: ${{ github.event.inputs.pecan_env_version || '1.11' }}
+  PECAN_ENV_VERSION: ${{ github.event.inputs.pecan_env_version || '1.16' }}
   CONFIG: .github/ci/example_2a_apptainer_config.yaml
 
 jobs:
