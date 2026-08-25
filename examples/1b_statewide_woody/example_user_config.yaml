@@ -19,6 +19,16 @@ use_apptainer: false
 pecan_dispatch: slurm-dispatch
 # slurm_partition: ""  # Slurm partition for sbatch jobs (slurm-dispatch only). Omit to use the cluster default.
 
+# Steps the manifest marks eligible for srun-wrapping run under srun
+# automatically when it's available; set true to force-disable that for
+# every step (does not affect pecan_dispatch: slurm-dispatch above).
+disable_all_srun: false
+# --mem=0 requests all memory on the allocated node (documented Slurm
+# behavior, not "unlimited") -- default here to avoid OOM on steps like
+# build-ic; override/remove if your cluster's partitions require an
+# explicit cap.
+srun_extra_args: "--mem=0"
+
 # AWS CLI named profile for S3 access (get-demo-data command).
 aws_profile: magic
 

@@ -10,6 +10,12 @@
 # Steps: Each command has a list of step objects. Each step has:
 #   name:        Short identifier for this step
 #   script:      Script path (relative to repo root)
+#   slurm:       Whether this step's invocation should be wrapped in `srun`
+#                when srun is available (see 'Slurm (srun) step wrapping'
+#                below). Defaults to false; must never be true for the
+#                00_fetch_s3_and_prepare_run_dir.sh / 00_stage_external_inputs.sh
+#                staging steps (fetch/copy, not compute) -- the CLI fails
+#                fast if it is.
 #   r_libraries: R packages to check before running this script
 #   inputs:      Dict of {cli_flag: path_key} for path-valued flags this script reads
 #   outputs:     Dict of {cli_flag: path_key} for path-valued flags this script
@@ -17,6 +23,13 @@
 #   params:      Dict of {cli_flag: value_key} for scalar/list flags this script
 #                needs; value_key is resolved via get_val (config override,
 #                falling back to the manifest's own top-level value)
+#
+# Slurm (srun) step wrapping: a step marked slurm: true is prepended with
+# `srun` (plus -p <slurm_partition> and any config-supplied srun_extra_args)
+# whenever srun is available on the invoking host, unless the user config
+# sets disable_all_srun: true. This is a wholly separate mechanism from
+# pecan_dispatch/host_xml below, which governs PEcAn's own sbatch-based
+# submission of ensemble members and is unaffected by disable_all_srun.
 #
 # cli_flag is the literal "--<cli_flag>" passed on the command line; path_key/
 # value_key name where the actual value comes from (a 'paths' entry, or a
@@ -30,6 +43,7 @@ steps:
     get-demo-data:
         - name: get-demo-data
           script: "workflow/00_fetch_s3_and_prepare_run_dir.sh"
+          slurm: false
           r_libraries: []
           inputs: {}
           params: {}
@@ -42,6 +56,7 @@ steps:
     prepare:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
+          slurm: false
           r_libraries: []
           inputs: {}
           params: {}
@@ -49,6 +64,7 @@ steps:
 
         - name: convert-clim
           script: "workflow/01_ERA5_nc_to_clim.R"
+          slurm: false
           r_libraries: [future, furrr]
           inputs:
               site_era5_path: site_era5_path
@@ -63,6 +79,7 @@ steps:
 
         - name: build-ic
           script: "workflow/02_ic_build.R"
+          slurm: true
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
@@ -82,6 +99,7 @@ steps:
 
         - name: build-xml
           script: "workflow/03_xml_build.R"
+          slurm: false
           r_libraries: [PEcAn.settings]
           inputs:
               site_file: site_info_file
@@ -99,6 +117,7 @@ steps:
     prepare-example-2a:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
+          slurm: false
           r_libraries: []
           inputs: {}
           params: {}
@@ -106,6 +125,7 @@ steps:
 
         - name: convert-clim
           script: "examples/2a_grass/01_ERA5_nc_to_clim.R"
+          slurm: false
           r_libraries: [future, furrr]
           inputs:
               site_era5_path: site_era5_path
@@ -120,6 +140,7 @@ steps:
 
         - name: build-ic
           script: "examples/2a_grass/02_ic_build.R"
+          slurm: true
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
@@ -139,6 +160,7 @@ steps:
 
         - name: build-xml
           script: "examples/2a_grass/03_xml_build.R"
+          slurm: false
           r_libraries: [PEcAn.settings]
           inputs:
               site_file: site_info_file
@@ -157,6 +179,7 @@ steps:
     prepare-example-1b:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
+          slurm: false
           r_libraries: []
           inputs: {}
           params: {}
@@ -164,6 +187,7 @@ steps:
 
         - name: convert-clim
           script: "examples/1b_statewide_woody/01_ERA5_nc_to_clim.R"
+          slurm: false
           r_libraries: [future, furrr]
           inputs:
               site_era5_path: site_era5_path
@@ -178,6 +202,7 @@ steps:
 
         - name: build-ic
           script: "examples/1b_statewide_woody/02_ic_build.R"
+          slurm: true
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
@@ -197,6 +222,7 @@ steps:
 
         - name: build-xml
           script: "examples/1b_statewide_woody/03_xml_build.R"
+          slurm: false
           r_libraries: [PEcAn.settings]
           inputs:
               site_file: site_info_file
@@ -214,6 +240,7 @@ steps:
     prepare-example-3:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
+          slurm: false
           r_libraries: []
           inputs: {}
           params: {}
@@ -221,6 +248,7 @@ steps:
 
         - name: convert-clim
           script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
+          slurm: true 
           r_libraries: [future, furrr]
           inputs:
               site_era5_path: site_era5_path
@@ -235,6 +263,7 @@ steps:
 
         - name: build-ic
           script: "workflow/02_ic_build.R"
+          slurm: true
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
@@ -254,6 +283,7 @@ steps:
 
         - name: build-events
           script: "examples/3_rowcrop/02a_build_events.R"
+          slurm: true
           r_libraries: [tidyverse, callr]
           inputs:
               site_info_path: site_info_file
@@ -267,6 +297,7 @@ steps:
 
         - name: build-xml
           script: "examples/3_rowcrop/03_xml_build.R"
+          slurm: true
           r_libraries: [PEcAn.settings]
           inputs:
               site_file: site_info_file
@@ -288,6 +319,7 @@ steps:
     run-ensembles:
         - name: set-up-runs
           script: "workflow/04_set_up_runs.R"
+          slurm: false
           r_libraries: [PEcAn.all]
           inputs:
               settings: settings_xml
@@ -295,6 +327,7 @@ steps:
           outputs: {}
         - name: run-model
           script: "workflow/05_run_model.R"
+          slurm: false
           r_libraries: [PEcAn.all]
           inputs:
               settings: config_xml
@@ -344,6 +377,17 @@ ic_ensemble_size: 100
 n_event: 20
 n_workers: 1
 use_apptainer: "false"
+
+# Force-disables srun wrapping for all steps regardless of their manifest
+# slurm: flag or srun availability. Does not affect pecan_dispatch's own
+# sbatch-based ensemble-member submission (slurm-dispatch), which is a
+# separate mechanism.
+disable_all_srun: "false"
+# Free-form extra flags appended to every srun invocation (e.g. "--mem=64G
+# --time=02:00:00 --cpus-per-task=4"). No structured schema; passed through
+# verbatim. slurm_partition (config-only, no manifest default) is applied
+# separately via -p.
+srun_extra_args: ""
 
 
 

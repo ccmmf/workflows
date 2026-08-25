@@ -67,6 +67,8 @@ All keys except `run_dir` are optional and fall back to the defaults shown below
 | `n_workers` | `1` | Parallel workers for the ERA5 conversion step. |
 | `use_apptainer` | `false` | Run R steps inside the workflow Apptainer container. |
 | `pecan_dispatch` | _(none)_ | Dispatch mode for `run-ensembles`. Required for `prepare` and `run-ensembles`. |
+| `disable_all_srun` | `false` | Force-disable `srun` wrapping of individual steps, even for steps the manifest marks `slurm: true`. Does not affect `pecan_dispatch: slurm-dispatch`. |
+| `srun_extra_args` | _(none)_ | Free-form extra flags appended to every `srun` invocation (e.g. `"--mem=64G --time=02:00:00"`). |
 | `external_paths` | _(none)_ | User-provided input files to stage into `run_dir` before `prepare` runs (see below). |
 
 Fixed internal paths, S3 coordinates, dispatch XML, and Apptainer image
@@ -157,6 +159,37 @@ workflow container. The CLI will:
 `run-ensembles` always runs `04_run_model.R` on the host, but when
 `use_apptainer: true` the SIF must be present in `run_dir` because dispatched
 job scripts reference it directly.
+
+---
+
+## Slurm Step Wrapping
+
+Some steps are pre-marked in `workflow_manifest.yaml` as eligible to run
+under `srun` (e.g. heavier steps like IC building) so they land on an
+allocated compute node instead of running wherever you invoked
+`./magic-ensemble` — useful when that invocation host (a shared login node,
+a CI runner) shouldn't run heavy computation directly. When `srun` is on
+your `PATH` (or loadable via `module load slurm`), those steps run wrapped
+automatically; if it isn't, they just run normally. No config changes are
+needed to get this default behavior.
+
+To turn it off entirely — for example, if you're already inside an `salloc`
+session and don't want nested `srun` calls — set:
+
+```yaml
+disable_all_srun: true
+```
+
+Use `srun_extra_args` to pass through additional `srun` flags (memory,
+time limit, cpus-per-task, account, etc.) verbatim:
+
+```yaml
+srun_extra_args: "--mem=64G --time=02:00:00 --cpus-per-task=4"
+```
+
+`slurm_partition` (used for `pecan_dispatch: slurm-dispatch`) is reused as
+`srun`'s `-p` flag as well. This is entirely separate from `pecan_dispatch`,
+which governs how `run-ensembles` submits ensemble members.
 
 ---
 

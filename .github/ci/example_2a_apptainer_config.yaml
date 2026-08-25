@@ -9,6 +9,8 @@ n_workers: 2
 use_apptainer: true
 pecan_dispatch: slurm-dispatch
 slurm_partition: node
+disable_all_srun: false
+srun_extra_args: "--mem=0"
 aws_profile: magic
 external_paths:
   template_file: "examples/2a_grass/template.xml"

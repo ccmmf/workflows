@@ -201,6 +201,16 @@ pecan_dispatch=$(get_val ".pecan_dispatch" "")
 slurm_partition=$(get_val ".slurm_partition" "")
 aws_profile=$(get_val ".aws_profile" "magic")
 
+disable_all_srun_raw=$(get_val ".disable_all_srun" "false")
+# Normalize: true/yes/1 (case-insensitive) => 1; else 0
+disable_all_srun=0
+case "$(echo "$disable_all_srun_raw" | tr '[:upper:]' '[:lower:]')" in
+  true|yes|1) disable_all_srun=1 ;;
+esac
+
+srun_extra_args=$(get_val ".srun_extra_args" "")
+[[ "$srun_extra_args" == "null" ]] && srun_extra_args=""
+
 # Resolve manifest paths relative to run_dir.
 # Effective path = run_dir / manifest_path so R (CWD=REPO_ROOT) sees the correct file.
 resolve_path() {
@@ -246,6 +256,47 @@ ensure_apptainer_available() {
   fi
   echo "magic-ensemble: use_apptainer is true but apptainer is not available. Run 'module load apptainer' or ensure apptainer is on PATH. (Singularity is not supported.)" >&2
   exit 1
+}
+
+# --- Slurm: check whether srun is usable. Unlike ensure_apptainer_available(),
+# this is NOT fatal when unavailable -- callers treat a nonzero return as
+# "just run the step unwrapped." Memoized since it may be probed once per step. ---
+SLURM_AVAILABLE_CHECKED=0
+SLURM_AVAILABLE=0
+ensure_slurm_available() {
+  if [[ $SLURM_AVAILABLE_CHECKED -eq 1 ]]; then
+    [[ $SLURM_AVAILABLE -eq 1 ]]
+    return
+  fi
+  SLURM_AVAILABLE_CHECKED=1
+  if command -v srun &>/dev/null; then
+    SLURM_AVAILABLE=1
+  elif command -v module &>/dev/null && module load slurm &>/dev/null && command -v srun &>/dev/null; then
+    SLURM_AVAILABLE=1
+  fi
+  [[ $SLURM_AVAILABLE -eq 1 ]]
+}
+
+# --- Build SRUN_PREFIX array (srun + --job-name + -p <slurm_partition> +
+# srun_extra_args). Caller has already decided this step should be wrapped
+# (manifest slurm:true, disable_all_srun not set, srun available) -- this
+# only builds the command. job_name is the step's manifest name (e.g.
+# "build-ic"); --job-name is listed first so a --job-name in
+# srun_extra_args, if the user sets one, wins (last flag wins for srun). ---
+build_srun_prefix() {
+  local job_name="$1"
+  SRUN_PREFIX=(srun)
+  if [[ -n "$job_name" ]]; then
+    SRUN_PREFIX+=(--job-name "Magic-${job_name}")
+  fi
+  if [[ -n "$slurm_partition" && "$slurm_partition" != "null" ]]; then
+    SRUN_PREFIX+=(-p "$slurm_partition")
+  fi
+  if [[ -n "$srun_extra_args" && "$srun_extra_args" != "null" ]]; then
+    local -a extra
+    read -r -a extra <<< "$srun_extra_args"
+    SRUN_PREFIX+=("${extra[@]}")
+  fi
 }
 
 # --- Apptainer: resolve SIF path from manifest (in run_dir); pull from remote if not present (no user override of remote) ---
@@ -294,11 +345,16 @@ report_prepare_summary() {
   log_info "R version: ${r_version}"
 }
 
-# --- Populate STEPS array for current command (from manifest) ---
+# --- Populate STEPS/STEP_NAMES/STEP_SLURM arrays for current command (from
+# manifest). All three are index-aligned with the manifest's step list, so
+# STEP_SLURM must append one entry per step even when the step omits
+# 'slurm' (defaulting to "false") -- unlike STEPS/STEP_NAMES, it cannot skip
+# blank/null lines without breaking that alignment. ---
 get_steps_array() {
   STEPS=()
   STEP_NAMES=()
-  local script name
+  STEP_SLURM=()
+  local script name slurm
   while IFS= read -r script; do
     [[ -z "$script" || "$script" == "null" ]] && continue
     STEPS+=("$script")
@@ -307,6 +363,60 @@ get_steps_array() {
     [[ -z "$name" || "$name" == "null" ]] && continue
     STEP_NAMES+=("$name")
   done < <(yq eval ".steps.${COMMAND}[].name" "$MANIFEST" 2>/dev/null)
+  while IFS= read -r slurm; do
+    [[ -z "$slurm" || "$slurm" == "null" ]] && slurm="false"
+    STEP_SLURM+=("$slurm")
+  done < <(yq eval ".steps.${COMMAND}[].slurm" "$MANIFEST" 2>/dev/null)
+}
+
+# --- Fail fast if the manifest marks a staging/fetch shell step for Slurm
+# wrapping. These are network/file-copy steps, not compute, and must always
+# run on the invoking host -- treat this as a manifest-authoring error. ---
+validate_slurm_steps() {
+  local i script step_basename
+  for i in "${!STEPS[@]}"; do
+    script="${STEPS[i]}"
+    step_basename="${script##*/}"
+    if [[ "${STEP_SLURM[i]}" == "true" ]] && \
+       [[ "$step_basename" == "00_fetch_s3_and_prepare_run_dir.sh" || "$step_basename" == "00_stage_external_inputs.sh" ]]; then
+      echo "magic-ensemble: manifest error: step '${STEP_NAMES[i]}' (${script}) is a staging/fetch step and must not set slurm: true." >&2
+      exit 1
+    fi
+  done
+}
+
+# --- Decide whether step i of the current command should be srun-wrapped:
+# manifest opts in, user config hasn't force-disabled it, and srun is
+# actually available. Sets STEP_SLURM_ARGS to () or ("--slurm" "<step name>")
+# for direct use (via "${STEP_SLURM_ARGS[@]}") as run_script/run_shell_script
+# arguments -- the step name travels alongside the flag so build_srun_prefix
+# can set --job-name "Magic-<step name>". (Not echoed/command-substituted:
+# ensure_slurm_available()'s memoization relies on mutating globals in this
+# shell, which a $(...) subshell would silently discard.)
+#
+# Whenever the step's request (manifest slurm:true) can't be honored as
+# configured, this warns loudly on stderr *before* falling back, rather than
+# silently downgrading -- both "disable_all_srun conflicts with a step that
+# wants srun" and "srun isn't available" are surprising enough at run time
+# that they shouldn't be discoverable only by reading the manifest/config
+# afterward. ---
+compute_slurm_arg() {
+  local i="$1"
+  STEP_SLURM_ARGS=()
+
+  [[ "${STEP_SLURM[i]}" != "true" ]] && return
+
+  if [[ $disable_all_srun -eq 1 ]]; then
+    echo "magic-ensemble: WARNING: step '${STEP_NAMES[i]}' is marked slurm: true in the manifest, but disable_all_srun is set in your config -- running it unwrapped, as configured." >&2
+    return
+  fi
+
+  if ! ensure_slurm_available; then
+    echo "magic-ensemble: WARNING: step '${STEP_NAMES[i]}' is marked slurm: true, but srun is not available on this host (checked PATH and 'module load slurm') -- falling back to local execution." >&2
+    return
+  fi
+
+  STEP_SLURM_ARGS=(--slurm "${STEP_NAMES[i]}")
 }
 
 # --- R library check for step at index i (reads r_libraries from manifest step; skip if empty or .sh) ---
@@ -339,14 +449,28 @@ check_r_libs_for_step_in_apptainer() {
   done < <(yq eval '.steps["'"$COMMAND"'"] | .['"$i"'].r_libraries | .[]?' "$MANIFEST" 2>/dev/null || true)
 }
 
-# --- Run R script with args. Optional leading args: --apptainer, --cwd DIR (default DIR = REPO_ROOT). ---
+# --- Run R script with args. Optional leading args: --apptainer, --slurm STEP_NAME, --cwd DIR (default DIR = REPO_ROOT).
+# --slurm prepends srun (see build_srun_prefix), tagging the job --job-name
+# "Magic-STEP_NAME"; caller (compute_slurm_arg) has already decided this is
+# appropriate -- run_script does not re-check disable_all_srun or availability. ---
 run_script() {
   local use_apptainer=0
+  local use_slurm=0
+  local slurm_job_name=""
   local script_cwd="$REPO_ROOT"
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
       '') shift ;;
       --apptainer) use_apptainer=1; shift ;;
+      --slurm)
+        if [[ $# -lt 2 ]]; then
+          echo "magic-ensemble: run_script --slurm requires STEP_NAME." >&2
+          exit 1
+        fi
+        use_slurm=1
+        slurm_job_name="$2"
+        shift 2
+        ;;
       --cwd)
         if [[ $# -lt 2 ]]; then
           echo "magic-ensemble: run_script --cwd requires DIR." >&2
@@ -365,31 +489,61 @@ run_script() {
     echo "magic-ensemble: Script not found: $script_path" >&2
     exit 1
   fi
+
+  local -a SRUN_PREFIX=()
+  if [[ $use_slurm -eq 1 ]]; then
+    build_srun_prefix "$slurm_job_name"
+  fi
+
   if [[ $use_apptainer -eq 1 ]]; then
     # APPTAINER_SIF and run_dir must be set (ensure_sif_present and run_dir resolved earlier).
-    echo "magic-ensemble: Rscript (inside apptainer: $APPTAINER_SIF)"
+    echo "magic-ensemble: Rscript (inside apptainer: $APPTAINER_SIF)$( [[ $use_slurm -eq 1 ]] && echo ", via srun" )"
     if [[ $VERBOSE -eq 1 ]]; then
-      echo "apptainer run --bind \"$REPO_ROOT:$REPO_ROOT\" --bind \"$run_dir:$run_dir\" --cwd \"$script_cwd\" \"$APPTAINER_SIF\" Rscript \"$script_path\" $*" >&2
+      echo "${SRUN_PREFIX[*]-} apptainer run --bind \"$REPO_ROOT:$REPO_ROOT\" --bind \"$run_dir:$run_dir\" --cwd \"$script_cwd\" \"$APPTAINER_SIF\" Rscript \"$script_path\" $*" >&2
     fi
-    apptainer run --bind "$REPO_ROOT:$REPO_ROOT" --bind "$run_dir:$run_dir" --cwd "$script_cwd" "$APPTAINER_SIF" Rscript "$script_path" "$@"
+    if [[ ${#SRUN_PREFIX[@]} -gt 0 ]]; then
+      "${SRUN_PREFIX[@]}" apptainer run --bind "$REPO_ROOT:$REPO_ROOT" --bind "$run_dir:$run_dir" --cwd "$script_cwd" "$APPTAINER_SIF" Rscript "$script_path" "$@"
+    else
+      apptainer run --bind "$REPO_ROOT:$REPO_ROOT" --bind "$run_dir:$run_dir" --cwd "$script_cwd" "$APPTAINER_SIF" Rscript "$script_path" "$@"
+    fi
   else
-    echo "magic-ensemble: Rscript: $(command -v Rscript)"
+    echo "magic-ensemble: Rscript: $(command -v Rscript)$( [[ $use_slurm -eq 1 ]] && echo ", via srun" )"
     if [[ $VERBOSE -eq 1 ]]; then
-      echo "(cd \"$script_cwd\" && Rscript \"$script_path\" $*)" >&2
+      echo "${SRUN_PREFIX[*]-} (cd \"$script_cwd\" && Rscript \"$script_path\" $*)" >&2
     fi
-    (cd "$script_cwd" && Rscript "$script_path" "$@")
+    if [[ ${#SRUN_PREFIX[@]} -gt 0 ]]; then
+      (cd "$script_cwd" && "${SRUN_PREFIX[@]}" Rscript "$script_path" "$@")
+    else
+      (cd "$script_cwd" && Rscript "$script_path" "$@")
+    fi
   fi
 }
 
-# --- Run shell script; CWD = REPO_ROOT. Step scripts receive documented CLI arguments. ---
+# --- Run shell script; CWD = REPO_ROOT. Step scripts receive documented CLI
+# arguments. Optional trailing "--slurm STEP_NAME" wraps the invocation in
+# srun, tagging the job --job-name "Magic-STEP_NAME" (see run_script's
+# --slurm doc); the 00_* staging steps below never receive it in practice,
+# since validate_slurm_steps() fails fast on that combination. ---
 run_shell_script() {
   local script="$1"
   local step_index="${2:-0}"
+  local use_slurm=0
+  local slurm_job_name=""
+  if [[ "${3:-}" == "--slurm" ]]; then
+    use_slurm=1
+    slurm_job_name="${4:-}"
+  fi
   local script_path="${REPO_ROOT}/${script}"
   if [[ ! -f "$script_path" ]]; then
     echo "magic-ensemble: Script not found: $script_path" >&2
     exit 1
   fi
+
+  local -a SRUN_PREFIX=()
+  if [[ $use_slurm -eq 1 ]]; then
+    build_srun_prefix "$slurm_job_name"
+  fi
+
   local script_basename="${script##*/}"
   if [[ "$script_basename" == "00_fetch_s3_and_prepare_run_dir.sh" || "$script_basename" == "00_stage_external_inputs.sh" ]]; then
     # Step 00 helpers: documented arguments (see each script's --help).
@@ -409,9 +563,13 @@ run_shell_script() {
   else
     # Other shell steps: pass args if/when they are added; no env vars
     if [[ $VERBOSE -eq 1 ]]; then
-      echo "bash $script_path" >&2
+      echo "${SRUN_PREFIX[*]-} bash $script_path" >&2
     fi
-    (cd "$REPO_ROOT" && bash "$script_path")
+    if [[ ${#SRUN_PREFIX[@]} -gt 0 ]]; then
+      (cd "$REPO_ROOT" && "${SRUN_PREFIX[@]}" bash "$script_path")
+    else
+      (cd "$REPO_ROOT" && bash "$script_path")
+    fi
   fi
 }
 
@@ -564,6 +722,7 @@ run_manifest_command() {
   local logfile="$run_dir"/"$COMMAND"_$(date +'%Y%m%d_%H%M%S').log
   { # block for output redirection
     get_steps_array
+    validate_slurm_steps
     validate_pecan_dispatch
     local apptainer_arg=""
     if [[ $use_apptainer -eq 1 ]]; then
@@ -586,8 +745,9 @@ run_manifest_command() {
       step_num=$((i + 1))
       echo "magic-ensemble: ${COMMAND} step ${step_num} of ${total}: ${script}"
       build_step_args "$name"
+      compute_slurm_arg "$i"
       if [[ "$script" == *.sh ]]; then
-        run_shell_script "$script" "$i"
+        run_shell_script "$script" "$i" "${STEP_SLURM_ARGS[@]}"
         if [[ "$name" == "stage-inputs" ]]; then
           # TODO give this its own step instead?
           echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
@@ -599,7 +759,7 @@ run_manifest_command() {
           fi
         fi
       else
-        run_script "$apptainer_arg" "$script" "${STEP_ARGS[@]}"
+        run_script "$apptainer_arg" "${STEP_SLURM_ARGS[@]}" "$script" "${STEP_ARGS[@]}"
       fi
       echo "magic-ensemble: ${COMMAND} step ${step_num} completed"
     done
@@ -615,10 +775,12 @@ run_manifest_command() {
 # --- Get-demo-data: run steps from manifest (shell script only) ---
 run_get_demo_data() {
   get_steps_array
+  validate_slurm_steps
   check_aws
   for i in "${!STEPS[@]}"; do
     check_r_libs_for_step "$i"
-    run_shell_script "${STEPS[i]}" "$i"
+    compute_slurm_arg "$i"
+    run_shell_script "${STEPS[i]}" "$i" "${STEP_SLURM_ARGS[@]}"
   done
 }
 
@@ -632,6 +794,7 @@ run_run_ensembles() {
   local logfile="$run_dir"/"$COMMAND"_$(date +'%Y%m%d_%H%M%S').log
   { # block for output redirection
     get_steps_array
+    validate_slurm_steps
 
     if [[ $use_apptainer -eq 1 ]]; then
       ensure_apptainer_available
@@ -643,7 +806,8 @@ run_run_ensembles() {
       script="${STEPS[i]}"
       name="${STEP_NAMES[i]}"
       build_step_args "$name"
-      run_script --cwd "$run_dir" "$script" "${STEP_ARGS[@]}"
+      compute_slurm_arg "$i"
+      run_script "${STEP_SLURM_ARGS[@]}" --cwd "$run_dir" "$script" "${STEP_ARGS[@]}"
     done
     echo "magic-ensemble: output logged to ${logfile}."
   } 2>&1 | tee -a ${logfile}

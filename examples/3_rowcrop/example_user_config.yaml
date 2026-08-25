@@ -29,6 +29,14 @@ use_apptainer: false
 pecan_dispatch: slurm-dispatch
 # slurm_partition: ""  # Slurm partition for sbatch jobs (slurm-dispatch only). Omit to use the cluster default.
 
+
+## Slurm single-step options
+# disable_all_srun: set to true to enforce all steps which do not submit slurm jobs via pecan to be local compute only
+# this overrides individual step srun settings
+disable_all_srun: false
+# when using single-step srun's, use the srun_extra_args as a string passed to srun
+srun_extra_args: "--mem=0"
+
 # AWS CLI named profile for S3 access (get-demo-data command).
 aws_profile: magic
 
