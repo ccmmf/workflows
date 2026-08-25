@@ -61,6 +61,24 @@ steps:
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
 
+        - name: build-events
+          script: "workflow/02a_build_events.R"
+          r_libraries: [tidyverse, callr, glue]
+          inputs:
+              site_info_path: site_info_file
+              phenology_path: phenology_info_path
+              planting_path: planting_info_path
+              harvest_path: harvest_info_path
+              tillage_path: tillage_info_path
+              irrigation_path: irrigation_info_path
+          params:
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              clean_parquet_dir: clean_parquet_dir
+              event_outdir: event_dir
+
+
         - name: build-ic
           script: "workflow/02_ic_build.R"
           r_libraries: [tidyverse]
@@ -253,7 +271,7 @@ steps:
               data_dir: data_dir
 
         - name: build-events
-          script: "examples/3_rowcrop/02a_build_events.R"
+          script: "workflows/02a_build_events.R"
           r_libraries: [tidyverse, callr, glue]
           inputs:
               site_info_path: site_info_file
