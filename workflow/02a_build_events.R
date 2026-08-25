@@ -71,7 +71,7 @@ this_file <- function() {
   cmd_args <- commandArgs(trailingOnly = FALSE)
   normalizePath(sub("^--file=", "", grep("^--file=", cmd_args, value = TRUE)))
 }
-event_prep_dir <- normalizePath(file.path(dirname(this_file()), "..", "..", "tools", "event_prep"))
+event_prep_dir <- normalizePath(file.path(dirname(this_file()), "..", "tools", "event_prep"))
 
 if (!dir.exists(args$event_outdir)) {
   dir.create(args$event_outdir, recursive = TRUE)

@@ -271,7 +271,7 @@ steps:
               data_dir: data_dir
 
         - name: build-events
-          script: "workflows/02a_build_events.R"
+          script: "workflow/02a_build_events.R"
           r_libraries: [tidyverse, callr, glue]
           inputs:
               site_info_path: site_info_file
