@@ -69,7 +69,7 @@ dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
 
 message("Writing harvest output")
 harvest <- arrow::open_dataset(harvest_files, format = "parquet") |>
-dplyr::filter(site_id %in% siteids) |>
+dplyr::filter(as.character(site_id) %in% siteids) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = as.Date(date)
@@ -82,7 +82,7 @@ dplyr::filter(site_id %in% siteids) |>
 
 message("Writing planting output")
 planting <- arrow::open_dataset(planting_files, format = "parquet") |>
-  dplyr::filter(site_id %in% siteids) |>
+  dplyr::filter(as.character(site_id) %in% siteids) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = pmax(as.Date(date), as.Date(args$adjust_start)) # push earlier plantings forward to avoid beginning-of-run boundary error
@@ -105,7 +105,7 @@ planting <- arrow::open_dataset(planting_files, format = "parquet") |>
 
 message("Writing tillage output")
 tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
-  dplyr::filter(site_id %in% siteids) |>
+  dplyr::filter(as.character(site_id) %in% siteids) |>
   dplyr::filter(
     is.finite(.data$ndti_pct_change),
     .data$ndti_pct_change >= 0
@@ -131,7 +131,7 @@ tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
 message("Writing phenology output")
 phenology <- arrow::open_dataset(phenology_files, format = "parquet")
 leafon <- phenology |>
-  dplyr::filter(site_id %in% siteids) |>
+  dplyr::filter(as.character(site_id) %in% siteids) |>
   dplyr::select("site_id", date = "leafonday") |>
   dplyr::mutate(
     site_id = as.integer(.data$site_id),

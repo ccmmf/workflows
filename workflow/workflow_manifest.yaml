@@ -254,10 +254,14 @@ steps:
 
         - name: build-events
           script: "examples/3_rowcrop/02a_build_events.R"
-          r_libraries: [tidyverse, callr]
+          r_libraries: [tidyverse, callr, glue]
           inputs:
               site_info_path: site_info_file
-              raw_parquet_dir: raw_parquet_dir
+              phenology_path: phenology_info_path
+              planting_path: planting_info_path
+              harvest_path: harvest_info_path
+              tillage_path: tillage_info_path
+              irrigation_path: irrigation_info_path
           params:
               start_date: start_date
               end_date: end_date
@@ -309,7 +313,6 @@ paths:
     site_info_file: "site_info.csv"
     site_sipnet_met_path: "data/ERA5_SIPNET"
     site_era5_path: "data_raw/ERA5_CA_nc"
-    field_shape_path: "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
     data_dir: "data/IC_prep"
     ic_outdir: "IC_files"
     pft_dir: "data_raw/pfts"
@@ -322,7 +325,6 @@ paths:
     ic_dir: "IC_files"
     settings_xml: "settings.xml"
     config_xml: "output/pecan.CONFIGS.xml"
-    raw_parquet_dir: "data_raw/management"
     clean_parquet_dir: "data/management_ensembles"
     event_dir: "data/events"
 

@@ -11,16 +11,27 @@ options <- list(
     default = "site_info.csv",
     help = "CSV giving ids, locations, and PFTs for sites of interest"
   ),
-  optparse::make_option("--raw_parquet_dir",
-    default = "data_raw/management",
-    help = paste(
-      "Directory containing management inputs in Parquet format.",
-      "Note: Code currently looks for subpaths that include hard-coded",
-      "version numbers for each management type.",
-      "If this path is empty, cleaning is skipped and clean Parquet files",
-      " must already exist at the path specified by --clean_parquet_dir`."
-    )
+  optparse::make_option("--phenology_path",
+    default = "data_raw/management/phenology/v1.0",
+    help = "Parquet file or directory of Parquet files containing phenology events",
   ),
+  optparse::make_option("--planting_path",
+    default = "data_raw/management/planting/v1.0",
+    help = "Parquet file or directory of Parquet files containing planting events",
+  ),
+  optparse::make_option("--harvest_path",
+    default = "data_raw/management/harvest/v1.0",
+    help = "Parquet file or directory of Parquet files containing harvest events",
+  ),
+  optparse::make_option("--tillage_path",
+    default = "data_raw/management/tillage/v1.0",
+    help = "Parquet file or directory of Parquet files containing tillage events",
+  ),
+  optparse::make_option("--irrigation_path",
+    default = "data_raw/management/irrigation/v1.1",
+    help = "Parquet file or directory of Parquet files containing tillage events",
+  ),
+  # TODO add fertilization and NCC here
   optparse::make_option("--clean_parquet_dir",
     default = "data/management_ensembles",
     help = paste(
@@ -62,18 +73,6 @@ this_file <- function() {
 }
 event_prep_dir <- normalizePath(file.path(dirname(this_file()), "..", "..", "tools", "event_prep"))
 
-# TODO these probably deserve to be runtime args,
-# but first better fix other version-specific assumptions below
-mgmt_subdirs <- list(
-  pheno = file.path(args$raw_parquet_dir, "phenology/v1.0"),
-  plant = file.path(args$raw_parquet_dir, "planting/v1.0"),
-  harv = file.path(args$raw_parquet_dir, "harvest/v1.0"),
-  till = file.path(args$raw_parquet_dir, "tillage/v1.0"),
-  irri = file.path(args$raw_parquet_dir, "irrigation/v1.1"),
-  fert = NULL, # TODO
-  occ = NULL # TODO
-)
-
 if (!dir.exists(args$event_outdir)) {
   dir.create(args$event_outdir, recursive = TRUE)
 }
@@ -82,30 +81,30 @@ cargs <- function(...) {
   paste0("--", ...names(), "=", list(...))
 }
 
-if (args$raw_parquet_dir != "") {
-  PEcAn.logger::logger.info("Cleaning irrigation files")
-  callr::rscript(
-    file.path(event_prep_dir, "01a-clean-irrigation.R"),
-    cmdargs = cargs(
-      irr_path = mgmt_subdirs$irri,
-      outdir = args$clean_parquet_dir,
-      site_info_path = args$site_info_path
-    )
+
+PEcAn.logger::logger.info("Cleaning irrigation files")
+callr::rscript(
+  file.path(event_prep_dir, "01a-clean-irrigation.R"),
+  cmdargs = cargs(
+    irr_path = args$irrigation_path,
+    outdir = args$clean_parquet_dir,
+    site_info_path = args$site_info_path
   )
-  PEcAn.logger::logger.info("Cleaning other management files")
-  callr::rscript(
-    file.path(event_prep_dir, "01b-clean-other-events.R"),
-    cmdargs = cargs(
-      site_info_path = args$site_info_path,
-      pheno_dir = mgmt_subdirs$pheno,
-      planting_dir = mgmt_subdirs$plant,
-      harvest_dir = mgmt_subdirs$harv,
-      tillage_dir = mgmt_subdirs$till,
-      adjust_start = args$start_date,
-      outdir = args$clean_parquet_dir
-    )
+)
+PEcAn.logger::logger.info("Cleaning other management files")
+callr::rscript(
+  file.path(event_prep_dir, "01b-clean-other-events.R"),
+  cmdargs = cargs(
+    site_info_path = args$site_info_path,
+    pheno_dir = args$phenology_path,
+    planting_dir = args$planting_path,
+    harvest_dir = args$harvest_path,
+    tillage_dir = args$tillage_path,
+    adjust_start = args$start_date,
+    outdir = args$clean_parquet_dir
   )
-}
+)
+
 
 PEcAn.logger::logger.info("converting management files to events")
 callr::rscript(
