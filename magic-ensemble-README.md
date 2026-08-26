@@ -39,7 +39,7 @@ $EDITOR my_config.yaml   # at minimum, set run_dir
 **Using the canonical workflow (bring your own data):**
 ```bash
 cp examples/2a_grass/example_user_config.yaml my_config.yaml
-$EDITOR my_config.yaml   # set run_dir, pecan_dispatch, and external_paths
+$EDITOR my_config.yaml   # set run_dir, pecan_parallelism_mode, and external_paths
 ./magic-ensemble prepare --config my_config.yaml
 ./magic-ensemble run-ensembles --config my_config.yaml
 ```
@@ -66,9 +66,10 @@ All keys except `run_dir` are optional and fall back to the defaults shown below
 | `ic_ensemble_size` | `100` | IC ensemble draw size. |
 | `n_workers` | `1` | Parallel workers for the ERA5 conversion step. |
 | `use_apptainer` | `false` | Run R steps inside the workflow Apptainer container. |
-| `pecan_dispatch` | _(none)_ | Dispatch mode for `run-ensembles`. Required for `prepare` and `run-ensembles`. |
-| `disable_all_srun` | `false` | Force-disable `srun` wrapping of individual steps, even for steps the manifest marks `slurm: true`. Does not affect `pecan_dispatch: slurm-dispatch`. |
-| `srun_extra_args` | _(none)_ | Free-form extra flags appended to every `srun` invocation (e.g. `"--mem=64G --time=02:00:00"`). |
+| `pecan_parallelism_mode` | _(none)_ | Ensemble-member dispatch mode for `run-ensembles` (PEcAn's own dispatch). Required for `prepare` and `run-ensembles`. |
+| `sbatch_additional_arguments` | _(none)_ | Free-form extra flags appended to every `sbatch` call `pecan_parallelism_mode: slurm-sbatch` issues (e.g. `"--account=foo --qos=bar"`). |
+| `workflow_parallelism_mode` | `slurm-srun` | Wraps eligible steps (manifest `slurm: true`) in `srun` whenever it's available. Set to `local` to force every step to run unwrapped. Independent of `pecan_parallelism_mode`. |
+| `srun_additional_arguments` | _(none)_ | Free-form extra flags appended to every `srun` invocation (e.g. `"--mem=64G --time=02:00:00"`). |
 | `external_paths` | _(none)_ | User-provided input files to stage into `run_dir` before `prepare` runs (see below). |
 
 Fixed internal paths, S3 coordinates, dispatch XML, and Apptainer image
@@ -101,9 +102,9 @@ data supplied via `external_paths`.
 | 03 | `workflow/03_xml_build.R` | `PEcAn.settings` |
 
 After step 00, `template.xml` is patched with the `<host>` dispatch block
-selected by `pecan_dispatch` (and the Apptainer SIF path when applicable).
+selected by `pecan_parallelism_mode` (and the Apptainer SIF path when applicable).
 
-**Requires:** `pecan_dispatch` set in config; `python3` on PATH.
+**Requires:** `pecan_parallelism_mode` set in config; `python3` on PATH.
 
 **Produces:** `settings.xml` in `run_dir`, ready for `run-ensembles`.
 
@@ -134,12 +135,12 @@ patched `settings.xml`.
 
 ## Dispatch Options
 
-Set `pecan_dispatch` in your config to one of the following:
+Set `pecan_parallelism_mode` in your config to one of the following:
 
 | Value | Description |
 |---|---|
 | `local-gnu-parallel` | Runs ensemble members locally using GNU parallel. No cluster required. |
-| `slurm-dispatch` | Submits ensemble members as Slurm batch jobs via `sbatch`. |
+| `slurm-sbatch` | Submits ensemble members as Slurm batch jobs via `sbatch`. Add `sbatch_additional_arguments` to pass through extra flags. |
 
 The corresponding `<host>` XML block is injected into `template.xml` during
 `prepare` step 00.
@@ -177,19 +178,22 @@ To turn it off entirely — for example, if you're already inside an `salloc`
 session and don't want nested `srun` calls — set:
 
 ```yaml
-disable_all_srun: true
+workflow_parallelism_mode: local
 ```
 
-Use `srun_extra_args` to pass through additional `srun` flags (memory,
-time limit, cpus-per-task, account, etc.) verbatim:
+Use `srun_additional_arguments` to pass through additional `srun` flags
+(memory, time limit, cpus-per-task, account, etc.) verbatim:
 
 ```yaml
-srun_extra_args: "--mem=64G --time=02:00:00 --cpus-per-task=4"
+srun_additional_arguments: "-p node --mem=64G --time=02:00:00 --cpus-per-task=4"
 ```
 
-`slurm_partition` (used for `pecan_dispatch: slurm-dispatch`) is reused as
-`srun`'s `-p` flag as well. This is entirely separate from `pecan_dispatch`,
-which governs how `run-ensembles` submits ensemble members.
+There's no separate partition key — include `-p <partition>` directly in
+`srun_additional_arguments` if your cluster needs one. This is entirely
+separate from `pecan_parallelism_mode`, which governs how `run-ensembles`
+submits ensemble members via `sbatch` — use `sbatch_additional_arguments`
+(same free-form style, e.g. `"-p node --account=foo"`) to pass extra flags
+to those calls instead.
 
 ---
 
@@ -219,8 +223,8 @@ is a different tool and is not compatible.
 **`run_dir is required`**
 Your config file is missing `run_dir`. This is the only key with no default.
 
-**`Unknown pecan_dispatch value`**
-The value of `pecan_dispatch` in your config does not match any key in
+**`Unknown pecan_parallelism_mode value`**
+The value of `pecan_parallelism_mode` in your config does not match any key in
 `workflow_manifest.yaml`. Valid options are printed when this error occurs.
 
 **`staged template.xml not found`**

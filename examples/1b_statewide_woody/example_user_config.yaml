@@ -1,5 +1,5 @@
 # Example user config for the 1b statewide woody crops workflow.
-# Copy this file and edit before running. Only run_dir and pecan_dispatch are required;
+# Copy this file and edit before running. Only run_dir and pecan_parallelism_mode are required;
 # all other keys fall back to the defaults shown.
 #
 # Run with:
@@ -16,18 +16,19 @@ n_met: 10
 ic_ensemble_size: 100
 n_workers: 1
 use_apptainer: false
-pecan_dispatch: slurm-dispatch
-# slurm_partition: ""  # Slurm partition for sbatch jobs (slurm-dispatch only). Omit to use the cluster default.
+pecan_parallelism_mode: slurm-sbatch
+# sbatch_additional_arguments: ""  # Extra flags for every sbatch call (ensemble-member submission), e.g. "-p node --account=foo".
 
 # Steps the manifest marks eligible for srun-wrapping run under srun
-# automatically when it's available; set true to force-disable that for
-# every step (does not affect pecan_dispatch: slurm-dispatch above).
-disable_all_srun: false
+# automatically when workflow_parallelism_mode is slurm-srun (the default);
+# set to local to force every step to run unwrapped (does not affect
+# pecan_parallelism_mode: slurm-sbatch above).
+workflow_parallelism_mode: slurm-srun
 # --mem=0 requests all memory on the allocated node (documented Slurm
 # behavior, not "unlimited") -- default here to avoid OOM on steps like
-# build-ic; override/remove if your cluster's partitions require an
-# explicit cap.
-srun_extra_args: "--mem=0"
+# build-ic; add "-p <partition>" here too if your cluster needs one (no
+# separate slurm_partition key -- it's just another srun flag).
+srun_additional_arguments: "--mem=0"
 
 # AWS CLI named profile for S3 access (get-demo-data command).
 aws_profile: magic

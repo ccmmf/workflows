@@ -25,11 +25,12 @@
 #                falling back to the manifest's own top-level value)
 #
 # Slurm (srun) step wrapping: a step marked slurm: true is prepended with
-# `srun` (plus -p <slurm_partition> and any config-supplied srun_extra_args)
-# whenever srun is available on the invoking host, unless the user config
-# sets disable_all_srun: true. This is a wholly separate mechanism from
-# pecan_dispatch/host_xml below, which governs PEcAn's own sbatch-based
-# submission of ensemble members and is unaffected by disable_all_srun.
+# `srun` (plus any config-supplied srun_additional_arguments, e.g. "-p
+# node") whenever srun is available on the invoking host and the user
+# config's workflow_parallelism_mode is not "local".
+# This is a wholly separate mechanism from pecan_parallelism_mode/host_xml
+# below, which governs PEcAn's own sbatch-based submission of ensemble
+# members and is unaffected by workflow_parallelism_mode.
 #
 # cli_flag is the literal "--<cli_flag>" passed on the command line; path_key/
 # value_key name where the actual value comes from (a 'paths' entry, or a
@@ -56,7 +57,7 @@ steps:
     prepare:
         - name: stage-inputs
           script: "workflow/00_stage_external_inputs.sh"
-          slurm: false
+          slurm: false  # needs network access, which worker nodes don't have
           r_libraries: []
           inputs: {}
           params: {}
@@ -99,7 +100,7 @@ steps:
 
         - name: build-xml
           script: "workflow/03_xml_build.R"
-          slurm: false
+          slurm: true
           r_libraries: [PEcAn.settings]
           inputs:
               site_file: site_info_file
@@ -248,7 +249,7 @@ steps:
 
         - name: convert-clim
           script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
-          slurm: true 
+          slurm: true
           r_libraries: [future, furrr]
           inputs:
               site_era5_path: site_era5_path
@@ -378,16 +379,23 @@ n_event: 20
 n_workers: 1
 use_apptainer: "false"
 
-# Force-disables srun wrapping for all steps regardless of their manifest
-# slurm: flag or srun availability. Does not affect pecan_dispatch's own
-# sbatch-based ensemble-member submission (slurm-dispatch), which is a
-# separate mechanism.
-disable_all_srun: "false"
-# Free-form extra flags appended to every srun invocation (e.g. "--mem=64G
-# --time=02:00:00 --cpus-per-task=4"). No structured schema; passed through
-# verbatim. slurm_partition (config-only, no manifest default) is applied
-# separately via -p.
-srun_extra_args: ""
+# Governs the CLI's own step-wrapping: "slurm-srun" wraps steps the manifest
+# marks slurm: true whenever srun is available; "local" forces every step to
+# run unwrapped, regardless of manifest slurm: flags. Does not affect
+# pecan_parallelism_mode's own sbatch-based ensemble-member submission
+# (slurm-sbatch), which is a separate mechanism.
+workflow_parallelism_mode: "slurm-srun"
+# Free-form extra flags appended to every srun invocation (e.g. "-p node
+# --mem=64G --time=02:00:00 --cpus-per-task=4"). No structured schema;
+# passed through verbatim, including the partition (-p) if one is wanted.
+srun_additional_arguments: ""
+# Free-form extra flags appended to every sbatch invocation issued by
+# pecan_parallelism_mode: slurm-sbatch for ensemble-member submission (e.g.
+# "-p node --account=foo --qos=bar"), including the partition (-p) if one
+# is wanted. Independent of srun_additional_arguments -- sbatch and srun
+# don't share an identical flag surface, and the two mechanisms have very
+# different resource/blast-radius profiles (see magic-ensemble-DEVELOPERS.md).
+sbatch_additional_arguments: ""
 
 
 
@@ -425,11 +433,11 @@ s3:
         # mslsp/ (unused) and crops/ (covered by parcels_gpkg/crops_all_years_parq above).
         key_prefix: "management"
 
-# Dispatch options for run-ensembles. The user config selects one by name via pecan_dispatch.
+# Dispatch options for run-ensembles. The user config selects one by name via pecan_parallelism_mode.
 # host_xml is the complete <host>...</host> block to inject into the staged template.xml
-# before step 03 (xml_build.R) runs. Valid values for pecan_dispatch in user config are the
+# before step 03 (xml_build.R) runs. Valid values for pecan_parallelism_mode in user config are the
 # keys listed here.
-pecan_dispatch:
+pecan_parallelism_mode:
     local-gnu-parallel:
         description: "Run ensemble members locally using GNU parallel (no Slurm required)"
         host_xml: |
@@ -444,7 +452,7 @@ pecan_dispatch:
               <Njobmax>1000</Njobmax>
              </modellauncher>
             </host>
-    slurm-dispatch:
+    slurm-sbatch:
         description: "Submit ensemble members to Slurm via sbatch"
         host_xml: |
             <host>
@@ -452,7 +460,7 @@ pecan_dispatch:
              <outdir>output/out</outdir>
              <rundir>output/run</rundir>
              <prerun>@BINARY@ --version</prerun>
-             <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @PARTITION@ @SIF@</qsub>
+             <qsub>sbatch -J @NAME@ -o @STDOUT@ -e @STDERR@ @EXTRA_ARGS@ @SIF@</qsub>
              <qsub.jobid>Submitted batch job ([0-9]+)</qsub.jobid>
              <qstat>if test -z "$(squeue -h -j @JOBID@)"; then echo "DONE"; fi</qstat>
             </host>

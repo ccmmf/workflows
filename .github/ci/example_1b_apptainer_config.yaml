@@ -7,10 +7,10 @@ n_met: 3
 ic_ensemble_size: 20
 n_workers: 2
 use_apptainer: true
-pecan_dispatch: slurm-dispatch
-slurm_partition: node
-disable_all_srun: false
-srun_extra_args: "--mem=0"
+pecan_parallelism_mode: slurm-sbatch
+sbatch_additional_arguments: "-p node"
+workflow_parallelism_mode: slurm-srun
+srun_additional_arguments: "-p node --mem=0"
 aws_profile: magic
 external_paths:
   template_file: "examples/1b_statewide_woody/template.xml"

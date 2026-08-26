@@ -197,19 +197,27 @@ case "$(echo "$use_apptainer_raw" | tr '[:upper:]' '[:lower:]')" in
   true|yes|1) use_apptainer=1 ;;
 esac
 
-pecan_dispatch=$(get_val ".pecan_dispatch" "")
-slurm_partition=$(get_val ".slurm_partition" "")
+pecan_parallelism_mode=$(get_val ".pecan_parallelism_mode" "")
 aws_profile=$(get_val ".aws_profile" "magic")
 
-disable_all_srun_raw=$(get_val ".disable_all_srun" "false")
-# Normalize: true/yes/1 (case-insensitive) => 1; else 0
-disable_all_srun=0
-case "$(echo "$disable_all_srun_raw" | tr '[:upper:]' '[:lower:]')" in
-  true|yes|1) disable_all_srun=1 ;;
+# workflow_parallelism_mode governs the CLI's own step-wrapping (distinct
+# from pecan_parallelism_mode, which governs PEcAn's ensemble-member
+# dispatch): "slurm-srun" wraps eligible steps (manifest slurm: true) in
+# srun when available; "local" forces every step to run unwrapped.
+workflow_parallelism_mode=$(get_val ".workflow_parallelism_mode" "slurm-srun")
+case "$workflow_parallelism_mode" in
+  local|slurm-srun) ;;
+  *)
+    echo "magic-ensemble: Unknown workflow_parallelism_mode value '$workflow_parallelism_mode'. Valid options: local, slurm-srun" >&2
+    exit 1
+    ;;
 esac
 
-srun_extra_args=$(get_val ".srun_extra_args" "")
-[[ "$srun_extra_args" == "null" ]] && srun_extra_args=""
+srun_additional_arguments=$(get_val ".srun_additional_arguments" "")
+[[ "$srun_additional_arguments" == "null" ]] && srun_additional_arguments=""
+
+sbatch_additional_arguments=$(get_val ".sbatch_additional_arguments" "")
+[[ "$sbatch_additional_arguments" == "null" ]] && sbatch_additional_arguments=""
 
 # Resolve manifest paths relative to run_dir.
 # Effective path = run_dir / manifest_path so R (CWD=REPO_ROOT) sees the correct file.
@@ -263,7 +271,7 @@ ensure_apptainer_available() {
 # "just run the step unwrapped." Memoized since it may be probed once per step. ---
 SLURM_AVAILABLE_CHECKED=0
 SLURM_AVAILABLE=0
-ensure_slurm_available() {
+check_slurm_available() {
   if [[ $SLURM_AVAILABLE_CHECKED -eq 1 ]]; then
     [[ $SLURM_AVAILABLE -eq 1 ]]
     return
@@ -277,24 +285,22 @@ ensure_slurm_available() {
   [[ $SLURM_AVAILABLE -eq 1 ]]
 }
 
-# --- Build SRUN_PREFIX array (srun + --job-name + -p <slurm_partition> +
-# srun_extra_args). Caller has already decided this step should be wrapped
-# (manifest slurm:true, disable_all_srun not set, srun available) -- this
+# --- Build SRUN_PREFIX array (srun + --job-name + srun_additional_arguments).
+# Caller has already decided this step should be wrapped (manifest
+# slurm:true, workflow_parallelism_mode != local, srun available) -- this
 # only builds the command. job_name is the step's manifest name (e.g.
-# "build-ic"); --job-name is listed first so a --job-name in
-# srun_extra_args, if the user sets one, wins (last flag wins for srun). ---
+# "build-ic"); --job-name is listed first so a --job-name (or -p partition)
+# in srun_additional_arguments, if the user sets one, wins (last flag wins
+# for srun). ---
 build_srun_prefix() {
   local job_name="$1"
   SRUN_PREFIX=(srun)
   if [[ -n "$job_name" ]]; then
     SRUN_PREFIX+=(--job-name "Magic-${job_name}")
   fi
-  if [[ -n "$slurm_partition" && "$slurm_partition" != "null" ]]; then
-    SRUN_PREFIX+=(-p "$slurm_partition")
-  fi
-  if [[ -n "$srun_extra_args" && "$srun_extra_args" != "null" ]]; then
+  if [[ -n "$srun_additional_arguments" && "$srun_additional_arguments" != "null" ]]; then
     local -a extra
-    read -r -a extra <<< "$srun_extra_args"
+    read -r -a extra <<< "$srun_additional_arguments"
     SRUN_PREFIX+=("${extra[@]}")
   fi
 }
@@ -391,27 +397,27 @@ validate_slurm_steps() {
 # for direct use (via "${STEP_SLURM_ARGS[@]}") as run_script/run_shell_script
 # arguments -- the step name travels alongside the flag so build_srun_prefix
 # can set --job-name "Magic-<step name>". (Not echoed/command-substituted:
-# ensure_slurm_available()'s memoization relies on mutating globals in this
+# check_slurm_available()'s memoization relies on mutating globals in this
 # shell, which a $(...) subshell would silently discard.)
 #
 # Whenever the step's request (manifest slurm:true) can't be honored as
 # configured, this warns loudly on stderr *before* falling back, rather than
-# silently downgrading -- both "disable_all_srun conflicts with a step that
-# wants srun" and "srun isn't available" are surprising enough at run time
-# that they shouldn't be discoverable only by reading the manifest/config
-# afterward. ---
+# silently downgrading -- both "workflow_parallelism_mode=local conflicts
+# with a step that wants srun" and "srun isn't available" are surprising
+# enough at run time that they shouldn't be discoverable only by reading the
+# manifest/config afterward. ---
 compute_slurm_arg() {
   local i="$1"
   STEP_SLURM_ARGS=()
 
   [[ "${STEP_SLURM[i]}" != "true" ]] && return
 
-  if [[ $disable_all_srun -eq 1 ]]; then
-    echo "magic-ensemble: WARNING: step '${STEP_NAMES[i]}' is marked slurm: true in the manifest, but disable_all_srun is set in your config -- running it unwrapped, as configured." >&2
+  if [[ "$workflow_parallelism_mode" == "local" ]]; then
+    echo "magic-ensemble: WARNING: step '${STEP_NAMES[i]}' is marked slurm: true in the manifest, but workflow_parallelism_mode is set to 'local' in your config -- running it unwrapped, as configured." >&2
     return
   fi
 
-  if ! ensure_slurm_available; then
+  if ! check_slurm_available; then
     echo "magic-ensemble: WARNING: step '${STEP_NAMES[i]}' is marked slurm: true, but srun is not available on this host (checked PATH and 'module load slurm') -- falling back to local execution." >&2
     return
   fi
@@ -452,7 +458,7 @@ check_r_libs_for_step_in_apptainer() {
 # --- Run R script with args. Optional leading args: --apptainer, --slurm STEP_NAME, --cwd DIR (default DIR = REPO_ROOT).
 # --slurm prepends srun (see build_srun_prefix), tagging the job --job-name
 # "Magic-STEP_NAME"; caller (compute_slurm_arg) has already decided this is
-# appropriate -- run_script does not re-check disable_all_srun or availability. ---
+# appropriate -- run_script does not re-check workflow_parallelism_mode or availability. ---
 run_script() {
   local use_apptainer=0
   local use_slurm=0
@@ -604,11 +610,11 @@ ensure_output_dir() {
   fi
 }
 
-# --- Validate pecan_dispatch value against manifest options ---
-validate_pecan_dispatch() {
-  if ! yq eval ".pecan_dispatch | has(\"$pecan_dispatch\")" "$MANIFEST" | grep -q '^true$'; then
-    echo "magic-ensemble: Unknown pecan_dispatch value '$pecan_dispatch'. Valid options:" >&2
-    yq eval '.pecan_dispatch | keys | .[]' "$MANIFEST" >&2
+# --- Validate pecan_parallelism_mode value against manifest options ---
+validate_pecan_parallelism_mode() {
+  if ! yq eval ".pecan_parallelism_mode | has(\"$pecan_parallelism_mode\")" "$MANIFEST" | grep -q '^true$'; then
+    echo "magic-ensemble: Unknown pecan_parallelism_mode value '$pecan_parallelism_mode'. Valid options:" >&2
+    yq eval '.pecan_parallelism_mode | keys | .[]' "$MANIFEST" >&2
     exit 1
   fi
 }
@@ -647,15 +653,12 @@ patch_xml_block() {
     echo "magic-ensemble: patching <${xml_tag}> block in $template_path (yq_path=${yq_path})" >&2
   fi
 
-  local xml_block partition_flag=""
-  if [[ -n "$slurm_partition" && "$slurm_partition" != "null" ]]; then
-    partition_flag="-p ${slurm_partition}"
-  fi
+  local xml_block
   xml_block=$(yq eval "$yq_path" "$MANIFEST" \
     | sed "s|@SIF@|${sif_name}|g" \
-    | sed "s|@PARTITION@|${partition_flag}|g" \
     | sed "s|@SIPNET_BINARY@|${sipnet_binary}|g" \
-    | sed "s|@NCPUS@|${n_workers}|g")
+    | sed "s|@NCPUS@|${n_workers}|g" \
+    | sed "s|@EXTRA_ARGS@|${sbatch_additional_arguments}|g")
 
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
@@ -723,7 +726,7 @@ run_manifest_command() {
   { # block for output redirection
     get_steps_array
     validate_slurm_steps
-    validate_pecan_dispatch
+    validate_pecan_parallelism_mode
     local apptainer_arg=""
     if [[ $use_apptainer -eq 1 ]]; then
       ensure_apptainer_available
@@ -750,9 +753,9 @@ run_manifest_command() {
         run_shell_script "$script" "$i" "${STEP_SLURM_ARGS[@]}"
         if [[ "$name" == "stage-inputs" ]]; then
           # TODO give this its own step instead?
-          echo "magic-ensemble: patching template.xml with dispatch: $pecan_dispatch"
+          echo "magic-ensemble: patching template.xml with dispatch: $pecan_parallelism_mode"
           patch_xml_block "host" \
-            ".pecan_dispatch[\"$pecan_dispatch\"].host_xml"
+            ".pecan_parallelism_mode[\"$pecan_parallelism_mode\"].host_xml"
           patch_xml_block "model/binary" ".sipnet_model.model_binary"
           if [[ $use_apptainer -eq 0 ]]; then
             ensure_sipnet_binary
