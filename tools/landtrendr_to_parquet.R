@@ -18,7 +18,7 @@
 #   --landtrendr_medians_file=ca_biomassfiaald_2016_median.tif \
 #   --landtrendr_stdevs_file=ca_biomassfiaald_2016_stdv.tif
 # Extracting raw pixels took ~20 min, remainder was bootstrap.
-# If neneded, it's likely this could be sped up by finding ways to parallelize
+# If needed, it's likely this could be sped up by finding ways to parallelize
 # the bootstrap operation / avoid keeping all ~62M pixels in memory at once.
 #
 # About the inputs:
