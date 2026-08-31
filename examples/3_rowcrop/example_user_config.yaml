@@ -37,7 +37,6 @@ external_paths:
   template_file: "examples/3_rowcrop/template.xml"
 
 paths:
-  field_shape_path: "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
   phenology_info_path: "data_raw/management/phenology/v1.0/"
   planting_info_path: "data_raw/management/planting/v1.0/"
   harvest_info_path: "data_raw/management/harvest/v1.0/"
