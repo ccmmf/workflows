@@ -2,11 +2,11 @@
 
 # extract LandTrendr-estimated aboveground biomass for 2016
 # from 30 m gridded geotiffs to a single estimate and uncertainty for each DWR
-# parcel, as computed by bootstrap sampling each parcel from the pixel-level
+# parcel, as computed by Monte Carlo sampling each parcel from the pixel-level
 # medians and sds reported by Landtrendr.
 #
-# Writes several intermediate files into cwd for debug/checkpointing;
-# these can be removed when we're confident it works in one shot.
+# Can write several intermediate files into cwd for debug/checkpointing;
+# uncomment them below as desired.
 #
 # Should be able to work for other years by refactoring out the hardcoded
 # "ca_biomassfiaald_2016_median" column names.
@@ -17,9 +17,9 @@
 #   --parcel_file=parcels-consolidated.gpkg \
 #   --landtrendr_medians_file=ca_biomassfiaald_2016_median.tif \
 #   --landtrendr_stdevs_file=ca_biomassfiaald_2016_stdv.tif
-# Extracting raw pixels took ~20 min, remainder was bootstrap.
+# Extracting raw pixels took ~20 min, remainder was MC sampling.
 # If needed, it's likely this could be sped up by finding ways to parallelize
-# the bootstrap operation / avoid keeping all ~62M pixels in memory at once.
+# the sampling operation / avoid keeping all ~62M pixels in memory at once.
 #
 # About the inputs:
 # The biomass data being converted here were estimated using Landtrendr by the
@@ -66,8 +66,8 @@ args <- optparse::OptionParser(option_list = options) |>
 
 
 # vectors of point estimates and uncertainties ->
-# bootstrap mean, median, sd, and 5/95% interval of their mean.
-boot_pixels <- function(means, sds, n_boot = 1000) {
+# Monte Carlo mean, median, sd, and 5/95% interval of their mean.
+resample_pixels <- function(means, sds, n_draws = 1000) {
   stopifnot(
     length(means) > 0,
     length(means) == length(sds),
@@ -78,7 +78,7 @@ boot_pixels <- function(means, sds, n_boot = 1000) {
   )
   
   draws <- replicate(
-    n = n_boot,
+    n = n_draws,
     mean(rnorm(n = length(means), mean = means, sd = sds))
   )
   dq <- quantile(draws, c(0.05, 0.50, 0.95))
@@ -184,7 +184,7 @@ if (any(na_px$frac_med_na >= 1) || any(na_px$frac_sd_na >= 1)) {
 fld_px |>
   tidyr::drop_na(median, sd) |>
   dplyr::summarize(
-    boot_pixels(median, sd),
+    resample_pixels(median, sd),
     .by = parcel_id) |>
   # All the numbers PEcAn needs, in one 20-MB file instead of two 2GB ones!
   arrow::write_parquet("landtrendr_2016_biomass_by_dwr_parcel.parquet")
