@@ -3,11 +3,19 @@
 # Converts ERA5 meteorology data from PEcAn's standard netCDF format
 # to Sipnet `clim` driver files.
 
-# This is basically a thin wrapper around `met2model.SIPNET()`.
-# Only the filenames are specific to ERA5 by assuming each file is named
-# "ERA5.<ens_id>.<year>nc" with ens_id between 1 and 10.
-
-## --------- runtime values: change for your system and simulation ---------
+# This is a wrapper around `met2model.SIPNET()`, configured for gridded output.
+# Unlike most other scripts that take a --site_info argument,
+# it ignores site ID and considers only deduplicated lat/lon to process the
+# corresponding grid cells.
+#
+# Expects the nc inputs to be already organized in directories named by grid id.
+# Grid ids look like "35N_120.5W", "39.5N_122.5W", etc.
+# Note that the internal lookup function (currently) only works when
+# all lats are N and all lons are W.
+#
+# When processing each grid cell, the code will look for one nc file per year in
+# the requested date range from each of ERA5's ten ensemble members,
+# and process them to one multi-year clim file per ensemble member.
 
 options <- list(
   optparse::make_option("--site_era5_path",
@@ -16,7 +24,7 @@ options <- list(
       "Path to your existing ERA5 data in PEcAn CF format, organized as",
       "single-site, single-year netcdfs in subdirectories per ensemble member.",
       "Files should be named",
-      "'<site_era5_path>/ERA5_<siteid>_<ensid>/ERA5.<ensid>.<year>.nc'"
+      "'<site_era5_path>/ERA5_<gridid>_<ensid>/ERA5.<ensid>.<year>.nc'"
     )
   ),
   optparse::make_option("--site_sipnet_met_path",
@@ -25,12 +33,12 @@ options <- list(
       "Output path:",
       "single-site, multi-year Sipnet clim files, one per ensemble member.",
       "Files will be named",
-      "<site_sipnet_met_path>/<siteid>/ERA5.<ensid>.<start>.<end>.clim"
+      "<site_sipnet_met_path>/<gridid>/ERA5.<ensid>.<start>.<end>.clim"
     )
   ),
   optparse::make_option("--site_info_file",
     default = "site_info.csv",
-    help = "CSV file with one row per location. Only the `id` column is used",
+    help = "CSV file with location columns `lat` and `lon`; other cols ignored",
   ),
   optparse::make_option("--start_date",
     default = "2016-01-01",
@@ -59,48 +67,36 @@ args <- optparse::OptionParser(option_list = options) |>
   optparse::parse_args()
 
 
-# ----------- end system-specific ---------------------------------
-
 
 future::plan(args$parallel_strategy, workers = args$n_cores)
 
-site_info <- read.csv(args$site_info_file)
-site_info$start_date <- args$start_date
-site_info$end_date <- args$end_date
-
-
-file_info <- site_info |>
-  dplyr::rename(site_id = id) |>
-  dplyr::cross_join(data.frame(ens_id = 1:10))
-
-# stopifnot(
-#   length(unique(file_info$id)) == nrow(file_info),
-#   all(file_info$lat > 0), # just to simplify grid naming below
-#   all(file_info$lon < 0)
-# )
-file_info <- file_info |>
+loc_info <- read.csv(args$site_info_file) |>
+  dplyr::distinct(lat, lon) |>
   dplyr::mutate(
+    start_date = args$start_date,
+    end_date = args$end_date,
     # match locations to half-degree ERA5 grid cell centers
     # CAUTION: Calculation only correct when all lats are N and all lons are W!
     ERA5_grid_cell = paste0(
       ((lat + 0.25) %/% 0.5) * 0.5, "N_",
       ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
     )
-  )
+  ) |>
+  dplyr::cross_join(data.frame(ens_id = 1:10))
+
 if (!dir.exists(args$site_sipnet_met_path)) {
   dir.create(args$site_sipnet_met_path, recursive = TRUE)
 }
 furrr::future_pwalk(
-  file_info,
-  function(site_id, start_date, end_date, ens_id, ERA5_grid_cell, ...) {
+  loc_info,
+  function(start_date, end_date, ens_id, ERA5_grid_cell, ...) {
     PEcAn.SIPNET::met2model.SIPNET(
       in.path = file.path(
         args$site_era5_path,
-        # paste("ERA5", site_id, ens_id, sep = "_")
         paste("ERA5", ERA5_grid_cell, ens_id, sep = "_")
       ),
-      start_date = args$start_date,
-      end_date = args$end_date,
+      start_date = start_date,
+      end_date = end_date,
       in.prefix = paste0("ERA5.", ens_id),
       outfolder = file.path(args$site_sipnet_met_path, ERA5_grid_cell)
     )
