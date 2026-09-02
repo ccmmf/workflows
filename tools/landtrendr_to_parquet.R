@@ -21,6 +21,13 @@
 # If needed, it's likely this could be sped up by finding ways to parallelize
 # the sampling operation / avoid keeping all ~62M pixels in memory at once.
 #
+# Note on sampling approach: This treats pixels as independent,
+# which they definitely are not: In face-to-face conversation @mdietze guesses
+# that the correlation of errors between pixels in the same field is likely
+# to be north of 90%.
+# But that is a guess and we don't have enough information to calculate
+# the autocorrelation term directly, so we run here with what we have.
+#
 # About the inputs:
 # The biomass data being converted here were estimated using Landtrendr by the
 # Kennedy group at Oregon State University.
