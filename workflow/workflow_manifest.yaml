@@ -78,16 +78,33 @@ steps:
           outputs:
               site_sipnet_met_path: site_sipnet_met_path
 
+        - name: build-events
+          script: "workflow/02a_build_events.R"
+          r_libraries: [tidyverse, callr, glue]
+          inputs:
+              site_info_path: site_info_file
+              phenology_path: phenology_info_path
+              planting_path: planting_info_path
+              harvest_path: harvest_info_path
+              tillage_path: tillage_info_path
+              irrigation_path: irrigation_info_path
+          params:
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              clean_parquet_dir: clean_parquet_dir
+              event_outdir: event_dir
+
+
         - name: build-ic
           script: "workflow/02_ic_build.R"
           slurm: true
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
-              field_shape_path: field_shape_path
               pft_dir: pft_dir
               data_dir: data_dir
-              landtrendr_raw_files: landtrendr_raw_files
+              agb_file: landtrendr_agb_file
           params:
               ic_ensemble_size: ic_ensemble_size
               run_start_date: start_date
@@ -268,10 +285,9 @@ steps:
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
-              field_shape_path: field_shape_path
               data_dir: data_dir
               pft_dir: pft_dir
-              landtrendr_raw_files: landtrendr_raw_files
+              agb_file: landtrendr_agb_file
           params:
               ic_ensemble_size: ic_ensemble_size
               run_start_date: start_date
@@ -283,12 +299,16 @@ steps:
               data_dir: data_dir
 
         - name: build-events
-          script: "examples/3_rowcrop/02a_build_events.R"
+          script: "workflow/02a_build_events.R"
           slurm: true
-          r_libraries: [tidyverse, callr]
+          r_libraries: [tidyverse, callr, glue]
           inputs:
               site_info_path: site_info_file
-              raw_parquet_dir: raw_parquet_dir
+              phenology_path: phenology_info_path
+              planting_path: planting_info_path
+              harvest_path: harvest_info_path
+              tillage_path: tillage_info_path
+              irrigation_path: irrigation_info_path
           params:
               start_date: start_date
               end_date: end_date
@@ -343,12 +363,12 @@ paths:
     site_info_file: "site_info.csv"
     site_sipnet_met_path: "data/ERA5_SIPNET"
     site_era5_path: "data_raw/ERA5_CA_nc"
-    field_shape_path: "data_raw/management/crops/v4.1/parcels-consolidated.gpkg"
     data_dir: "data/IC_prep"
     ic_outdir: "IC_files"
     pft_dir: "data_raw/pfts"
     ex1_and_2_pfts_dir: "pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
+    landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
     template_file: "template.xml"
     output_file: "settings.xml"
     output_dir: "output"
@@ -356,7 +376,6 @@ paths:
     ic_dir: "IC_files"
     settings_xml: "settings.xml"
     config_xml: "output/pecan.CONFIGS.xml"
-    raw_parquet_dir: "data_raw/management"
     clean_parquet_dir: "data/management_ensembles"
     event_dir: "data/events"
 

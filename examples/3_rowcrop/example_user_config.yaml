@@ -47,3 +47,11 @@ aws_profile: magic
 # Stage example-specific input files into run_dir before prepare runs.
 external_paths:
   template_file: "examples/3_rowcrop/template.xml"
+
+paths:
+  phenology_info_path: "data_raw/management/phenology/v1.0/"
+  planting_info_path: "data_raw/management/planting/v1.0/"
+  harvest_info_path: "data_raw/management/harvest/v1.0/"
+  tillage_info_path: "data_raw/management/tillage/v1.0/"
+  irrigation_info_path: "data_raw/management/irrigation/v1.1/"
+
