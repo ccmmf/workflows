@@ -24,5 +24,7 @@ aws_profile: magic
 
 # Stage example-specific input files into run_dir before prepare runs.
 external_paths:
-  template_file: "examples/1b_statewide_woody/template.xml"
-  site_info_file: "examples/1b_statewide_woody/site_info.csv"
+  copy_to_rundir:
+    template_file: "examples/1b_statewide_woody/template.xml"
+    site_info_file: "examples/1b_statewide_woody/site_info.csv"
+  link_in_place: {}

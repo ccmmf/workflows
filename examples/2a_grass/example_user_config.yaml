@@ -27,8 +27,10 @@ ic_ensemble_size: 100
 # directory where you invoke ./magic-ensemble.
 # paths in external_paths will be localized to the run_dir before the workflow is run.
 external_paths:
-    template_file: "examples/2a_grass/template.xml"
-    site_info_file: ".github/ci/site_info_2a.csv"
+    copy_to_rundir:
+        template_file: "examples/2a_grass/template.xml"
+        site_info_file: ".github/ci/site_info_2a.csv"
+    link_in_place: {}
 
 # Parallelism (e.g. for step 01 --n_cores).
 #  site_info_file: ".github/ci/site_info_2a.csv"

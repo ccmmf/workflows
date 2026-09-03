@@ -34,7 +34,9 @@ aws_profile: magic
 
 # Stage example-specific input files into run_dir before prepare runs.
 external_paths:
-  template_file: "examples/3_rowcrop/template.xml"
+  copy_to_rundir:
+    template_file: "examples/3_rowcrop/template.xml"
+  link_in_place: {}
 
 paths:
   phenology_info_path: "data_raw/management/phenology/v1.0/"
