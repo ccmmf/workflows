@@ -9,10 +9,6 @@ options <- list(
     default = "site_info.csv",
     help = "CSV giving ids, locations, and PFTs for sites of interest"
   ),
-  optparse::make_option("--field_shape_path",
-    default = "data_raw/management/crops/v4.1/parcels-consolidated.gpkg",
-    help = "file containing site geometries, used for extraction from rasters"
-  ),
   optparse::make_option("--ic_ensemble_size",
     default = 100,
     help = "number of files to generate for each site"
@@ -52,27 +48,12 @@ options <- list(
     default = "SLA,leafC,leafGrowth", # Units: SLA m2/kg, leafC percent, leafGrowth g C/m2
     help = "Parameters to read from the PFT file, comma separated"
   ),
-  optparse::make_option("--landtrendr_raw_files",
-    default = paste0(
-      "data_raw/ca_biomassfiaald_2016_median.tif,",
-      "data_raw/ca_biomassfiaald_2016_stdv.tif"
-    ),
+  optparse::make_option("--agb_file",
+    default = "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet",
     help = paste(
-      "Paths to two geotiffs, with a comma between them.",
-      "These should contain means and standard deviations of aboveground",
-      "biomass on the start date.",
-      "We used Landtrendr-based values from the Kennedy group at Oregon State,",
-      "which require manual download.",
-      "Medians are available by anonymous FTP at islay.ceoas.oregonstate.edu",
-      "and by web (but possibly this is a different version?) from",
-      "https://emapr.ceoas.oregonstate.edu/pages/data/viz/index.html",
-      "The uncertainty layer was formerly distributed by FTP but I cannot find",
-      "it on the ceoas server at the moment.",
-      "TODO find out whether this is available from a supported source.",
-      "",
-      "Demo used a subset (year 2016 clipped to the CA state boundaries)",
-      "of the 30-m CONUS median and stdev maps that are stored on the Dietze",
-      "lab server"
+      "Path to a Parquet file containing whole-parcel means and standard",
+      "deviations of aboveground biomass on the start date.",
+      "See tools/landtrendr_to_parquet.R for one way to generate this file."
     )
   ),
   optparse::make_option("--additional_params",
@@ -114,7 +95,6 @@ if (!dir.exists(args$data_dir)) dir.create(args$data_dir, recursive = TRUE)
 
 # split up comma-separated options
 params_read_from_pft <- strsplit(args$params_read_from_pft, ",")[[1]]
-landtrendr_raw_files <- strsplit(args$landtrendr_raw_files, ",")[[1]]
 additional_params <- args$additional_params |>
   str_match_all("([^=]+)=([^,]+),?") |>
   _[[1]] |>
@@ -258,36 +238,23 @@ if (file.exists(landtrendr_csv_path)) {
 nagb <- nrow(sites_needing_agb)
 if (nagb > 0) {
   PEcAn.logger::logger.info("Retrieving aboveground biomass for", nagb, "sites")
-  lt_med_path <- grep("_median.tif$", landtrendr_raw_files, value = TRUE)
-  lt_sd_path <- grep("_stdv.tif$", landtrendr_raw_files, value = TRUE)
-  stopifnot(
-    all(file.exists(landtrendr_raw_files)),
-    length(lt_med_path) == 1,
-    length(lt_sd_path) == 1
-  )
-  lt_med <- terra::rast(lt_med_path)
-  lt_sd <- terra::rast(lt_sd_path)
-  field_shp <- terra::vect(args$field_shape_path)
+  stopifnot(file.exists(args$agb_file))
 
-  site_bnds <- field_shp[field_shp$parcel_id %in% sites_needing_agb$field_id, ] |>
-    terra::project(lt_med)
-
-  # Check for unmatched sites
-  # TODO is stopping here too strict? Could reduce to warning if needed
-  stopifnot(all(sites_needing_agb$field_id %in% site_bnds$parcel_id))
-
-  new_agb <- lt_med |>
-    terra::extract(x = _, y = site_bnds, fun = mean, bind = TRUE) |>
-    terra::extract(x = lt_sd, y = _, fun = mean, bind = TRUE) |>
-    as.data.frame() |>
+  new_agb <- arrow::open_dataset(args$agb_file) |>
     mutate(parcel_id = as.character(parcel_id)) |>
-    left_join(sites_needing_agb, by = c("parcel_id" = "field_id")) |>
+    inner_join(sites_needing_agb, by = c("parcel_id" = "field_id")) |>
     dplyr::select(
       site_id = id,
-      AGB_median_Mg_ha = ends_with("median"),
-      AGB_sd = ends_with("stdv")
+      AGB_median_Mg_ha = mean,
+      AGB_sd = sd
     ) |>
+    collect() |>
     mutate(across(where(is.numeric), \(x) signif(x, 5)))
+  # Check for unmatched sites
+  # TODO is stopping here too strict? Could reduce to warning if needed
+  # TODO 2: this parcel_id/site_id/field_id confusion is out of hand
+  stopifnot(all(sites_needing_agb$field_id %in% new_agb$site_id))
+
   agb_est <- bind_rows(agb_est, new_agb) |>
     arrange(site_id)
   write.csv(agb_est, landtrendr_csv_path, row.names = FALSE)

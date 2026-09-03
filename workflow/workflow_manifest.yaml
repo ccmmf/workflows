@@ -84,10 +84,9 @@ steps:
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
-              field_shape_path: field_shape_path
               pft_dir: pft_dir
               data_dir: data_dir
-              landtrendr_raw_files: landtrendr_raw_files
+              agb_file: landtrendr_agb_file
           params:
               ic_ensemble_size: ic_ensemble_size
               run_start_date: start_date
@@ -256,10 +255,9 @@ steps:
           r_libraries: [tidyverse]
           inputs:
               site_info_path: site_info_file
-              field_shape_path: field_shape_path
               data_dir: data_dir
               pft_dir: pft_dir
-              landtrendr_raw_files: landtrendr_raw_files
+              agb_file: landtrendr_agb_file
           params:
               ic_ensemble_size: ic_ensemble_size
               run_start_date: start_date
@@ -336,6 +334,7 @@ paths:
     pft_dir: "data_raw/pfts"
     ex1_and_2_pfts_dir: "pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
+    landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
     template_file: "template.xml"
     output_file: "settings.xml"
     output_dir: "output"
