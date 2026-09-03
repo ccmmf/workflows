@@ -219,7 +219,7 @@ while IFS= read -r line; do
   resolve_dest
   echo "00_stage_external_inputs: linking $(report_path "$src") -> $(report_path "$dest")"
 
-  ln -sf $(realpath "$src") "${dest%/}"
+  ln -sfn $(realpath "$src") "${dest%/}"
 done <<< "$external_block_link"
 
 echo "00_stage_external_inputs: Done."
