@@ -27,15 +27,20 @@ simulation period.
 
 ## Running the workflow
 
-This example is driven by `./magic-ensemble` from the repo root. Copy
-`example_user_config.yaml`, edit `run_dir` and any other overrides you need,
-then run:
+This example is driven by `./magic-ensemble`, and must be run from the repo
+root (not from `examples/3_rowcrop/`) so the CLI's relative paths resolve
+correctly. Copy `example_user_config.yaml`, edit `run_dir` and any other
+overrides you need, then run:
 
 ```sh
-./magic-ensemble get-demo-data     --verbose --config <your config>
-./magic-ensemble prepare-example-3 --verbose --config <your config>
-./magic-ensemble run-ensembles     --verbose --config <your config>
+# from the repo root
+./magic-ensemble get-demo-data     --verbose --config examples/3_rowcrop/example_user_config.yaml
+./magic-ensemble prepare-example-3 --verbose --config examples/3_rowcrop/example_user_config.yaml
+./magic-ensemble run-ensembles     --verbose --config examples/3_rowcrop/example_user_config.yaml
 ```
+
+Point `--config` at your own copy instead if you edited one, as suggested
+above.
 
 * `get-demo-data` fetches all confirmed S3 sources into `run_dir`: the
   example-3 input tarball (site_info.csv, PFT posteriors, IC-prep caches), the
@@ -46,7 +51,7 @@ then run:
   management-event generation (`02a_build_events.R`), and settings assembly
   (`03_xml_build.R`), producing `settings.xml` in `run_dir`.
 * `run-ensembles` dispatches ensemble members (Slurm or local, per
-  `pecan_dispatch` in your config).
+  `pecan_parallelism_mode` in your config).
 
 `site_info.csv` is not checked into this repo -- it ships pre-built inside the
 get-demo-data tarball. It was generated once via
