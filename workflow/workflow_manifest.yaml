@@ -88,7 +88,7 @@ steps:
               data_dir: data_dir
               agb_file: landtrendr_agb_file
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -145,7 +145,7 @@ steps:
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -203,7 +203,7 @@ steps:
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -259,7 +259,7 @@ steps:
               pft_dir: pft_dir
               agb_file: landtrendr_agb_file
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -359,7 +359,6 @@ run_LAI_date: "2016-07-01"
 n_ens: 20
 n_met: 10
 n_ic: 100
-ic_ensemble_size: 100
 n_event: 20
 n_workers: 1
 use_apptainer: "false"

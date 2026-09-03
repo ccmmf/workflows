@@ -19,7 +19,7 @@ run_LAI_date: "2016-07-01"
 # Ensemble sizes.
 n_ens: 20
 n_met: 10
-ic_ensemble_size: 100
+n_ic: 100
 
 # User-provided external resources.
 

@@ -19,7 +19,7 @@ end_date: "2023-12-31"
 run_LAI_date: "2016-07-01"
 n_ens: 20
 n_met: 10
-ic_ensemble_size: 100
+n_ic: 100
 # Number of management-event ensemble members available in event_dir (set by
 # prepare-example-3's event-build step; only override if you regenerate events
 # with a different ensemble size).
