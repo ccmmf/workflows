@@ -149,8 +149,10 @@ fi
 # derived from that manifest path (basename), not from the source filename.
 # Parse the YAML block output of .external_paths line by line (yq v4 outputs plain
 # scalars without quotes). Split on first ": " to get key and value.
-external_block=$(yq eval '.external_paths' "$CONFIG_FILE" 2>/dev/null || echo "null")
-if [[ -z "$external_block" || "$external_block" == "null" || "$external_block" == "{}" ]]; then
+external_block_copy=$(yq eval '.external_paths.copy_to_rundir' "$CONFIG_FILE" 2>/dev/null || echo "null")
+external_block_link=$(yq eval '.external_paths.link_in_place' "$CONFIG_FILE" 2>/dev/null || echo "null")
+if [[ -z "$external_block_copy" || "$external_block_copy" == "null" || "$external_block_copy" == "{}" ]] \
+   && [[ -z "$external_block_link" || "$external_block_link" == "null" || "$external_block_link" == "{}" ]]; then
   echo "00_stage_external_inputs: No external_paths configured; nothing to copy."
   echo "00_stage_external_inputs: Done."
   exit 0
@@ -158,8 +160,7 @@ fi
 
 echo "00_stage_external_inputs: Staging external inputs into run directory"
 
-while IFS= read -r line; do
-  [[ -z "$line" ]] && continue
+resolve_key_src() {
   # Split on first ": " — key is everything before, value everything after.
   key="${line%%: *}"
   src="${line#*: }"
@@ -176,25 +177,50 @@ while IFS= read -r line; do
     fi
     src="${INVOCATION_CWD}/${src}"
   fi
-  if [[ ! -f "$src" ]]; then
+  if [[ ! -f "$src" ]] && [[ ! -d "$src" ]]; then
     echo "00_stage_external_inputs: external_paths.${key}: source file not found: ${src}" >&2
     exit 1
   fi
+}
 
-  # Destination: derived from the manifest path for the same key, not the source basename.
+resolve_dest() {
+  # Destination: derived from the configured path for the same key, not the source basename.
   # This enforces the manifest contract so downstream scripts always find files where expected.
-  manifest_path=$(yq eval ".paths.${key}" "$MANIFEST" 2>/dev/null)
+  manifest_path=$(yq eval ".paths.${key}" "$CONFIG_FILE" 2>/dev/null)
   if [[ -z "$manifest_path" || "$manifest_path" == "null" ]]; then
-    echo "00_stage_external_inputs: external_paths key '${key}' has no corresponding entry in manifest.paths" >&2
-    exit 1
+    manifest_path=$(yq eval ".paths.${key}" "$MANIFEST" 2>/dev/null)
+    if [[ -z "$manifest_path" || "$manifest_path" == "null" ]]; then
+      echo "00_stage_external_inputs: external_paths key '${key}' has no corresponding entry in manifest.paths" >&2
+      exit 1
+    fi
   fi
-  dest="${RUN_DIR_ABS}/$(basename "$manifest_path")"
+  dest="${RUN_DIR_ABS}/$manifest_path"
   dest_dir=$(dirname "$dest")
   mkdir -p "$dest_dir"
 
+}
+
+
+while IFS= read -r line; do
+  [[ -z "$line" ]] && continue
+  resolve_key_src
+  resolve_dest
   echo "00_stage_external_inputs: Copying $(report_path "$src") -> $(report_path "$dest")"
-  cp -f "$src" "$dest"
-done <<< "$external_block"
+  cpflags='f'
+  if [[ -d "$src" ]]; then
+    cpflags+='R'
+  fi
+  cp -"$cpflags" "$src" "$dest"
+done <<< "$external_block_copy"
+
+while IFS= read -r line; do
+  [[ -z "$line" ]] && continue
+  resolve_key_src
+  resolve_dest
+  echo "00_stage_external_inputs: linking $(report_path "$src") -> $(report_path "$dest")"
+
+  ln -sf $(realpath "$src") "${dest%/}"
+done <<< "$external_block_link"
 
 echo "00_stage_external_inputs: Done."
 
