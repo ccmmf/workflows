@@ -12,12 +12,12 @@
 #   ./magic-ensemble prepare-example-3 --config <this file>
 #   ./magic-ensemble run-ensembles     --config <this file>
 
-run_dir: "3-rowcrop-run-directory/"
+run_dir: "rundirectory-medium-scale/"
 
 start_date: "2016-01-01"
 end_date: "2023-12-31"
 run_LAI_date: "2016-07-01"
-n_ens: 20
+n_ens: 50
 n_met: 10
 ic_ensemble_size: 100
 # Number of management-event ensemble members available in event_dir (set by
@@ -31,15 +31,16 @@ use_apptainer: false
 # Slurm single-step options
 # workflow_parallelism_mode: set to local to enforce all steps which do not submit slurm jobs via pecan to be local compute only
 # this can override individual step settings: even if slurm is true for a step, setting this to local will not use slurm throughout.
-workflow_parallelism_mode: slurm-srun
+
 # when using single-step srun's, use the srun_additional_arguments as a string passed to srun. There is no
 # separate slurm_partition key -- pass -p <partition> here if your cluster needs one.
+workflow_parallelism_mode: slurm-srun
 srun_additional_arguments: "--mem=0"
 
 
 # Pecan parallelism
 pecan_parallelism_mode: slurm-sbatch
-# sbatch_additional_arguments: ""  # extra flags passed to sbatch for pecan's own ensemble-member submission, e.g. "-p node --account=foo"
+sbatch_additional_arguments: ""  # extra flags passed to sbatch for pecan's own ensemble-member submission, e.g. "-p node --account=foo"
 #
 #AWS CLI named profile for S3 access (get-demo-data command).
 aws_profile: magic
@@ -54,4 +55,3 @@ paths:
   harvest_info_path: "data_raw/management/harvest/v1.0/"
   tillage_info_path: "data_raw/management/tillage/v1.0/"
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
-

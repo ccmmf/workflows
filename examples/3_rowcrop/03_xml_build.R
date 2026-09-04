@@ -132,13 +132,11 @@ args$ic_dir <- abs_path(args$ic_dir)
 args$met_dir <- abs_path(args$met_dir)
 args$event_dir <- abs_path(args$event_dir)
 args$output_dir <- abs_path(args$output_dir)
-# TODO it's awkward to set PFT paths in the template but then edit them here --
-# consider handling PFT insertion as an arg here?
-for(i in seq_along(settings$pfts)) {
-  settings$pfts[[i]]$posterior.files <- abs_path(
-    settings$pfts[[i]]$posterior.files
-  )
-}
+# PFT posterior.files is deliberately left relative (as workflow/03_xml_build.R
+# and the other examples do): it's only resolved later, inside
+# workflow/04_set_up_runs.R during run-ensembles, which magic-ensemble invokes
+# with CWD=run_dir. Eagerly absolutizing it here (a prepare step, CWD=REPO_ROOT)
+# baked a wrong path into settings.xml.
 settings$model$binary <- abs_path(settings$model$binary)
 
 settings$ensemble$size <- args$n_ens
