@@ -378,6 +378,7 @@ paths:
     config_xml: "output/pecan.CONFIGS.xml"
     clean_parquet_dir: "data/management_ensembles"
     event_dir: "data/events"
+    raw_parquet_dir: "data_raw/management"
 
 # Fixed workflow values (not user overrides)
 params_read_from_pft: "SLA,leafC,leafGrowth"
