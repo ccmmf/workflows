@@ -653,12 +653,23 @@ patch_xml_block() {
     echo "magic-ensemble: patching <${xml_tag}> block in $template_path (yq_path=${yq_path})" >&2
   fi
 
+  # After token substitution, two adjacent placeholders that both resolve to
+  # "" (e.g. @EXTRA_ARGS@ and @SIF@ when neither is set) leave a stray
+  # double space. PEcAn.remote::start_qsub() tokenizes the resulting qsub
+  # command with a naive space-based strsplit() that turns that into a
+  # spurious empty-string argument -- sbatch then treats it as the batch
+  # script to submit and fails with "Unable to open file", with every job
+  # landing as "Job NA". Collapse runs of 2+ inline spaces (never leading
+  # indentation, since the pattern requires a non-blank char before the
+  # run) and strip trailing spaces per line to prevent that.
   local xml_block
   xml_block=$(yq eval "$yq_path" "$MANIFEST" \
     | sed "s|@SIF@|${sif_name}|g" \
     | sed "s|@SIPNET_BINARY@|${sipnet_binary}|g" \
     | sed "s|@NCPUS@|${n_workers}|g" \
-    | sed "s|@EXTRA_ARGS@|${sbatch_additional_arguments}|g")
+    | sed "s|@EXTRA_ARGS@|${sbatch_additional_arguments}|g" \
+    | sed -E 's/([^[:blank:]])[[:blank:]]{2,}/\1 /g' \
+    | sed -E 's/[[:blank:]]+$//')
 
   python3 "${REPO_ROOT}/tools/patch_xml.py" "$template_path" "$xml_tag" "$xml_block" --block
 }
