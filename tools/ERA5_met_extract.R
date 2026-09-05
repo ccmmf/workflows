@@ -21,7 +21,11 @@
 options <- list(
   optparse::make_option("--site_info_file",
     default = "site_info.csv",
-    help = "csv file with columns 'id', 'lat', 'lon', 'start_date', 'end_date'"
+    help = paste(
+      "csv file with one row per site to be retrieved,",
+      "and at least columns 'id', 'lat', 'lon', 'start_date', 'end_date'.",
+      "Any other columns are ignored."
+    )
   ),
   optparse::make_option("--raw_era5_path",
     default = "/projectnb/dietzelab/dongchen/anchorSites/ERA5",
