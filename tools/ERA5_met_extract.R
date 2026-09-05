@@ -67,10 +67,7 @@ options <- list(
 args <- optparse::OptionParser(option_list = options) |>
   optparse::parse_args()
 
-
-site_info <- read.csv(args$site_info_file)
 future::plan("multisession", workers = args$n_cores)
-
 
 # options(
 #   repos = c(
@@ -90,6 +87,7 @@ future::plan("multisession", workers = args$n_cores)
 #   install.packages("PEcAn.SIPNET")
 # }
 
+site_info <- read.csv(args$site_info_file)
 
 furrr::future_pwalk(
   site_info,
@@ -97,10 +95,10 @@ furrr::future_pwalk(
     PEcAn.data.atmosphere::extract.nc.ERA5(
       slat = lat,
       slon = lon,
-      in.path = raw_era5_path,
+      in.path = args$raw_era5_path,
       start_date = start_date,
       end_date = end_date,
-      outfolder = site_era5_path,
+      outfolder = args$site_era5_path,
       in.prefix = "ERA5_",
       newsite = id
     )
@@ -114,21 +112,21 @@ file_info <- site_info |>
   dplyr::rename(site_id = id) |>
   dplyr::cross_join(data.frame(ens_id = 1:10))
 
-if (!dir.exists(site_sipnet_met_path)) {
-  dir.create(site_sipnet_met_path, recursive = TRUE)
+if (!dir.exists(args$site_sipnet_met_path)) {
+  dir.create(args$site_sipnet_met_path, recursive = TRUE)
 }
 furrr::future_pwalk(
   file_info,
   function(site_id, start_date, end_date, ens_id, ...) {
     PEcAn.SIPNET::met2model.SIPNET(
       in.path = file.path(
-        site_era5_path,
+        args$site_era5_path,
         paste("ERA5", site_id, ens_id, sep = "_")
       ),
       start_date = start_date,
       end_date = end_date,
       in.prefix = paste0("ERA5.", ens_id),
-      outfolder = file.path(site_sipnet_met_path, site_id)
+      outfolder = file.path(args$site_sipnet_met_path, site_id)
     )
   },
   .options = furrr::furrr_options(seed = TRUE)
