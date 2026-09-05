@@ -3,104 +3,92 @@
 # Converts raw ERA5 ensemble netCDFs to PEcAn-standard met format,
 # then from PEcAn-standard to Sipnet `clim` driver format.
 
-# This was used (via wrapper script `run_ERA5_met_extract.sh`) to generate the met files
-# provided in cccmmf_phase_1b_input_artifacts.tgz, and is not expected to need
-# to be rerun unless adding new sites or extending the simulation dates.
+# This was used (via wrapper script `run_ERA5_met_extract.sh`) to generate the
+# met files provided in cccmmf_phase_1b_input_artifacts.tgz. See also
+# `tools/run_CA_grid_ERA5_nc_extraction.R` for a one-shot extraction of all the
+# California grid cells.
 
-# Usage notes:
-# I'm hoping this is a one-off, so I ran it on the BU cluster
-# (because that's where our copy of the raw files sites) without trying to
-# generalize to Slurm.
-#
-# 0. setup:
-# The files I want are scattered across several branches today --
-# I sure hope this branch-juggling is one-time even if we keep using ERA5 data.
-#   cd /projectnb/dietzelab/<myname>/ccmmf
-#   git clone https://github.com/ccmmf/workflows && cd workflows
-#   git checkout 1b && cp data/design_points.csv design_points.csv
-#   git checkout era5-for-1b && cd phase_1b_ca_woody
-#   mv ../design_points.csv data/design_points.csv
-#
-# 1. initial interactive run:
-#   qrsh
-#   cd /projectnb/dietzelab/chrisb/ccmmf/workflows/phase_1b_ca_woody/
-#   module load R
-#   Rscript tools/make_site_info_csv.R
-#   time Rscript tools/ERA5_met_extract.R
-# I should have called `screen` first to protect against connection timeouts.
-# It ran for about 4 hours, apparently extracting about one site per hour,
-# then terminated when my session dropped.
-#
-# 2. Batch job
-# I modified the script below to run in parallel if there are cores available,
-# then put module commands and SGE directives into a quick bash script:
-# qsub tools/run_ERA5_met_extract.sh
-
-
-
-## --------- edit this section for your system and simulation ---------
-
-# Path to your existing ERA5 data
-#
-# These should be whole-year ensemble netcdfs as downloaded from ECWMF,
-# with dimensions (latitude, longitude, number [aka ensemble member], time).
-# Files must be named '<raw_era5_path>/ERA5_<year>.nc'
-#
-# In concept you can download these using
-# `PEcAn.data.atmosphere::download.ERA5.old()`, but in practice the ECMWF API
-# has changed and we are waiting for it to stabilize again before we devote
-# time to update the code.
-# Meanwhile, consider manually downloading locations/years of interest via web:
+# Note that it was written targeting raw ERA5 files _as stored_ on the Dietze
+# lab group server, collected over time by multiple lab members.
+# In concept you can download additional ERA5 files using
+# `PEcAn.data.atmosphere::download.ERA5.old()` and then convert them with this,
+# but in practice the ECMWF API has had major recent changes and is no longer
+# guaranteed to match the format this script expects.
+# We are waiting for the API to stabilize again before updating the code.
+# It may also work to download locations/years of interest via web:
 # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
-raw_era5_path <- "/projectnb/dietzelab/dongchen/anchorSites/ERA5"
 
-
-# Path to save PEcAn met format
-#
-# These are single site, single-year netcdfs placed in subdirectories per
-# ensemble member.
-# Files have dimensions (lat, lon, time), with only one lat and lon per file;
-# note that ensemble number is tracked only in the filename and not in the
-# netCDF metadata.
-# Files are named
-#  '<site_era5_path>/ERA5_<siteid>_<ensid>/ERA5.<ensid>.<year>.nc'
-site_era5_path <- "/projectnb/dietzelab/chrisb/ERA5_nc"
-
-# Path to save Sipnet format
-#
-# These are single-site, multi-year Sipnet clim files, one per ensemble member.
-# Files are tab-delimited ASCII test with no header and are named
-#  <site_sipnet_met_path>/<siteid>/ERA5.<ensid>.<start>.<end>.clim
-site_sipnet_met_path <- "/projectnb/dietzelab/chrisb/ERA5_SIPNET"
-
-# location and time to extract
-site_info <- read.csv("site_info.csv")
-site_info$start_date <- "2016-01-01"
-site_info$end_date <- "2024-12-31"
-
-future::plan("multisession", workers = as.numeric(Sys.getenv("NSLOTS")) - 1)
-
-
-# ----------- end system-specific ---------------------------------
-
-
-options(
-  repos = c(
-    getOption("repos"), # to keep your existing CRAN mirror
-    PEcAn = "pecanproject.r-universe.dev", # for PEcAn packages
-    ropensci = "ropensci.r-universe.dev" # for deps `traits` and `taxize`
+options <- list(
+  optparse::make_option("--site_info_file",
+    default = "site_info.csv",
+    help = "csv file with columns 'id', 'lat', 'lon', 'start_date', 'end_date'"
+  ),
+  optparse::make_option("--raw_era5_path",
+    default = "/projectnb/dietzelab/dongchen/anchorSites/ERA5",
+    help = paste(
+      "Path to your existing ERA5 data.",
+      "These should be whole-year ensemble netcdfs as downloaded from ECWMF,",
+      "with dimensions (latitude, longitude, number [aka ensemble member], time).",
+      "Files must be named '<raw_era5_path>/ERA5_<year>.nc."
+    )
+  ),
+  optparse::make_option("--site_era5_path",
+    default = "/projectnb/dietzelab/chrisb/ERA5_nc",
+    help = paste(
+      "Path to save netcdf output in PEcAn met format.",
+      "These are single site, single-year netcdfs placed in subdirectories per",
+      "ensemble member. Files have dimensions (lat, lon, time), with only one",
+      "lat and lon per file; note that ensemble number is tracked only in the",
+      "filename and not in the netCDF metadata.",
+      "Files are named",
+      "'<site_era5_path>/ERA5_<siteid>_<ensid>/ERA5.<ensid>.<year>.nc'."
+    )
+  ),
+  optparse::make_option("--site_sipnet_met_path",
+    default = "/projectnb/dietzelab/chrisb/ERA5_SIPNET",
+    help = paste(
+      "Path to save output in Sipnet format.",
+      "These are single-site, multi-year Sipnet clim files, one per ensemble",
+      "member. Files are tab-delimited ASCII text with no header and are named",
+      "'<site_sipnet_met_path>/<siteid>/ERA5.<ensid>.<start>.<end>.clim'."
+    )
+  ),
+  optparse::make_option("--n_cores",
+    default = 1,
+    help = paste("Number of CPUs to use in parallel")
   )
-)
+) |>
+  # Show default values in help message
+  purrr::modify(\(x) {
+    x@help <- paste(x@help, "[default: %default]")
+    x
+  })
 
-if (!requireNamespace("PEcAn.data.atmosphere", quietly = TRUE)) {
-  print("installing PEcAn.data.atmosphere")
-  install.packages("PEcAn.data.atmosphere")
-}
+args <- optparse::OptionParser(option_list = options) |>
+  optparse::parse_args()
 
-if (!requireNamespace("PEcAn.SIPNET", quietly = TRUE)) {
-  print("Installing PEcAn.SIPNET")
-  install.packages("PEcAn.SIPNET")
-}
+
+site_info <- read.csv(args$site_info_file)
+future::plan("multisession", workers = args$n_cores)
+
+
+# options(
+#   repos = c(
+#     getOption("repos"), # to keep your existing CRAN mirror
+#     PEcAn = "pecanproject.r-universe.dev", # for PEcAn packages
+#     ropensci = "ropensci.r-universe.dev" # for deps `traits` and `taxize`
+#   )
+# )
+
+# if (!requireNamespace("PEcAn.data.atmosphere", quietly = TRUE)) {
+#   print("installing PEcAn.data.atmosphere")
+#   install.packages("PEcAn.data.atmosphere")
+# }
+
+# if (!requireNamespace("PEcAn.SIPNET", quietly = TRUE)) {
+#   print("Installing PEcAn.SIPNET")
+#   install.packages("PEcAn.SIPNET")
+# }
 
 
 furrr::future_pwalk(
@@ -116,7 +104,8 @@ furrr::future_pwalk(
       in.prefix = "ERA5_",
       newsite = id
     )
-  }
+  },
+  .options = furrr::furrr_options(seed = TRUE)
 )
 
 
@@ -141,5 +130,6 @@ furrr::future_pwalk(
       in.prefix = paste0("ERA5.", ens_id),
       outfolder = file.path(site_sipnet_met_path, site_id)
     )
-  }
+  },
+  .options = furrr::furrr_options(seed = TRUE)
 )
