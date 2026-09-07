@@ -20,6 +20,7 @@ options <- list(
       "each with one netcdf per year per model.",
       "Will also contain a `parcel_to_grid` CSV mapping each parcel id to",
       "a CalAdapt grid cell."
+    )
   ),
   optparse::make_option("--start_year",
     default = 2024,
@@ -70,7 +71,7 @@ args <- optparse::OptionParser(option_list = options) |>
 # library(tidyverse)
 
 models <- strsplit(args$models, ",")[[1]] |>
-  twimws()
+  trimws()
 
 centroids <- terra::vect(args$parcel_geom_file) |>
   _[,"parcel_id"] |>
