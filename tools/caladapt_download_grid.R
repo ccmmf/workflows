@@ -7,6 +7,9 @@
 # 10 min per model-year = ~4 hours per model when fetching 203 grid cells
 # from 2024 to 2051.
 
+# TODO Consider downloading models in parallel via furrr::future_walk,
+# copying the approach in ERA5_met_extract.R.
+
 options <- list(
   optparse::make_option("--parcel_geom_file",
     default = "data_raw/management/crops/v4.1.2/parcels-consolidated.gpkg",
