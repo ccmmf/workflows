@@ -88,6 +88,8 @@ steps:
               harvest_path: harvest_info_path
               tillage_path: tillage_info_path
               irrigation_path: irrigation_info_path
+              fert_path: fertilization_info_path
+              ncc_path: ncc_info_path
           params:
               start_date: start_date
               end_date: end_date
@@ -309,6 +311,8 @@ steps:
               harvest_path: harvest_info_path
               tillage_path: tillage_info_path
               irrigation_path: irrigation_info_path
+              fert_path: fertilization_info_path
+              ncc_path: ncc_info_path
           params:
               start_date: start_date
               end_date: end_date

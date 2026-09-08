@@ -2,7 +2,7 @@
 
 # Adapted from a more generic script maintained as part of PEcAn.
 # Its path in the PEcAn repository is workflows/preprocess-event-parquet/01a-clean-irrigation.R.
-# Modifications added here: argument parsing.
+# Modifications added here: argument parsing, filtering to target sites.
 
 ## ---------------------- parse command-line options --------------------------
 options <- list(
