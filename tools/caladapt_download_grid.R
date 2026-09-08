@@ -97,14 +97,20 @@ gridid <- caladaptaer::cae_grid_cells(centroids, caladapt_ref)
 if (!dir.exists(args$output_dir)) {
   dir.create(args$output_dir, recursive = TRUE)
 }
-write.csv(
-  gridid,
-  file = file.path(
-    args$output_dir,
-    paste0("parcel_to_grid_", args$resolution, ".csv")
-  ),
-  row.names = FALSE
-)
+gridid |>
+  mutate(
+    across(
+      contains(c("lon", "lat")),
+      \(x) round(x, 5)
+    )
+  ) |>
+  write.csv(
+    file = file.path(
+      args$output_dir,
+      paste0("parcel_to_grid_", args$resolution, ".csv")
+    ),
+    row.names = FALSE
+  )
 
 
 cells_to_fetch <- gridid |> 
