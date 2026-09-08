@@ -5,7 +5,7 @@
 
 # This is basically a thin wrapper around `met2model.SIPNET()`.
 # Only the filenames are specific to ERA5 by assuming each file is named
-# "ERA5.<ens_id>.<year>nc" with ens_id between 1 and 10.
+# "ERA5.<ens_id>.<year>.nc" with ens_id between 1 and 10.
 
 ## --------- runtime values: change for your system and simulation ---------
 
