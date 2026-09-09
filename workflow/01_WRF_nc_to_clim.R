@@ -40,7 +40,7 @@ options <- list(
     help = paste(
       "CSV file with one row per location to be extracted.",
       "Only column `cell_id` is used."
-    ),
+    )
   ),
   optparse::make_option("--start_date",
     default = "2024-01-01",
@@ -91,7 +91,7 @@ args <- optparse::OptionParser(option_list = options) |>
 future::plan(args$parallel_strategy, workers = args$n_cores)
 
 site_info <- read.csv(args$cells_wanted_file) |>
-  dplyr::select(cell_id)
+  dplyr::distinct(cell_id)
 site_info$start_date <- args$start_date
 site_info$end_date <- args$end_date
 
