@@ -57,7 +57,7 @@ options <- list(
     ),
     help = paste(
       "Comma-separated list of GCMs to convert.",
-      "See `caladaptaer::case_models(\"WRF\")` for valid names."
+      "See `caladaptaer::cae_models(\"WRF\")` for valid names."
     )
   ),
   optparse::make_option("--scenario",

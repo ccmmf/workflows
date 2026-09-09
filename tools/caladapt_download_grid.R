@@ -40,7 +40,7 @@ options <- list(
     ),
     help = paste(
       "Comma-separated list of GCMs to retrieve.",
-      "See `caladaptaer::case_models(\"WRF\")` for valid names."
+      "See `caladaptaer::cae_models(\"WRF\")` for valid names."
     )
   ),
   optparse::make_option("--scenario",
@@ -101,9 +101,9 @@ if (!dir.exists(args$output_dir)) {
   dir.create(args$output_dir, recursive = TRUE)
 }
 gridid |>
-  mutate(
-    across(
-      contains(c("lon", "lat")),
+  dplyr::mutate(
+    dplyr::across(
+      dplyr::contains(c("lon", "lat")),
       \(x) round(x, 5)
     )
   ) |>
