@@ -10,7 +10,7 @@
 ## ---------------------- parse command-line options --------------------------
 options <- list(
   optparse::make_option("--location_file",
-    default = "../data/design_points.csv",
+    default = "data/design_points.csv",
     help = paste(
       "CSV giving at least lat and lon for sites of interest.",
       "Any other columns will be passed unchanged to the output."
@@ -27,6 +27,13 @@ options <- list(
   optparse::make_option("--crop_file",
     default = "data_raw/management/crops/v4.1/crops_all_years.parq",
     help = "Parquet file containing harmonized DWR crop history"
+  ),
+  optparse::make_option("--WRF_grid_lookup",
+    default = "data_raw/met/parcel_to_grid_d01.csv",
+    help = paste(
+      "CSV with at least columns `parcel_id` and `cell_id`,",
+      "mapping harmonized DWR parcel IDs to WRF grid cells."
+    )
   )
 ) |>
   # Show default values in help message
@@ -154,6 +161,8 @@ pts_matched <- point_to_dwr_parcelid(design_pts)
 crop_2016 <- dwr_parcelid_to_crop(pts_matched$parcel_id, years = 2016, seasons = 2) |>
   mutate(site.pft = dwr_crop_to_pft(CLASS, SUBCLASS)) |>
   dplyr::select("parcel_id", "site.pft")
+wrf_cells <- read.csv(args$WRF_grid_lookup) |>
+  select(parcel_id, WRF_grid_cell = cell_id)
 
 if (!is.null(design_pts$id) && anyDuplicated(design_pts$id)) {
   PEcAn.logger::logger.severe("column `id` of design points is not unique")
@@ -161,11 +170,18 @@ if (!is.null(design_pts$id) && anyDuplicated(design_pts$id)) {
 
 site_info <- pts_matched |>
   left_join(crop_2016, by = "parcel_id") |>
-  rename(field_id = parcel_id) # TODO propagate `parcel_id` convention further downstream?
-                               # OR rethink naming: id vs site_id vs something else?
-  
+  left_join(wrf_cells, by = "parcel_id") |>
+  dplyr::mutate(
+    # match locations to half-degree ERA5 grid cell centers
+    # CAUTION: Calculation only correct when all lats are N and all lons are W!
+    ERA5_grid_cell = paste0(
+      ((lat + 0.25) %/% 0.5) * 0.5, "N_",
+      ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
+    )
+  )
+
 if (is.null(site_info$id)) {
-  site_info$id <- site_info$field_id
+  site_info$id <- site_info$parcel_id
 }
 
 write.csv(site_info, args$out_file, row.names = FALSE)
