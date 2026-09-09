@@ -400,12 +400,10 @@ validate_slurm_steps() {
 # check_slurm_available()'s memoization relies on mutating globals in this
 # shell, which a $(...) subshell would silently discard.)
 #
-# Whenever the step's request (manifest slurm:true) can't be honored as
-# configured, this warns loudly on stderr *before* falling back, rather than
-# silently downgrading -- both "workflow_parallelism_mode=local conflicts
-# with a step that wants srun" and "srun isn't available" are surprising
-# enough at run time that they shouldn't be discoverable only by reading the
-# manifest/config afterward. ---
+# it is possible for workflow_parallelism_mode to be set to local at the same time
+# as a step is marked slurm: true in the manifest. these conditions are conflicting,
+# but shouldn't cause a direct failure. the below warns of this conflict but carries on
+# executing the workflow as configured.
 compute_slurm_arg() {
   local i="$1"
   STEP_SLURM_ARGS=()

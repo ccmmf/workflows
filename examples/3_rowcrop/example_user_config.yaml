@@ -1,5 +1,5 @@
 # Example user config for the 3 row crop workflow.
-# Copy this file and edit before running. Only run_dir and pecan_parallelism_mode are required;
+# Copy this file and edit before running.
 # all other keys fall back to the defaults shown.
 #
 # Unlike 1b/2a, site_info.csv is not staged from this repo -- it ships inside the
@@ -54,4 +54,3 @@ paths:
   harvest_info_path: "data_raw/management/harvest/v1.0/"
   tillage_info_path: "data_raw/management/tillage/v1.0/"
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
-
