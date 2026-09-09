@@ -16,7 +16,7 @@ options <- list(
     help = "file containing polygons defining the area of interest"
   ),
   optparse::make_option("--output_dir",
-    default = "caladapt_wrf_weather/",
+    default = "data_raw/wrf_45km_nc",
     help = paste(
       "Directory to write output.",
       "It will contain one subdir per grid cell downloaded,",
