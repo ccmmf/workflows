@@ -9,7 +9,7 @@
 # convention that makes sense for gridded WRF data: Instead of the ensemble
 # numbers seen in some other met code (eg ERA5), we use GCM name as ensemble id.
 # Input files: `<nc_dir>/<gridid>/<GCM>.<scenario>.<yyyy>.nc`
-# Output files: `<sipnet_dir>/<gridid>/WRF.<GCM>.<scenario>.<start_date>.<end_date>.clim`
+# Output files: `<sipnet_dir>/<gridid>/<GCM>.<scenario>.<start_date>.<end_date>.clim`
 
 # TODO:
 # Does not currently encode WRF domain (aka resolution) anywhere other than the
@@ -32,7 +32,7 @@ options <- list(
       "Output path:",
       "single-site, multi-year Sipnet clim files, one per ensemble member.",
       "Files will be named",
-      "<sipnet_dir>/<gridid>/WRF.<ensid>.<start>.<end>.clim"
+      "<sipnet_dir>/<gridid>/<model>.<scenario>.<start>.<end>.clim"
     )
   ),
   optparse::make_option("--cells_wanted_file",
@@ -44,11 +44,11 @@ options <- list(
   ),
   optparse::make_option("--start_date",
     default = "2024-01-01",
-    help = "Date to begin clim file",
+    help = "Date to begin clim file"
   ),
   optparse::make_option("--end_date",
     default = "2051-12-31",
-    help = "Date to end clim file",
+    help = "Date to end clim file"
   ),
   optparse::make_option("--models",
     default = paste0(
@@ -69,11 +69,11 @@ options <- list(
   ),
   optparse::make_option("--n_cores",
     default = 1L,
-    help = "number of CPUs to use in parallel",
+    help = "number of CPUs to use in parallel"
   ),
   optparse::make_option("--parallel_strategy",
     default = "multisession",
-    help = "Strategy for parallel conversion, passed to future::plan()",
+    help = "Strategy for parallel conversion, passed to future::plan()"
   )
 ) |>
   # Show default values in help message
