@@ -32,8 +32,8 @@ use_apptainer: false
 # workflow_parallelism_mode: set to local to enforce all steps which do not submit slurm jobs via pecan to be local compute only
 # this can override individual step settings: even if slurm is true for a step, setting this to local will not use slurm throughout.
 
-# when using single-step srun's, use the srun_additional_arguments as a string passed to srun. There is no
-# separate slurm_partition key -- pass -p <partition> here if your cluster needs one.
+# when using single-step srun's, use the srun_additional_arguments as a string passed to srun,
+# e.g. `-p <partition>` if your cluster needs one.
 workflow_parallelism_mode: slurm-srun
 srun_additional_arguments: "--mem=0"
 
