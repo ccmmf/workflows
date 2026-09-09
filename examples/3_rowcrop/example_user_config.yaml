@@ -48,7 +48,9 @@ aws_profile: magic
 external_paths:
   copy_to_rundir:
     template_file: "examples/3_rowcrop/template.xml"
-  link_in_place: {}
+  link_in_place:
+    site_era5_path: "data_raw/ERA5_CA_nc"
+    landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
 
 paths:
   phenology_info_path: "data_raw/management/phenology/v1.0/"
