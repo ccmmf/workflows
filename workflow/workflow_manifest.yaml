@@ -348,6 +348,7 @@ steps:
           r_libraries: [PEcAn.all]
           inputs:
               settings: settings_xml
+              crop_pft_lookup: pft_map
           params: {}
           outputs: {}
         - name: run-model
@@ -370,6 +371,7 @@ paths:
     data_dir: "data/IC_prep"
     ic_outdir: "IC_files"
     pft_dir: "data_raw/pfts"
+    pft_map: "data_raw/pfts/crop_pft_map.csv"
     ex1_and_2_pfts_dir: "pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
     landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"

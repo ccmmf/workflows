@@ -39,6 +39,17 @@ options <- list(
       "Should contain subdirs named by site id"
     )
   ),
+  optparse::make_option("--pft_dir",
+    default = "data_raw/pfts",
+    help = paste(
+      "Directory containing PFT definitions.",
+      "Should contain subdirs whose names match the values in the 'site.pft'",
+      "column of the site file."
+    )
+    # TODO likely unhandled corner case: Simulations where some PFTs never
+    # appear in site.pft but are used in later segments.
+    # How to handle this?
+  ),
   optparse::make_option("--site_file",
     default = "site_info.csv",
     help = paste(
