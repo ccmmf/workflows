@@ -51,7 +51,7 @@ workflow/00_stage_external_inputs.sh  (step 0, all prepare variants)
   → creates run_dir
   → copies external_paths files into run_dir (manifest-defined destinations)
   → [patch_xml_block() runs twice after this step]
-      → patches <host> block: reads pecan_dispatch host_xml from manifest,
+      → patches <host> block: reads pecan_parallelism_mode host_xml from manifest,
         substitutes @SIF@ if use_apptainer is set
       → patches <model> block: reads sipnet_model model_xml from manifest,
         selects model_xml_apptainer variant if use_apptainer is set
@@ -92,10 +92,10 @@ workflow/04_run_model.R  (CWD = run_dir)
 
 ### What belongs in the manifest
 
-- `steps`: ordered list of scripts per command, with declared inputs/outputs and R library checks
+- `steps`: ordered list of scripts per command, with declared inputs/outputs, R library checks, and per-step Slurm eligibility (`slurm: true/false`)
 - `paths`: all internal file/directory locations relative to `run_dir`
 - `s3`: S3 endpoint, bucket, and per-resource key prefix and filename
-- `pecan_dispatch`: named dispatch modes, each with a `host_xml` (and optionally `host_xml_apptainer`) block
+- `pecan_parallelism_mode`: named dispatch modes, each with a `host_xml` (and optionally `host_xml_apptainer`) block
 - `apptainer`: remote registry URL, container name, tag, and SIF filename
 
 None of these are user-overridable. Adding a new example verb means adding a
@@ -107,8 +107,10 @@ i/o changes made in R-scripts.
 ### What belongs in the user config
 
 Scalar values that vary between runs: `run_dir`, dates, ensemble sizes,
-`n_workers`, `use_apptainer`, `pecan_dispatch`. These all have fallback
-defaults in `magic-ensemble`; only `run_dir` is required.
+`n_workers`, `use_apptainer`, `pecan_parallelism_mode`,
+`sbatch_additional_arguments`, `workflow_parallelism_mode`,
+`srun_additional_arguments`. These all have fallback defaults in
+`magic-ensemble`; only `run_dir` is required.
 
 ### What belongs in `external_paths`
 
@@ -159,7 +161,7 @@ absolute paths to R scripts.
 
 ### How dispatch modes work
 
-Each named mode under `manifest.pecan_dispatch` carries a `host_xml` block —
+Each named mode under `manifest.pecan_parallelism_mode` carries a `host_xml` block —
 the complete `<host>...</host>` XML to inject into `template.xml`. 
 
 When `use_apptainer` is set to `true` and the mode also defines `host_xml_apptainer`, that
@@ -178,7 +180,12 @@ Steps:
 1. Resolve `template_path` as `run_dir + manifest.paths.template_file`.
 2. If `use_apptainer=1` and `<apptainer_yq_path>` resolves to a non-null value
    in the manifest, use it; otherwise use `<plain_yq_path>`.
-3. Substitute `@SIF@` via `sed` (no-op when `@SIF@` is absent from the block).
+3. Substitute tokens via `sed` (no-op for any token absent from the block):
+   `@SIF@`, `@SIPNET_BINARY@`, `@NCPUS@` (from `n_workers`), `@EXTRA_ARGS@`
+   (from `sbatch_additional_arguments` — currently only present in the
+   `slurm-sbatch` mode's `<qsub>` line). There is no `@PARTITION@` token —
+   a partition, if wanted, is just part of `srun_additional_arguments` /
+   `sbatch_additional_arguments` like any other flag.
 4. Call `tools/patch_xml.py` with `--block` to replace the entire element.
 
 Called twice in `run_prepare()`: once for `<host>` (dispatch XML) and once for
@@ -209,6 +216,129 @@ When `use_apptainer: true`:
 it does not run model code itself). When `use_apptainer: true`, the SIF must
 be present because the patched `host_xml_apptainer` references it in the
 `<binary>` or `<qsub>` command that PEcAn generates for each ensemble member.
+
+---
+
+## Slurm (srun) Step Wrapping
+
+A separate mechanism from `pecan_parallelism_mode`/`host_xml` above, which governs
+PEcAn's own `sbatch`-based submission of ensemble members inside
+`run-ensembles`. This mechanism instead optionally wraps the CLI's *own*
+invocation of an individual step (any step of any command — `get-demo-data`,
+`prepare*`, or `run-ensembles`) in `srun`, so the step's compute runs on an
+allocated node instead of wherever the CLI itself is invoked. It exists
+because a step (e.g. `02_ic_build.R`) can be too heavy to run in-place on a
+shared/headnode-like invocation host — notably, CI's self-hosted runner,
+which currently runs every step directly on the cluster headnode and can
+OOM there.
+
+### Manifest: per-step `slurm` flag
+
+Every step object in `workflow/workflow_manifest.yaml` carries `slurm:
+true/false`, defaulting to `false`. Nothing is wrapped unless explicitly
+opted in. The two staging/fetch shell steps
+(`00_fetch_s3_and_prepare_run_dir.sh`, `00_stage_external_inputs.sh`) must
+never be `true` — they are network/copy operations, not compute.
+`validate_slurm_steps()` fails fast if the manifest sets `slurm: true` on
+either of them.
+
+Every other step is eligible, including `run-ensembles`'s own
+`04_set_up_runs.R`/`05_run_model.R` — even though some combinations won't
+function (e.g. `slurm: true` together with `pecan_parallelism_mode:
+slurm-sbatch`, which submits its own nested `sbatch` jobs). The CLI does
+not validate against nonsensical combinations; that's on the user, per the
+same "no CLI-side modeling of mismatches" principle that governs
+`external_paths`/`params_read_from_pft` etc. `slurm: true` +
+`pecan_parallelism_mode: local-gnu-parallel` is the sane case for `run-ensembles`:
+`srun` claims one compute node, GNU parallel fans ensemble members out
+across it locally.
+
+### Config: `workflow_parallelism_mode` and `srun_additional_arguments`
+
+`workflow_parallelism_mode` (default `slurm-srun`) is a single global
+switch, distinct from `pecan_parallelism_mode`: steps the manifest marks
+`slurm: true` are srun-wrapped whenever srun is available. Set to `local`
+to force every step to run unwrapped, regardless of its manifest flag or
+srun availability. It does not touch `pecan_parallelism_mode:
+slurm-sbatch`. Any value other than `local`/`slurm-srun` is a hard error at
+startup.
+
+There's deliberately no per-step config override (no `slurm_steps: {name:
+bool}`-style dict) — the user config has no existing notion of addressing
+individual steps, and inventing one would mean every user/CI config needs
+updating whenever a step is added/renamed in the manifest. The manifest's
+per-step flag is the single source of truth for *which* steps are eligible;
+the config only controls whether wrapping happens *at all* this run.
+
+`srun_additional_arguments` (default `""`) is a free-form string appended
+verbatim to every `srun` invocation (e.g. `"--mem=64G --time=02:00:00
+--cpus-per-task=4"`) — no structured schema, full passthrough. There is no
+auto-interpolation between other CLI/config values (e.g. `n_workers`) and
+Slurm parameters; if a step's internal parallelism (via `future`/`furrr`)
+should match its Slurm allocation, keeping that consistent is the user's
+responsibility.
+
+There is no dedicated partition key — `-p <partition>` is just another flag
+in `srun_additional_arguments` if one is wanted (an earlier design had a
+standalone `slurm_partition` key feeding both mechanisms' `-p`; it was
+removed in favor of letting each `_additional_arguments` string carry its
+own partition, since `srun`-wrapped steps and `sbatch`-submitted ensemble
+members may legitimately want different partitions — a bigmem partition
+for `build-ic`'s `srun`-wrap vs. a regular one for ensemble-member `sbatch`
+jobs, for instance).
+
+`sbatch_additional_arguments` is the analogous free-form passthrough for
+`pecan_parallelism_mode: slurm-sbatch`'s own `sbatch` calls (ensemble-member
+submission) — deliberately a *separate* key from
+`srun_additional_arguments` rather than one shared string, since `srun` and
+`sbatch` don't share an identical flag surface and the two mechanisms have
+very different resource/blast-radius profiles (one prepare-step job vs.
+potentially hundreds of ensemble-member jobs). See "Dispatch and XML
+Patching" above: it's substituted into the `slurm-sbatch` mode's `<qsub>`
+line via a `@EXTRA_ARGS@` token in `patch_xml_block()`, the same mechanism
+`@SIF@` already uses.
+
+### Availability: `check_slurm_available()`
+
+Checked lazily (memoized) via `command -v srun`, with a `module load slurm`
+fallback attempt, mirroring `ensure_apptainer_available()`'s shape. Unlike
+that function, this one is **not fatal** when srun is unavailable — a step
+with `slurm: true` on a host with no `srun` just runs unwrapped, no error.
+This makes `slurm: true` safe to leave set in the manifest across every kind
+of invocation host, from a bare laptop to the Slurm-backed CI runner.
+
+Note: `srun` is on `PATH` even from inside an existing Slurm allocation (as
+observed on a compute node during design), so this check cannot distinguish
+"headnode" from "already on a compute node" — it only confirms Slurm client
+tools are reachable at all. A user running interactively from within an
+`salloc` session who doesn't want nested `srun` calls should set
+`workflow_parallelism_mode: local`.
+
+### Where it's implemented
+
+- `get_steps_array()` populates a third array, `STEP_SLURM`, index-aligned
+  with `STEPS`/`STEP_NAMES`.
+- `compute_slurm_arg <i>` resolves the effective decision for step `i`
+  (manifest flag AND `workflow_parallelism_mode != local` AND `check_slurm_available`)
+  into `STEP_SLURM_ARGS` (`()` or `(--slurm "<step name>")`) for direct use
+  as `run_script`/`run_shell_script` arguments via
+  `"${STEP_SLURM_ARGS[@]}"`. The step name travels alongside the flag so the
+  eventual `srun` call can be tagged with a job name. Whenever a step's
+  manifest `slurm: true` can't be honored as requested, it warns on stderr
+  before falling back rather than downgrading silently: once if the step
+  conflicts with a config-level `workflow_parallelism_mode: local`, once if srun
+  simply isn't available on the host. A step with `slurm: false` never
+  triggers either warning.
+- `run_script()` and `run_shell_script()` both accept `--slurm STEP_NAME`
+  (a value, like `--cwd DIR`) and, when set, prefix their actual invocation
+  with `srun` (built by `build_srun_prefix "$slurm_job_name"`) — including
+  the Apptainer branch of `run_script()`, so `srun apptainer run ...` lands
+  the container itself on the allocated node rather than wrapping
+  `apptainer` around an `srun` that stays on the invocation host.
+  `build_srun_prefix` sets `--job-name "Magic-<step name>"` first, before
+  `srun_additional_arguments` — so if a user's `srun_additional_arguments`
+  happens to include its own `--job-name`/`-J`, that later flag wins
+  (`srun` uses last-flag-wins for repeated options).
 
 ---
 
