@@ -20,11 +20,8 @@
  </pfts>
  <ensemble>
   <size><!-- inserted at config time --></size>
-  <variable>NPP</variable>
   <variable>TotSoilCarb</variable>
   <variable>AbvGrndWood</variable>
-  <variable>Qle</variable>
-  <variable>SoilMoistFrac</variable>
   <samplingspace>
    <parameters>
     <method>uniform</method>
@@ -43,9 +40,16 @@
  <model>
   <id>99000000003</id>
   <type>SIPNET</type>
-  <revision>2.1.0</revision>
+  <revision>2.2.0</revision>
   <delete.raw>TRUE</delete.raw>
   <binary>/usr/local/bin/sipnet.git</binary>
+  <options>
+    <GDD>0</GDD>
+    <NITROGEN_CYCLE>1</NITROGEN_CYCLE>
+    <ANAEROBIC>1</ANAEROBIC>
+    <LITTER_POOL>1</LITTER_POOL>
+    <RESTART_OUT>restart.out</RESTART_OUT>
+  </options>
   <prerun>cp data/events.in @RUNDIR@</prerun>
  </model>
  <run>

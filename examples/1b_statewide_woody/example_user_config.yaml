@@ -39,3 +39,4 @@ external_paths:
     template_file: "examples/1b_statewide_woody/template.xml"
     site_info_file: "examples/1b_statewide_woody/site_info.csv"
   link_in_place: {}
+  

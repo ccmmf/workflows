@@ -28,11 +28,8 @@
  </pfts>
  <ensemble>
   <size><!-- inserted at config time --></size>
-  <variable>NPP</variable>
   <variable>TotSoilCarb</variable>
   <variable>AbvGrndWood</variable>
-  <variable>Qle</variable>
-  <variable>SoilMoistFrac</variable>
   <samplingspace>
    <parameters>
     <method>uniform</method>
@@ -57,7 +54,7 @@
  <model>
   <id>99000000003</id>
   <type>SIPNET</type>
-  <revision>2.1.0</revision>
+  <revision>2.2.0</revision>
   <delete.raw>FALSE</delete.raw>
   <binary>./sipnet</binary>
   <options>
