@@ -88,6 +88,8 @@ steps:
               harvest_path: harvest_info_path
               tillage_path: tillage_info_path
               irrigation_path: irrigation_info_path
+              fert_path: fertilization_info_path
+              ncc_path: ncc_info_path
           params:
               start_date: start_date
               end_date: end_date
@@ -106,7 +108,7 @@ steps:
               data_dir: data_dir
               agb_file: landtrendr_agb_file
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -124,6 +126,7 @@ steps:
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
+              pft_dir: pft_dir
           params:
               n_ens: n_ens
               n_met: n_met
@@ -167,7 +170,7 @@ steps:
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -229,7 +232,7 @@ steps:
               data_dir: data_dir
               landtrendr_raw_files: landtrendr_raw_files
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -265,7 +268,7 @@ steps:
           outputs: {}
 
         - name: convert-clim
-          script: "examples/3_rowcrop/01_ERA5_nc_to_clim.R"
+          script: "workflow/01_ERA5_nc_to_clim.R"
           slurm: true
           r_libraries: [future, furrr]
           inputs:
@@ -289,7 +292,7 @@ steps:
               pft_dir: pft_dir
               agb_file: landtrendr_agb_file
           params:
-              ic_ensemble_size: ic_ensemble_size
+              ic_ensemble_size: n_ic
               run_start_date: start_date
               run_LAI_date: run_LAI_date
               params_read_from_pft: params_read_from_pft
@@ -309,6 +312,8 @@ steps:
               harvest_path: harvest_info_path
               tillage_path: tillage_info_path
               irrigation_path: irrigation_info_path
+              fert_path: fertilization_info_path
+              ncc_path: ncc_info_path
           params:
               start_date: start_date
               end_date: end_date
@@ -326,6 +331,7 @@ steps:
               ic_dir: ic_dir
               met_dir: met_dir
               event_dir: event_dir
+              pft_dir: pft_dir
           params:
               n_ens: n_ens
               n_met: n_met
@@ -344,6 +350,7 @@ steps:
           r_libraries: [PEcAn.all]
           inputs:
               settings: settings_xml
+              crop_pft_lookup: pft_map
           params: {}
           outputs: {}
         - name: run-model
@@ -366,6 +373,7 @@ paths:
     data_dir: "data/IC_prep"
     ic_outdir: "IC_files"
     pft_dir: "data_raw/pfts"
+    pft_map: "data_raw/pfts/crop_pft_map.csv"
     ex1_and_2_pfts_dir: "pfts"
     landtrendr_raw_files: "data_raw/ca_biomassfiaald_2016_median.tif,data_raw/ca_biomassfiaald_2016_stdv.tif"
     landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
@@ -394,7 +402,6 @@ run_LAI_date: "2016-07-01"
 n_ens: 20
 n_met: 10
 n_ic: 100
-ic_ensemble_size: 100
 n_event: 20
 n_workers: 1
 use_apptainer: "false"

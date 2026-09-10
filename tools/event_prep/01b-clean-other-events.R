@@ -2,7 +2,8 @@
 
 # Adapted from a more generic script maintained as part of PEcAn.
 # Its path in the PEcAn repository is workflows/preprocess-event-parquet/01b-clean-other-events.R.
-# Modifications added here: argument parsing, filtering/rescheduling of events outside the simulation date range.
+# Modifications added here: argument parsing, filtering/rescheduling of events
+# outside the simulation date range, filtering to target sites.
 
 ## ---------------------- parse command-line options --------------------------
 options <- list(

@@ -12,6 +12,13 @@ options <- list(
       "working directory of the process that invokes run_model.R,",
       "not relative to the settings file path"
     )
+  ),
+  optparse::make_option(c("--crop_pft_lookup"),
+    default = "pft_lookup.csv",
+    help = paste(
+      "path to a CSV file mapping crop codes to PFTs.",
+      "Must have columns 'crop_code' and 'pft'"
+    )
   )
 ) |>
   # Show default values in help message
@@ -82,8 +89,22 @@ if (PEcAn.utils::status.check("CONFIG") == 0) {
 }
 
 PEcAn.utils::status.start("CONFIG_SEGMENTS")
+pft_lookup <- read.csv(args$crop_pft_lookup)
+stopifnot(
+  all(c("crop_code", "pft") %in% names(pft_lookup)),
+  length(unique(pft_lookup$crop_code)) == nrow(pft_lookup)
+)
+look_up_pft <- function(crop) {
+  tibble::tibble(crop_code = crop) |>
+    dplyr::left_join(pft_lookup) |>
+    dplyr::pull(pft)
+}
 run_script_paths <- papply(
   settings,
-  \(s) PEcAn.SIPNET::write_segmented_configs.SIPNET(s, ens_design$X)
+  \(s) PEcAn.SIPNET::write_segmented_configs.SIPNET(
+    settings = s,
+    input_design = ens_design$X,
+    crop2pft = look_up_pft
+  )
 )
 PEcAn.utils::status.end()
