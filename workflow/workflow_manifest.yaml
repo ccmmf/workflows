@@ -126,6 +126,7 @@ steps:
               template_file: template_file
               ic_dir: ic_dir
               met_dir: met_dir
+              pft_dir: pft_dir
           params:
               n_ens: n_ens
               n_met: n_met
@@ -330,6 +331,7 @@ steps:
               ic_dir: ic_dir
               met_dir: met_dir
               event_dir: event_dir
+              pft_dir: pft_dir
           params:
               n_ens: n_ens
               n_met: n_met

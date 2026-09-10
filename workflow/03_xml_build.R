@@ -44,17 +44,16 @@ options <- list(
     help = paste(
       "Directory containing PFT definitions.",
       "Should contain subdirs whose names match the values in the 'site.pft'",
-      "column of the site file."
+      "column of the site file.",
+      "The <pfts> block of the output will contain one entry for each subdir."
     )
-    # TODO likely unhandled corner case: Simulations where some PFTs never
-    # appear in site.pft but are used in later segments.
-    # How to handle this?
   ),
   optparse::make_option("--site_file",
     default = "site_info.csv",
     help = paste(
       "CSV file containing one row for each site to be simulated.",
-      "Must contain at least columns `id`, `lat`, `lon`, and `site.pft`"
+      "Must contain at least columns `id`, `lat`, `lon`, and `site.pft`.",
+      "Values in `site.pft` must be PFT names that appear in pft_dir"
     )
   ),
   optparse::make_option("--template_file",
@@ -141,13 +140,38 @@ settings <- settings |>
     path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
   )
 
-# Hack: Work around a regression in PEcAn.uncertainty 1.8.2 by specifying
-# PFT outdirs explicitly (even though they go unused in this workflow)
-settings$pfts <- settings$pfts |>
-  lapply(\(x) {
-    x$outdir <- file.path(settings$outdir, "pfts", x$name)
-    x
-  })
+# Populate PFT section
+# Makes several key assumptions:
+# 1. All subdirs of pft_dir are named with their pft's name
+#  (i.e. pft_dir/baz/post.distns.Rdata is for a pft named "baz").
+# 2. User wants all PFTs in pft_dir to be inserted into settings.xml
+# 3. pft dir already exists on disk (unlike input paths that are constructed
+#   without checking)
+# 4. Posterior priority: trait.mcmc > post.distns > error
+find_posterior <- function(dir) {
+  if (file.exists(file.path(dir, "trait.mcmc.Rdata"))) {
+    return(file.path(dir, "trait.mcmc.Rdata"))
+  } else if (file.exists(file.path(dir, "post.distns.Rdata"))) {
+    return(file.path(dir, "post.distns.Rdata"))
+  } else {
+    PEcAn.logger::logger.severe(
+      "Don't know what posterior to use for pft", sQuote(dir)
+    )
+  }
+}
+build_pft_entry <- function(name) {
+  list(
+    name = name,
+    posterior.files = find_posterior(file.path(args$pft_dir, name)),
+    outdir = file.path(settings$outdir, "pfts", name)
+  )
+}
+pft_names <- list.dirs(args$pft_dir, full.names = FALSE, recursive = FALSE)
+pft_list <- lapply(pft_names, build_pft_entry) |>
+  # Yes, PEcAn expects a pft list with each entry named `<pft>`.
+  # No, I don't like it, but am not going to try to change that today.
+  setNames(nm = rep("pft", length(pft_names)))
+settings$pfts <- pft_list
 
 write.settings(
   settings,
