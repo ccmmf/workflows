@@ -62,17 +62,28 @@ if (!dir.exists(settings$outdir)) {
 PEcAn.logger::logger.setLevel("WARN")
 
 PEcAn.utils::status.start("DESIGN")
+# If samples are already present, assume we're extending/projecting a prev run.
+# Reuse them instead of drawing new samples
+# NOTE: This preserves parameter samples but re-samples all other columns of the
+# design matrix. This is what we want when e.g. changing weather sources, 
+# but if some inputs want to be passed through unchanged (soil physics files?),
+# we'd instead need to load old and new designs and choose the appropriate
+# column from each one.
+sample_file <- file.path(settings$outdir, "samples.Rdata")
+samples <- NULL
+if (file.exists(sample_file)) {
+  samples <- PEcAn.utils::load_local(sample_file)
+}
 ens_design <- PEcAn.uncertainty::generate_joint_ensemble_design(
   settings = settings[[1]],
-  ensemble_size = settings$ensemble$size
+  ensemble_size = settings$ensemble$size,
+  samples = samples
 )
 write.csv(ens_design$X, file.path(settings$outdir, "input_design.csv"))
-sample_env <- list2env(ens_design$samples)
-save(
-  list = ls(sample_env),
-  envir = sample_env,
-  file = file.path(settings$outdir, "samples.Rdata")
-)
+if (is.null(samples)) {
+  sample_env <- list2env(ens_design$samples)
+  save(list = ls(sample_env), envir = sample_env, file = sample_file)
+}
 
 settings$ensemble$id <- rlang::hash(ens_design)
 PEcAn.utils::status.end()
@@ -96,7 +107,7 @@ stopifnot(
 )
 look_up_pft <- function(crop) {
   tibble::tibble(crop_code = crop) |>
-    dplyr::left_join(pft_lookup) |>
+    dplyr::left_join(pft_lookup, by = "crop_code") |>
     dplyr::pull(pft)
 }
 run_script_paths <- papply(

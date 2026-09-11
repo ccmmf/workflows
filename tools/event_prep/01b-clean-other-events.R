@@ -70,7 +70,14 @@ dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
 
 message("Writing harvest output")
 harvest <- arrow::open_dataset(harvest_files, format = "parquet") |>
-dplyr::filter(as.character(site_id) %in% siteids) |>
+  # Ugly hack for today, carry parcel_id through properly later
+  (\(df) {
+    if ("parcel_id" %in% colnames(df)) {
+      return(dplyr::rename(df, site_id = parcel_id))
+    }
+    df
+  })() |>
+  dplyr::filter(as.character(site_id) %in% siteids) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = as.Date(date)
@@ -83,57 +90,96 @@ dplyr::filter(as.character(site_id) %in% siteids) |>
 
 message("Writing planting output")
 planting <- arrow::open_dataset(planting_files, format = "parquet") |>
+  # Ugly hack for today, carry parcel_id through properly later
+  (\(df) {
+    if ("parcel_id" %in% colnames(df)) {
+      return(dplyr::rename(df, site_id = "parcel_id"))
+    }
+    df
+  })() |>
   dplyr::filter(as.character(site_id) %in% siteids) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = pmax(as.Date(date), as.Date(args$adjust_start)) # push earlier plantings forward to avoid beginning-of-run boundary error
   ) |>
-  dplyr::rename(
-    crop_code = "code",
-    leaf_c_kg_m2 = "C_LEAF",
-    wood_c_kg_m2 = "C_STEM",
-    fine_root_c_kg_m2 = "C_FINEROOT",
-    coarse_root_c_kg_m2 = "C_COARSEROOT",
-    leaf_n_kg_m2 = "N_LEAF",
-    wood_n_kg_m2 = "N_STEM",
-    fine_root_n_kg_m2 = "N_FINEROOT",
-    coarse_root_n_kg_m2 = "N_COARSEROOT"
-  ) |>
+  (\(df) {
+    if ("code" %in% colnames(df) && !("crop_code" %in% colnames(df))) {
+      # Assuming this means whole thing is a projection -> already cleaned
+      # Again, REFACTOR!!
+      return(dplyr::rename(
+        df,
+        crop_code = "code",
+        leaf_c_kg_m2 = "C_LEAF",
+        wood_c_kg_m2 = "C_STEM",
+        fine_root_c_kg_m2 = "C_FINEROOT",
+        coarse_root_c_kg_m2 = "C_COARSEROOT",
+        leaf_n_kg_m2 = "N_LEAF",
+        wood_n_kg_m2 = "N_STEM",
+        fine_root_n_kg_m2 = "N_FINEROOT",
+        coarse_root_n_kg_m2 = "N_COARSEROOT"
+      ))
+    }
+    df
+  })() |>
   arrow::write_parquet(
     file.path(args$outdir, "planting.parquet"),
     compression = "ZSTD"
   )
 
-message("Writing tillage output")
-tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
-  dplyr::filter(as.character(site_id) %in% siteids) |>
-  dplyr::filter(
-    is.finite(.data$ndti_pct_change),
-    .data$ndti_pct_change >= 0
-  ) |>
-  dplyr::collect() |> # arrow can't inline ndti_to_sipnet_tillage()
-  dplyr::mutate(
-    site_id = as.integer(site_id),
-    tillage_eff_0to1 = PEcAn.data.land::ndti_to_sipnet_tillage(
-      ndti_pct_change / 100
-    ),
-    date = as.Date(.data$OGMn_date)
-  ) |>
-  dplyr::select(
-    "site_id",
-    "date",
-    "tillage_eff_0to1"
-  ) |>
-  arrow::write_parquet(
-    file.path(args$outdir, "tillage.parquet"),
-    compression = "ZSTD"
-  )
+# message("Writing tillage output")
+# tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
+#   # Ugly hack for today, carry parcel_id through properly later
+#   (\(df) {
+#     if ("parcel_id" %in% colnames(df)) {
+#       return(dplyr::rename(df, site_id = parcel_id))
+#     }
+#     df
+#   })() |>
+#   dplyr::filter(as.character(site_id) %in% siteids) |>
+#   dplyr::filter(
+#     is.finite(.data$ndti_pct_change),
+#     .data$ndti_pct_change >= 0
+#   ) |>
+#   dplyr::collect() |> # arrow can't inline ndti_to_sipnet_tillage()
+#   dplyr::mutate(
+#     site_id = as.integer(site_id),
+#     tillage_eff_0to1 = PEcAn.data.land::ndti_to_sipnet_tillage(
+#       ndti_pct_change / 100
+#     ),
+#     date = as.Date(.data$OGMn_date)
+#   ) |>
+#   dplyr::select(
+#     "site_id",
+#     "date",
+#     "tillage_eff_0to1"
+#   ) |>
+#   arrow::write_parquet(
+#     file.path(args$outdir, "tillage.parquet"),
+#     compression = "ZSTD"
+#   )
 
 message("Writing phenology output")
-phenology <- arrow::open_dataset(phenology_files, format = "parquet")
+phenology <- arrow::open_dataset(phenology_files, format = "parquet") |>
+  # Ugly hack for today, carry parcel_id through properly later
+  (\(df) {
+    if ("parcel_id" %in% colnames(df)) {
+      return(dplyr::rename(df, site_id = parcel_id))
+    }
+    df
+  })() |>
+  dplyr::filter(as.character(site_id) %in% siteids)
 leafon <- phenology |>
-  dplyr::filter(as.character(site_id) %in% siteids) |>
-  dplyr::select("site_id", date = "leafonday") |>
+  # Projections: long form with event_type and date columns
+  # Inventory: wide form with dates in "leafon" and "leafoff"
+  # TODO unify in files, esp, since have to pull into memory to do these
+  dplyr::collect() |>
+  dplyr::filter(
+    dplyr::if_all(tidyselect::any_of("event_type"), \(x) x == "leafon")
+  ) |>
+  dplyr::rename_with(
+    \(x) dplyr::case_when(x == "leafonday" ~ "date", TRUE ~ x)
+  ) |>
+  dplyr::select("site_id", "date") |>
   dplyr::mutate(
     site_id = as.integer(.data$site_id),
     date = pmax(as.Date(date), as.Date(args$adjust_start)) # push earlier leafons forward to avoid beginning-of-run boundary error
@@ -143,8 +189,17 @@ leafon <- phenology |>
     compression = "ZSTD"
   )
 leafoff <- phenology |>
-  dplyr::filter(site_id %in% siteids) |>
-  dplyr::select("site_id", date = "leafoffday") |>
+  # Projections: long form with event_type and date columns
+  # Inventory: wide form with dates in "leafon" and "leafoff"
+  # TODO unify in files, esp, since have to pull into memory to do these
+  dplyr::collect() |>
+  dplyr::filter(
+    dplyr::if_all(tidyselect::any_of("event_type"), \(x) x == "leafoff")
+  ) |>
+  dplyr::rename_with(
+    \(x) dplyr::case_when(x == "leafoffday" ~ "date", TRUE ~ x)
+  ) |>
+  dplyr::select("site_id", "date") |>
   dplyr::mutate(
     site_id = as.integer(.data$site_id),
     date = as.Date(.data$date)

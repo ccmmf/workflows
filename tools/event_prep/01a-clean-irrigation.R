@@ -47,29 +47,38 @@ on.exit({
   unlink(dbdir, recursive = TRUE)
 }, add = TRUE)
 
-# Cast ensemble ID to an enum to accelerate and reduce the memory pressure of
-# the sort.
-DBI::dbExecute(conn, glue::glue("
-  CREATE OR REPLACE TYPE ens_id_enum AS ENUM (
-    SELECT DISTINCT ens_id FROM read_parquet('{args$irr_path}')
-  )
-  "
-))
+# UGLY hack to handle files with or without ensembling
+ens_cast <- ""
+ens_partition <- ""
+evt_order <- ""
+if ("ens_id" %in% colnames(arrow::open_dataset(args$irr_path))) {
+  # Cast ensemble ID to an enum to accelerate and reduce the memory pressure of
+  # the sort.
+  DBI::dbExecute(conn, glue::glue("
+    CREATE OR REPLACE TYPE ens_id_enum AS ENUM (
+      SELECT DISTINCT ens_id FROM read_parquet('{args$irr_path}')
+    )
+    "
+  ))
+  ens_cast <- "CAST (ens_id AS ens_id_enum) AS event_member_id,"
+  ens_partition <- ", PARTITION_BY (event_member_id)"
+  evt_order <- "event_member_id, "
+}
 
 # Now, sort and write the (partitioned) parquet output
 DBI::dbExecute(conn, glue::glue("
   COPY (
     SELECT
       CAST (parcel_id AS INTEGER) AS site_id,
-      CAST (ens_id AS ens_id_enum) AS event_member_id,
+      {ens_cast}
       date,
       CAST (amount_mm AS DECIMAL(6, 2)) AS amount_mm,
       method
     FROM read_parquet('{args$irr_path}')
     WHERE site_id IN ({siteids})
-    ORDER BY event_member_id, site_id, date
+    ORDER BY {evt_order}site_id, date
   ) TO
   '{args$outdir}/irrigation.parquet' 
-  (FORMAT PARQUET, COMPRESSION ZSTD, OVERWRITE, PARTITION_BY (event_member_id))
+  (FORMAT PARQUET, COMPRESSION ZSTD, OVERWRITE{ens_partition})
   "
 ))

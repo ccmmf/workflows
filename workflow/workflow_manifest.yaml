@@ -343,6 +343,114 @@ steps:
               output_file: output_file
               output_dir: output_dir
 
+    prepare-projections:
+        - name: stage-inputs
+          script: "workflow/00_stage_external_inputs.sh"
+          slurm: false
+          r_libraries: []
+          inputs: {}
+          params: {}
+          outputs: {}
+
+        - name: convert-clim
+          script: "workflow/01_WRF_nc_to_clim.R"
+          slurm: true
+          r_libraries: [future, furrr]
+          inputs:
+              nc_dir: wrf_nc_dir
+              cells_wanted_file: site_info_file
+          params:
+              start_date: start_date
+              end_date: end_date
+              models: wrf_models
+              scenario: wrf_scenario
+              n_cores: n_workers
+              parallel_strategy: parallel_strategy
+          outputs:
+              sipnet_dir: met_dir
+
+        - name: build-events
+          script: "workflow/02a_build_events.R"
+          slurm: true
+          r_libraries: [tidyverse, callr, glue]
+          inputs:
+              site_info_path: site_info_file
+              phenology_path: phenology_info_path
+              planting_path: planting_info_path
+              harvest_path: harvest_info_path
+              tillage_path: tillage_info_path
+              irrigation_path: irrigation_info_path
+              fert_path: fertilization_info_path
+              ncc_path: ncc_info_path
+          params:
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              clean_parquet_dir: clean_parquet_dir
+              event_outdir: event_dir
+
+        - name: build-xml
+          script: "examples/3_rowcrop/03_xml_build_proj.R"
+          slurm: true
+          r_libraries: [PEcAn.settings]
+          inputs:
+              site_file: site_info_file
+              template_file: template_file
+              ic_dir: ic_dir
+              met_dir: met_dir
+              event_dir: event_dir
+              pft_dir: pft_dir
+          params:
+              n_ens: n_ens
+              n_met: n_met_wrf
+              n_ic: n_ic
+              n_event: n_event
+              start_date: start_date
+              end_date: end_date
+              models: wrf_models
+              scenario: wrf_scenario
+          outputs:
+              output_file: output_file
+              output_dir: output_dir
+
+    run-projections:
+        - name: get-prev-samples
+          script: "workflow/06a_projection_copy_prev_samples.R"
+          slurm: false
+          r_libraries: [PEcAn.SIPNET]
+          inputs:
+            prev_run_dir: prev_inventory_dir
+            settings: settings_xml
+          params: {}
+          outputs: 
+            new_run_dir: output_dir
+        - name: set-up-runs
+          script: "workflow/04_set_up_runs.R"
+          slurm: false
+          r_libraries: [PEcAn.all]
+          inputs:
+              settings: settings_xml
+              crop_pft_lookup: pft_map
+          params: {}
+          outputs: {}
+        - name: copy-prev-model-state
+          script: "workflow/06b_projection_copy_prev_restarts.R"
+          slurm: false
+          r_libraries: [PEcAn.settings, PEcAn.SIPNET, purrr]
+          inputs:
+              prev_run_dir: prev_inventory_dir
+          params: {}
+          outputs:
+              new_run_dir: output_dir
+        - name: run-model
+          script: "workflow/05_run_model.R"
+          slurm: false
+          r_libraries: [PEcAn.all]
+          inputs:
+              settings: config_xml
+          params: {}
+          outputs: {}
+
     run-ensembles:
         - name: set-up-runs
           script: "workflow/04_set_up_runs.R"

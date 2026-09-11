@@ -89,25 +89,25 @@ cargs <- function(...) {
 }
 
 
-PEcAn.logger::logger.info("Cleaning irrigation files")
-callr::rscript(
-  file.path(event_prep_dir, "01a-clean-irrigation.R"),
-  cmdargs = cargs(
-    irr_path = args$irrigation_path,
-    outdir = args$clean_parquet_dir,
-    site_info_path = args$site_info_path
-  )
-)
-PEcAn.logger::logger.info("Cleaning fertilization and carbon amendment files")
-callr::rscript(
-  file.path(event_prep_dir, "01c-clean-fert-ncc.R"),
-  cmdargs = cargs(
-    site_info_path = args$site_info_path,
-    fert_path = args$fert_path,
-    ncc_path = args$ncc_path,
-    outdir = args$clean_parquet_dir
-  )
-)
+# PEcAn.logger::logger.info("Cleaning irrigation files")
+# callr::rscript(
+#   file.path(event_prep_dir, "01a-clean-irrigation.R"),
+#   cmdargs = cargs(
+#     irr_path = args$irrigation_path,
+#     outdir = args$clean_parquet_dir,
+#     site_info_path = args$site_info_path
+#   )
+# )
+# PEcAn.logger::logger.info("Cleaning fertilization and carbon amendment files")
+# callr::rscript(
+#   file.path(event_prep_dir, "01c-clean-fert-ncc.R"),
+#   cmdargs = cargs(
+#     site_info_path = args$site_info_path,
+#     fert_path = args$fert_path,
+#     ncc_path = args$ncc_path,
+#     outdir = args$clean_parquet_dir
+#   )
+# )
 PEcAn.logger::logger.info("Cleaning other management files")
 callr::rscript(
   file.path(event_prep_dir, "01b-clean-other-events.R"),
