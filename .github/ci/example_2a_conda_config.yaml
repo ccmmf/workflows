@@ -5,7 +5,8 @@ run_LAI_date: "2016-07-01"
 n_ens: 5
 n_met: 3
 ic_ensemble_size: 20
-n_workers: 2
+n_ic: 20
+n_workers: 1
 use_apptainer: false
 pecan_parallelism_mode: slurm-sbatch
 sbatch_additional_arguments: "-p node"
@@ -15,3 +16,10 @@ aws_profile: magic
 external_paths:
   template_file: "examples/2a_grass/template.xml"
   site_info_file: ".github/ci/site_info_2a.csv"
+
+paths:
+  phenology_info_path: "data_raw/management/phenology/v1.0/"
+  planting_info_path: "data_raw/management/planting/v1.0/"
+  harvest_info_path: "data_raw/management/harvest/v1.0/"
+  tillage_info_path: "data_raw/management/tillage/v1.0/"
+  irrigation_info_path: "data_raw/management/irrigation/v1.1/"
