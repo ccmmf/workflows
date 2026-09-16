@@ -4,7 +4,7 @@ end_date: "2017-12-31"
 run_LAI_date: "2016-07-01"
 n_ens: 5
 n_met: 3
-ic_ensemble_size: 20
+n_ic: 20
 n_event: 5
 n_workers: 2
 use_apptainer: true
@@ -14,5 +14,11 @@ workflow_parallelism_mode: slurm-srun
 srun_additional_arguments: "-p node --mem=0"
 aws_profile: magic
 external_paths:
-  template_file: "examples/3_rowcrop/template.xml"
-  site_info_file: ".github/ci/site_info_3.csv"
+  copy_to_rundir:
+    template_file: "examples/3_rowcrop/template.xml"
+    site_info_file: ".github/ci/site_info_3.csv"
+  link_in_place: {}
+
+paths:
+  fertilization_info_path: "data_raw/management/fertilization/v1.0/"
+  ncc_info_path: "data_raw/management/ncc/v1.0/"
