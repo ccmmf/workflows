@@ -19,7 +19,7 @@ end_date: "2023-12-31"
 run_LAI_date: "2016-07-01"
 n_ens: 20
 n_met: 10
-ic_ensemble_size: 100
+n_ic: 100
 # Number of management-event ensemble members available in event_dir (set by
 # prepare-example-3's event-build step; only override if you regenerate events
 # with a different ensemble size).
@@ -46,7 +46,11 @@ aws_profile: magic
 
 # Stage example-specific input files into run_dir before prepare runs.
 external_paths:
-  template_file: "examples/3_rowcrop/template.xml"
+  copy_to_rundir:
+    template_file: "examples/3_rowcrop/template.xml"
+  link_in_place:
+    site_era5_path: "data_raw/ERA5_CA_nc"
+    landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
 
 paths:
   phenology_info_path: "data_raw/management/phenology/v1.0/"
@@ -54,3 +58,5 @@ paths:
   harvest_info_path: "data_raw/management/harvest/v1.0/"
   tillage_info_path: "data_raw/management/tillage/v1.0/"
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
+  fertilization_info_path: "data_raw/management/fertilization/v1.0/"
+  ncc_info_path: "data_raw/management/ncc/v1.0/"

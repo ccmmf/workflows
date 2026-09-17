@@ -4,7 +4,6 @@ end_date: "2017-12-31"
 run_LAI_date: "2016-07-01"
 n_ens: 5
 n_met: 3
-ic_ensemble_size: 20
 n_ic: 20
 n_workers: 1
 use_apptainer: false
@@ -14,8 +13,10 @@ workflow_parallelism_mode: slurm-srun
 srun_additional_arguments: "-p node --mem=0"
 aws_profile: magic
 external_paths:
-  template_file: "examples/2a_grass/template.xml"
-  site_info_file: ".github/ci/site_info_2a.csv"
+  copy_to_rundir:
+    template_file: "examples/2a_grass/template.xml"
+    site_info_file: ".github/ci/site_info_2a.csv"
+  link_in_place: {}
 
 paths:
   phenology_info_path: "data_raw/management/phenology/v1.0/"

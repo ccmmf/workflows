@@ -4,7 +4,6 @@ end_date: "2023-12-31"
 run_LAI_date: "2016-07-01"
 n_ens: 5
 n_met: 3
-ic_ensemble_size: 20
 n_ic: 20
 n_event: 5
 n_workers: 1
@@ -15,12 +14,18 @@ workflow_parallelism_mode: slurm-srun
 srun_additional_arguments: "-p node --mem=0"
 aws_profile: magic
 external_paths:
-  template_file: "examples/3_rowcrop/template.xml"
-  site_info_file: ".github/ci/site_info_3.csv"
+  copy_to_rundir:
+    template_file: "examples/3_rowcrop/template.xml"
+    site_info_file: ".github/ci/site_info_3.csv"
+  link_in_place: {}
 
 paths:
+  template_file: "examples/3_rowcrop/template.xml"
+  site_info_file: ".github/ci/site_info_3.csv"
   phenology_info_path: "data_raw/management/phenology/v1.0/"
   planting_info_path: "data_raw/management/planting/v1.0/"
   harvest_info_path: "data_raw/management/harvest/v1.0/"
   tillage_info_path: "data_raw/management/tillage/v1.0/"
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
+  fertilization_info_path: "data_raw/management/fertilization/v1.0/"
+  ncc_info_path: "data_raw/management/ncc/v1.0/"
