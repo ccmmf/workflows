@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # magic-ensemble: minimal CLI for CCMMF ensemble workflows.
 # Usage: ./magic-ensemble <command> [--verbose] --config <path>
-# Commands: help | get-demo-data | prepare | prepare-example-1b | prepare-example-2a | prepare-example-3 | run-ensembles
+# Commands: help | get-demo-data | prepare | prepare-example-1b | prepare-example-2a | prepare-example-3 | prepare-projections | run-ensembles
 
 set -euo pipefail
 
@@ -27,7 +27,9 @@ Commands:
   prepare-example-1b    Run preparation steps using the 1b statewide woody crops example scripts.
   prepare-example-2a    Run preparation steps using the 2a grass example scripts.
   prepare-example-3     Run preparation steps using the 3 row crop example scripts (adds a management-events step).
+  prepare-projections   Run preparation steps for runs using future projected climate and management.
   run-ensembles         Run step 04 (run model) using existing settings.xml and prepared inputs.
+  run-projections       Set up run directory and run model using a previous ensemble output and prepared inputs.
 
 Global options (after command):
   --verbose       Echo each command before running (including apptainer run when use_apptainer is true).
@@ -91,7 +93,7 @@ VERBOSE=0
 CONFIG_FILE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    help|get-demo-data|prepare|prepare-example-1b|prepare-example-2a|prepare-example-3|run-ensembles)
+    help|get-demo-data|prepare|prepare-example-1b|prepare-example-2a|prepare-example-3|prepare-projections|run-projections|run-ensembles)
       if [[ -z "$COMMAND" ]]; then COMMAND="$1"; shift; continue; fi
       ;;
     --verbose)   VERBOSE=1; shift; continue ;;
@@ -121,7 +123,7 @@ if [[ -z "$COMMAND" || "$COMMAND" == "help" ]]; then
   exit 0
 fi
 
-if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "prepare-example-1b" && "$COMMAND" != "prepare-example-2a" && "$COMMAND" != "prepare-example-3" && "$COMMAND" != "run-ensembles" ]]; then
+if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "prepare-example-1b" && "$COMMAND" != "prepare-example-2a" && "$COMMAND" != "prepare-example-3" && "$COMMAND" != "run-ensembles" && "$COMMAND" != "prepare-projections" && "$COMMAND" != "run-projections" ]]; then
   echo "magic-ensemble: Unknown command: $COMMAND" >&2
   usage >&2
   exit 1
@@ -832,6 +834,8 @@ case "$COMMAND" in
   prepare-example-1b)   run_manifest_command ;;
   prepare-example-2a)   run_manifest_command ;;
   prepare-example-3)    run_manifest_command ;;
+  prepare-projections)  run_manifest_command ;;
   run-ensembles)        run_run_ensembles ;;
+  run-projections)      run_run_ensembles ;;
   *)                    echo "magic-ensemble: Unknown command: $COMMAND" >&2; exit 1 ;;
 esac

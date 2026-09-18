@@ -2,7 +2,8 @@
 
 # Adapted from a more generic script maintained as part of PEcAn.
 # Its path in the PEcAn repository is workflows/preprocess-event-parquet/01a-clean-irrigation.R.
-# Modifications added here: argument parsing, filtering to target sites.
+# Modifications added here: argument parsing, filtering to target sites,
+# adding ensemble id if not present
 
 ## ---------------------- parse command-line options --------------------------
 options <- list(
@@ -49,9 +50,19 @@ on.exit({
 
 # Cast ensemble ID to an enum to accelerate and reduce the memory pressure of
 # the sort.
+# ...and if ensemble ID doesn't exist yet, add it as a constant.
+if ("ens_id" %in% colnames(arrow::open_dataset(args$irr_path))) {
+  distinct_ensid_clause <- glue::glue(
+    "SELECT DISTINCT ens_id FROM read_parquet('{args$irr_path}')"
+  )
+  qry_ensid_clause <- "ens_id"
+} else {
+  distinct_ensid_clause <- "'irr_ens_001'"
+  qry_ensid_clause <- "'irr_ens_001'"
+}
 DBI::dbExecute(conn, glue::glue("
   CREATE OR REPLACE TYPE ens_id_enum AS ENUM (
-    SELECT DISTINCT ens_id FROM read_parquet('{args$irr_path}')
+    {distinct_ensid_clause}
   )
   "
 ))
@@ -61,7 +72,7 @@ DBI::dbExecute(conn, glue::glue("
   COPY (
     SELECT
       CAST (parcel_id AS INTEGER) AS site_id,
-      CAST (ens_id AS ens_id_enum) AS event_member_id,
+      CAST ({qry_ensid_clause} AS ens_id_enum) AS event_member_id,
       date,
       CAST (amount_mm AS DECIMAL(6, 2)) AS amount_mm,
       method

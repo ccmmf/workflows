@@ -39,7 +39,7 @@ options <- list(
     default = "data_raw/wrf_45km_nc/parcel_to_grid_d01.csv",
     help = paste(
       "CSV file with one row per location to be extracted.",
-      "Only column `cell_id` is used."
+      "Only one column is used: `WRF_grid_cell` if present, else `cell_id`"
     )
   ),
   optparse::make_option("--start_date",
@@ -90,7 +90,12 @@ args <- optparse::OptionParser(option_list = options) |>
 
 future::plan(args$parallel_strategy, workers = args$n_cores)
 
-site_info <- read.csv(args$cells_wanted_file) |>
+site_info <- read.csv(args$cells_wanted_file)
+if ("WRF_grid_cell" %in% colnames(site_info)) {
+  site_info <- site_info |>
+    dplyr::select(cell_id = WRF_grid_cell)
+}
+site_info <- site_info |>
   dplyr::distinct(cell_id)
 site_info$start_date <- args$start_date
 site_info$end_date <- args$end_date
