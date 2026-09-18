@@ -164,8 +164,8 @@ resolve_key_src() {
   # Split on first ": " — key is everything before, value everything after.
   key="${line%%: *}"
   src="${line#*: }"
-  [[ -z "$key" || "$key" == "$line" ]] && continue  # no ": " found
-  [[ -z "$src" || "$src" == "null" ]] && continue
+  [[ -z "$key" || "$key" == "$line" ]] && return  # no ": " found
+  [[ -z "$src" || "$src" == "null" ]] && return
   # Strip surrounding quotes that yq may preserve from the YAML source.
   src="${src#\"}" ; src="${src%\"}"
 
