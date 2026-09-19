@@ -61,11 +61,16 @@ options <- list(
     # TODO update from a citeable source,
     # and consider adding to PFT when calibrating
     default =
-      "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005",
+      paste(
+        "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005",
+        "varname=soil_c_to_n,distn=norm,parama=10,paramb=2",
+        collapse = ";"
+      ),
     help = paste(
       "Further params not available from site or PFT data,",
-      "as a comma-separated named list with names `varname`, `distn`,",
-      "`parama`, and `paramb`. Currently used only for `wood_carbon_fraction`"
+      "as a semicolon-separated series of comma-separated named lists with",
+      "names `varname`, `distn`,`parama`, and `paramb`.",
+      "Currently used for `wood_carbon_fraction` and `soil_c_to_n`."
     )
   )
 ) |>
@@ -96,10 +101,14 @@ if (!dir.exists(args$data_dir)) dir.create(args$data_dir, recursive = TRUE)
 # split up comma-separated options
 params_read_from_pft <- strsplit(args$params_read_from_pft, ",")[[1]]
 additional_params <- args$additional_params |>
-  str_match_all("([^=]+)=([^,]+),?") |>
+  strsplit(";") |>
   _[[1]] |>
-  (\(x) setNames(as.list(x[, 3]), x[, 2]))() |>
-  as.data.frame() |>
+  map_dfr(function(str) {
+    str |>
+    str_match_all("([^=]+)=([^,]+),?") |>
+    _[[1]] |>
+    (\(x) setNames(as.list(x[, 3]), x[, 2]))()
+  }) |>
   mutate(across(starts_with("param"), as.numeric))
 
 site_info <- read.csv(
@@ -402,6 +411,12 @@ ic_samples <- initial_condition_estimated |>
     leaf_carbon_content = tidyr::replace_na(LAI, 0) / SLA * (leafC / 100),
     wood_carbon_content = pmax(AbvGrndWood - leaf_carbon_content, 0)
   )
+
+if ("soil_c_to_n" %in% additional_params$varname) {
+  ic_samples$soil_organic_nitrogen_content <-
+    ic_samples$soil_organic_carbon_content / ic_samples$soil_c_to_n
+}
+
 
 ic_names <- colnames(ic_samples)
 std_names <- c("site_id", "replicate", PEcAn.utils::standard_vars$Variable.Name)
