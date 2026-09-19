@@ -64,7 +64,7 @@ options <- list(
       paste(
         "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005",
         "varname=soil_c_to_n,distn=norm,parama=10,paramb=2",
-        collapse = ";"
+        sep = ";"
       ),
     help = paste(
       "Further params not available from site or PFT data,",
