@@ -13,8 +13,10 @@ options <- list(
     default = "data/design_points.csv",
     help = paste(
       "CSV giving at least lat and lon for sites of interest.",
+      "If column `parcel_id` is present it will be used instead of",
+      "`--parcel_file`.",
       "Any other columns will be passed unchanged to the output."
-      )
+    )
   ),
   optparse::make_option("--out_file",
     default = "site_info.csv",
@@ -29,7 +31,10 @@ options <- list(
   ),
   optparse::make_option("--parcel_file",
     default = "data_raw/management/crops/v4.1/parcels-consolidated.gpkg",
-    help = "Geopackage to be used for spatial lookup of parcel IDs"
+    help = paste(
+      "Geopackage to be used for spatial lookup of parcel IDs.",
+      "Not used if the location file has a `parcel_id` column."
+    )
   ),
   optparse::make_option("--crop_file",
     default = "data_raw/management/crops/v4.1/crops_all_years.parq",
@@ -126,7 +131,15 @@ dwr_parcelid_to_crop <- function(
 
 
 design_pts <- read.csv(args$location_file)
-pts_matched <- point_to_dwr_parcelid(design_pts)
+
+# parcel_ids provided; assume they're correct instead of re-checking
+if (!("parcel_id" %in% colnames(design_pts))) {
+  pts_matched <- point_to_dwr_parcelid(design_pts)
+} else {
+  message("Using parcel_id column from location file")
+  pts_matched <- design_pts
+}
+
 pft_lookup <- read.csv(args$pft_lookup) |>
   select(CLASS, SUBCLASS, site.pft = pft)
 
@@ -148,9 +161,11 @@ if (!is.null(design_pts$id) && anyDuplicated(design_pts$id)) {
   PEcAn.logger::logger.severe("column `id` of design points is not unique")
 }
 
-if (typeof(crop_2016$parcel_id) != typeof(pts_matched$parcel_id)) {
+if (typeof(crop_2016$parcel_id) != typeof(pts_matched$parcel_id)
+    || typeof(crop_2016$parcel_id) != typeof(wrf_cells$parcel_id)) {
   crop_2016$parcel_id <- as.character(crop_2016$parcel_id)
   pts_matched$parcel_id = as.character(pts_matched$parcel_id)
+  wrf_cells$parcel_id = as.character(wrf_cells$parcel_id)
 }
 
 site_info <- pts_matched |>
