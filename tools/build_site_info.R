@@ -20,6 +20,13 @@ options <- list(
     default = "site_info.csv",
     help = "Path to write CSV with parcel ids and PFTs added"
   ),
+  optparse::make_option("--pft_lookup",
+    default = "data_raw/pfts/crop2pft.csv",
+    help = paste(
+      "CSV mapping DWR crop codes to pft names.",
+      "Must have columns 'CLASS', 'SUBCLASS', and 'pft'."
+    )
+  ),
   optparse::make_option("--parcel_file",
     default = "data_raw/management/crops/v4.1/parcels-consolidated.gpkg",
     help = "Geopackage to be used for spatial lookup of parcel IDs"
@@ -49,46 +56,6 @@ args <- optparse::OptionParser(option_list = options) |>
 
 
 library(tidyverse)
-
-
-
-#' Assign DWR/LandIQ California crop codes to Sipnet PFT names
-#'
-#' Built for the MAGiC project, may or may not be applicable elsewhere
-#'
-#' @param CLASS vector of crop class codes (1-2 capital letters each)
-#' @param SUBCLASS vector of crop identifiers (1-2 numeric digits each)
-#' @return PFT assignments as character, NA if unclassified
-dwr_crop_to_pft <- function(CLASS, SUBCLASS) {
-  dplyr::case_when(
-
-    ## N fixers, treated as generic annual until N fixer PFT is created
-    CLASS == "F" & SUBCLASS %in% c(10)     ~ "annual_crop", # dry beans
-    CLASS == "P" & SUBCLASS %in% c(1, 2)   ~ "annual_crop", # alfalfa, clover
-    CLASS == "T" & SUBCLASS %in% c(3, 11)  ~ "annual_crop", # Green beans, peas
-
-    ## subclasses with physiology differing from the rest of their class
-    # woody berries
-    CLASS == "T" & SUBCLASS %in% c(19, 28) ~ "temperate.deciduous",
-    # "Flowers, nursery & Christmas tree farms"
-    # (A weird grouping, but assuming these are most likely to be tree-like)
-    CLASS == "T" & SUBCLASS %in% c(16)     ~ "temperate.deciduous",
-    
-    ## Whole-class assignments
-    CLASS %in% c("F", "G", "T")       ~ "annual_crop", # field crops, grains/hay, truck crops
-    CLASS %in% c("P")                 ~ "grass", # perennial pasture grass; annual grasses in G
-    CLASS %in% c("D", "C", "V", "YP") ~ "temperate.deciduous", # deciduous, citrus, vineyard, young perennial
-    CLASS %in% c("R")                 ~ "grass", # Rice; TODO update when rice PFT is created
-    CLASS %in% c("X", "I")            ~ "annual_crop", # fallow, not cropped, or unclassified
-      # TODO maybe this should just get soil PFT or be skipped during site selection?
-      # Logic for defaulting to annual crop here:
-      # Temporarily idle/fallow likely to grow small amount annual weeds;
-      # If no plant/harv events, annual will grow very little. 
-
-    # Urban, industrial, native vegetation, semi-agricultural, vacant, etc
-    TRUE ~ NA_character_
-  )
-}
 
 #' Look up parcel IDs from harmonized DWR California crop map
 #'
@@ -146,10 +113,12 @@ dwr_parcelid_to_crop <- function(
     dplyr::filter(.data$parcel_id %in% ids) |>
     select(parcel_id, year, season, CLASS, SUBCLASS)
   if (!is.null(years)) {
-    cropdat <- cropdat |> dplyr::filter(.data$year %in% years)
+    cropdat <- cropdat |>
+      dplyr::filter(.data$year %in% years)
   }
   if (!is.null(seasons)) {
-    cropdat <- cropdat |> dplyr::filter(.data$season %in% seasons)
+    cropdat <- cropdat |>
+      dplyr::filter(.data$season %in% seasons)
   }
 
   dplyr::collect(cropdat)
@@ -158,14 +127,30 @@ dwr_parcelid_to_crop <- function(
 
 design_pts <- read.csv(args$location_file)
 pts_matched <- point_to_dwr_parcelid(design_pts)
-crop_2016 <- dwr_parcelid_to_crop(pts_matched$parcel_id, years = 2016, seasons = 2) |>
-  mutate(site.pft = dwr_crop_to_pft(CLASS, SUBCLASS)) |>
+pft_lookup <- read.csv(args$pft_lookup) |>
+  select(CLASS, SUBCLASS, site.pft = pft)
+
+crop_2016 <- dwr_parcelid_to_crop(
+    pts_matched$parcel_id,
+    years = 2016,
+    seasons = 2
+  ) |>
+  left_join(
+    pft_lookup,
+    by = c("CLASS", "SUBCLASS"),
+    relationship = "many-to-one"
+  ) |>
   dplyr::select("parcel_id", "site.pft")
 wrf_cells <- read.csv(args$WRF_grid_lookup) |>
   select(parcel_id, WRF_grid_cell = cell_id)
 
 if (!is.null(design_pts$id) && anyDuplicated(design_pts$id)) {
   PEcAn.logger::logger.severe("column `id` of design points is not unique")
+}
+
+if (typeof(crop_2016$parcel_id) != typeof(pts_matched$parcel_id)) {
+  crop_2016$parcel_id <- as.character(crop_2016$parcel_id)
+  pts_matched$parcel_id = as.character(pts_matched$parcel_id)
 }
 
 site_info <- pts_matched |>
