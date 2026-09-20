@@ -496,9 +496,9 @@ paths:
     event_dir: "data/events"
     raw_parquet_dir: "data_raw/management"
 
-# Fixed workflow values (not user overrides)
+# Fixed workflow values
 params_read_from_pft: "SLA,leafC,leafGrowth"
-additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005"
+additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005;varname=soil_c_to_n,distn=norm,parama=10,paramb=2"
 parallel_strategy: "multisession"
 
 # Defaults that the user really _should_ set in their config,
