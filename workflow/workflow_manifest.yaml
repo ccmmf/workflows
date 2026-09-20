@@ -127,6 +127,7 @@ steps:
               ic_dir: ic_dir
               met_dir: met_dir
               pft_dir: pft_dir
+              sipnet_parameter_file: param_template
           params:
               n_ens: n_ens
               n_met: n_met
@@ -332,6 +333,7 @@ steps:
               met_dir: met_dir
               event_dir: event_dir
               pft_dir: pft_dir
+              sipnet_parameter_file: param_template
           params:
               n_ens: n_ens
               n_met: n_met
@@ -400,6 +402,7 @@ steps:
               met_dir: met_dir
               event_dir: event_dir
               pft_dir: pft_dir
+              sipnet_parameter_file: param_template
           params:
               n_ens: n_ens
               n_met: n_met_wrf
