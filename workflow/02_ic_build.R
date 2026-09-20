@@ -361,14 +361,40 @@ sample_pft <- function(path,
                        n_samples = args$ic_ensemble_size) {
   e <- new.env()
   load(file.path(path, "post.distns.Rdata"), envir = e)
-  e$post.distns |>
+  samp <- e$post.distns |>
     tibble::rownames_to_column("varname") |>
     dplyr::select(-"n") |> # this is num obs used in posterior; conflicts with n = ens size when sampling
     dplyr::filter(varname %in% vars) |>
     dplyr::bind_rows(additional_params) |>
     purrr::pmap(sample_distn, n = n_samples) |>
     purrr::list_cbind() |>
-    tibble::rowid_to_column("replicate")
+    tibble::rowid_to_column("replicate") |>
+    mutate(force_zero_agb = FALSE)
+
+  if (!all(c("SLA", "leafC") %in% colnames(samp))) {
+    # leaf parameters not given -> assume this is a non-vegetative PFT
+    # -> start with zero AGB
+    warning(
+      "PFT file", path,
+      " does not give enough information to compute initial biomass.",
+      "Setting AGB to zero."
+    )
+    samp$force_zero_agb <- TRUE
+    samp$SLA <- 0
+    samp$leafC <- 0
+  }
+  if ("leafGrowth" %in% colnames(samp)
+      && any(samp$leafGrowth == 0)) {
+    # zero leafGrowth means this is an annual crop (all leafon done by planting)
+    # -> assume we start from a bare field
+    warning(
+      "leafGrowth is zero in", path,
+      ". Assuming annual crop that starts wth zero AGB."
+    )
+    samp$force_zero_agb[samp$leafGrowth == 0] <- TRUE
+  }
+
+  samp
 }
 
 pft_var_samples <- site_info |>
@@ -404,9 +430,7 @@ ic_samples <- initial_condition_estimated |>
   tidyr::pivot_wider(names_from = variable, values_from = sample) |>
   dplyr::left_join(pft_var_samples, by = c("site_id", "replicate")) |>
   dplyr::mutate(
-    # Experimental hack: Assume leafGrowth==0 means this is an annual crop, force starting biomass to zero even if LandTrendr says otherwise.
-    # This might be a terrible idea.
-    AbvGrndBiomass = if_else(leafGrowth == 0.0, 0, AbvGrndBiomass),
+    AbvGrndBiomass = if_else(force_zero_agb, 0, AbvGrndBiomass),
     AbvGrndWood = AbvGrndBiomass * wood_carbon_fraction,
     leaf_carbon_content = tidyr::replace_na(LAI, 0) / SLA * (leafC / 100),
     wood_carbon_content = pmax(AbvGrndWood - leaf_carbon_content, 0)
