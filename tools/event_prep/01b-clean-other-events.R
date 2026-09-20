@@ -106,21 +106,29 @@ planting <- arrow::open_dataset(planting_files, format = "parquet") |>
 
 message("Writing tillage output")
 tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
-  dplyr::filter(as.character(site_id) %in% siteids) |>
   dplyr::filter(
+    as.character(parcel_id) %in% siteids,
     is.finite(.data$ndti_pct_change),
     .data$ndti_pct_change >= 0
   ) |>
-  dplyr::collect() |> # arrow can't inline ndti_to_sipnet_tillage()
-  dplyr::mutate(
-    site_id = as.integer(site_id),
-    tillage_eff_0to1 = PEcAn.data.land::ndti_to_sipnet_tillage(
-      ndti_pct_change / 100
-    ),
-    date = as.Date(.data$OGMn_date)
-  ) |>
+  dplyr::mutate(parcel_id = as.integer(parcel_id))
+
+if (!"tillage_eff_0to1" %in% colnames(tillage)) {
+  tillage <- tillage |>
+    dplyr::collect() |> # arrow can't inline ndti_to_sipnet_tillage()
+    dplyr::mutate(
+      tillage_eff_0to1 = PEcAn.data.land::ndti_to_sipnet_tillage(
+        ndti_pct_change / 100
+      )
+    )
+}
+if (!"date" %in% colnames(tillage)) {
+  tillage <- tillage |>
+    dplyr::mutate(date = as.Date(.data$OGMn_date))
+}
+tillage <- tillage |>
   dplyr::select(
-    "site_id",
+    site_id = "parcel_id", # TODO make downstream steps use parcel_id too
     "date",
     "tillage_eff_0to1"
   ) |>
