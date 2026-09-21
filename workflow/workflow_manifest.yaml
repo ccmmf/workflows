@@ -466,7 +466,8 @@ steps:
           r_libraries: [PEcAn.all]
           inputs:
               settings: config_xml
-          params: {}
+          params:
+              check_interval: slurm_check_interval
           outputs: {}
 
     run-ensembles:
@@ -477,7 +478,8 @@ steps:
           inputs:
               settings: settings_xml
               crop_pft_lookup: pft_map
-          params: {}
+          params:
+              check_interval: slurm_check_interval
           outputs: {}
         - name: run-model
           script: "workflow/05_run_model.R"
@@ -531,6 +533,7 @@ n_ic: 100
 n_event: 20
 n_workers: 1
 use_apptainer: "false"
+slurm_check_interval: 60
 
 # Governs the CLI's own step-wrapping: "slurm-srun" wraps steps the manifest
 # marks slurm: true whenever srun is available; "local" forces every step to

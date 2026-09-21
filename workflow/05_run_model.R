@@ -12,6 +12,12 @@ options <- list(
       "working directory of the process that invokes run_model.R,",
       "not relative to the settings file path"
     )
+  ),
+  optparse::make_option(c("-c", "--check_interval"),
+    default = 60,
+    help = paste(
+      "Time in seconds to wait between checks on the status of Slurm jobs"
+    )
   )
 ) |>
   # Show default values in help message
@@ -64,8 +70,11 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
       stop_on_error <- FALSE
     }
   }
-  PEcAn.workflow::runModule_start_model_runs(settings,
-                                             stop.on.error = stop_on_error)
+  PEcAn.workflow::runModule_start_model_runs(
+    settings,
+    stop.on.error = stop_on_error,
+    check_interval = args$check_interval
+  )
   PEcAn.utils::status.end()
 }
 
