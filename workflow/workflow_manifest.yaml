@@ -478,8 +478,7 @@ steps:
           inputs:
               settings: settings_xml
               crop_pft_lookup: pft_map
-          params:
-              check_interval: slurm_check_interval
+          params: {}
           outputs: {}
         - name: run-model
           script: "workflow/05_run_model.R"
@@ -487,7 +486,8 @@ steps:
           r_libraries: [PEcAn.all]
           inputs:
               settings: config_xml
-          params: {}
+          params:
+              check_interval: slurm_check_interval
           outputs: {}
 
 # Path definitions: all contained within the run directory.
