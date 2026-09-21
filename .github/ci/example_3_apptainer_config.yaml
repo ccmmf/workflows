@@ -12,6 +12,23 @@ pecan_parallelism_mode: slurm-sbatch
 sbatch_additional_arguments: "-p node"
 workflow_parallelism_mode: slurm-srun
 srun_additional_arguments: "-p node --mem=0"
+step_dispatch_configuration:
+  convert-clim:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
+  build-ic:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
+  build-events:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
+  build-xml:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
 aws_profile: magic
 external_paths:
   copy_to_rundir:
