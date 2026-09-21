@@ -26,12 +26,10 @@
     <method>sampling</method>
    </poolinitcond>
    <crop_changes>
-     <ensemble><!-- inserted at config time --></ensemble>
-     <path><!-- inserted at config time --></path>
+    <parent>events</parent>
    </crop_changes>
    <events>
-     <ensemble><!-- inserted at config time --></ensemble>
-     <path><!-- inserted at config time --></path>
+    <method>sampling</method>
    </events>
   </samplingspace>
   <start.year><!-- inserted at config time --></start.year>
