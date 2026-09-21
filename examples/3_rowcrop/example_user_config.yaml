@@ -70,8 +70,8 @@ external_paths:
     template_file: "examples/3_rowcrop/template.xml"
     pft_map: "examples/3_rowcrop/crop2pft.csv"
   link_in_place:
-    site_era5_path: "data_raw/ERA5_CA_nc"
-    landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
+  #  site_era5_path: "data_raw/ERA5_CA_nc"
+  #  landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
 
 paths:
   phenology_info_path: "data_raw/management/phenology/v1.0/"
@@ -81,3 +81,5 @@ paths:
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
   fertilization_info_path: "data_raw/management/fertilization/v1.0/"
   ncc_info_path: "data_raw/management/ncc/v1.0/"
+  site_era5_path: "data_raw/ERA5_CA_nc"
+  landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
