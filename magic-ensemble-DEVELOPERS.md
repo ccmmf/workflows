@@ -17,16 +17,16 @@ workflow_manifest.yaml   — fixed contract: internal paths, step definitions,
 user_config.yaml         — runtime overrides: run_dir, dates, ensemble sizes,
                            dispatch mode, use_apptainer, external_paths
         +
-external_paths (staged)  — user-provided files copied into run_dir before
+external_paths (staged)  — user-provided files materialized into run_dir before
                            prepare runs, mapped to manifest-defined destinations
 ```
 
 The manifest (`workflow/workflow_manifest.yaml`) is the source of truth for
 everything that is fixed per workflow. The user config contains only the values
 a user legitimately needs to vary between runs. External paths are the mechanism
-for injecting user-owned files (e.g. a custom `template.xml`) without making
-manifest paths user-overridable. As written, a user can only inject files that
-are expected by the pipeline.
+for injecting user-owned files (e.g. a custom `template.xml`) and can be
+specified either as outright copies (`external_paths: copy_to_rundir:`) or as
+symbolic links targeting the external location (`exteral_paths: link_in_place:`).
 
 ---
 
@@ -119,6 +119,16 @@ File paths for user-owned inputs that must be injected into `run_dir` before
 is `run_dir/$(basename manifest.paths.<key>)` — derived from the manifest, not
 from the source filename, so downstream scripts always find files where they
 expect them.
+
+It is likely that you will want to use copying for files that become artifacts
+of this specific run (especially ones that are edited during the
+workflow); in contrast we expect linking to be most useful for large, relatively
+static files that the workflow uses without editing.
+But the command line does not enforce any restrictions around this, so the
+decision whether to inject a file via copying or linking is entirely up to the
+user. Please think twice or more before linking valuable shared files to
+any target that is modified during the run.
+
 
 ---
 
