@@ -79,34 +79,34 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
 }
 
 
-# Get results of model runs
-# this function is arguably too chatty, so we'll suppress
-# INFO-level log output for this step.
-loglevel <- PEcAn.logger::logger.setLevel("WARN")
-if (PEcAn.utils::status.check("OUTPUT") == 0) {
-  PEcAn.utils::status.start("OUTPUT")
-  runModule.get.results(settings)
-  PEcAn.utils::status.end()
-}
-PEcAn.logger::logger.setLevel(loglevel)
-
-
-# Run ensemble analysis on model output.
-# if ("ensemble" %in% names(settings)
-# && PEcAn.utils::status.check("ENSEMBLE") == 0) {
-#   PEcAn.utils::status.start("ENSEMBLE")
-#   runModule.run.ensemble.analysis(settings, TRUE)
+# # Get results of model runs
+# # this function is arguably too chatty, so we'll suppress
+# # INFO-level log output for this step.
+# loglevel <- PEcAn.logger::logger.setLevel("WARN")
+# if (PEcAn.utils::status.check("OUTPUT") == 0) {
+#   PEcAn.utils::status.start("OUTPUT")
+#   runModule.get.results(settings)
 #   PEcAn.utils::status.end()
 # }
+# PEcAn.logger::logger.setLevel(loglevel)
 
 
-# Run sensitivity analysis and variance decomposition on model output
-if ("sensitivity.analysis" %in% names(settings) &&
-      PEcAn.utils::status.check("SENSITIVITY") == 0) {
-  PEcAn.utils::status.start("SENSITIVITY")
-  runModule.run.sensitivity.analysis(settings)
-  PEcAn.utils::status.end()
-}
+# # Run ensemble analysis on model output.
+# # if ("ensemble" %in% names(settings)
+# # && PEcAn.utils::status.check("ENSEMBLE") == 0) {
+# #   PEcAn.utils::status.start("ENSEMBLE")
+# #   runModule.run.ensemble.analysis(settings, TRUE)
+# #   PEcAn.utils::status.end()
+# # }
+
+
+# # Run sensitivity analysis and variance decomposition on model output
+# if ("sensitivity.analysis" %in% names(settings) &&
+#       PEcAn.utils::status.check("SENSITIVITY") == 0) {
+#   PEcAn.utils::status.start("SENSITIVITY")
+#   runModule.run.sensitivity.analysis(settings)
+#   PEcAn.utils::status.end()
+# }
 
 # Pecan workflow complete
 if (PEcAn.utils::status.check("FINISHED") == 0) {
