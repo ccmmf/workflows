@@ -46,3 +46,5 @@ paths:
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
   fertilization_info_path: "data_raw/management/fertilization/v1.0/"
   ncc_info_path: "data_raw/management/ncc/v1.0/"
+  site_era5_path: "data_raw/ERA5_CA_nc"
+  landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
