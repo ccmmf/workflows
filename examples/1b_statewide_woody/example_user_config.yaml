@@ -30,6 +30,14 @@ workflow_parallelism_mode: slurm-srun
 # separate slurm_partition key -- it's just another srun flag).
 srun_additional_arguments: "--mem=0"
 
+# Steps the manifest marks slurm: true (here: build-ic) must have a matching
+# entry below or the CLI fails fast.
+step_dispatch_configuration:
+  build-ic:
+    slurm: true
+    method: srun
+    additional_arguments: "--mem=0"
+
 # AWS CLI named profile for S3 access (get-demo-data command).
 aws_profile: magic
 

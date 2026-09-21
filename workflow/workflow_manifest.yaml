@@ -15,7 +15,9 @@
 #                below). Defaults to false; must never be true for the
 #                00_fetch_s3_and_prepare_run_dir.sh / 00_stage_external_inputs.sh
 #                staging steps (fetch/copy, not compute) -- the CLI fails
-#                fast if it is.
+#                fast if it is. A step marked slurm: true here REQUIRES a
+#                matching step_dispatch_configuration.<name> entry in the
+#                user's config -- the CLI fails fast if one is missing.
 #   r_libraries: R packages to check before running this script
 #   inputs:      Dict of {cli_flag: path_key} for path-valued flags this script reads
 #   outputs:     Dict of {cli_flag: path_key} for path-valued flags this script
@@ -25,9 +27,22 @@
 #                falling back to the manifest's own top-level value)
 #
 # Slurm (srun) step wrapping: a step marked slurm: true is prepended with
-# `srun` (plus any config-supplied srun_additional_arguments, e.g. "-p
-# node") whenever srun is available on the invoking host and the user
-# config's workflow_parallelism_mode is not "local".
+# `srun` whenever srun is available on the invoking host and the user
+# config's workflow_parallelism_mode is not "local". The user's config MUST
+# also configure the step under a top-level step_dispatch_configuration map,
+# keyed by the step's `name` (e.g. build-ic), or the CLI fails fast before
+# running anything:
+#
+#   step_dispatch_configuration:
+#     build-ic:
+#       slurm: true                 # optional, default true; set false to opt this step out for this run
+#       method: srun                # optional, default "srun" (only method implemented so far)
+#       additional_arguments: "-p node --mem=0"   # optional; falls back (with a warning) to the global srun_additional_arguments below
+#
+# A step marked slurm: false in the manifest ignores any
+# step_dispatch_configuration entry for it (just warns that the entry has
+# no effect) -- the manifest is the source of truth for step eligibility;
+# the config only controls whether/how wrapping happens for eligible steps.
 # This is a wholly separate mechanism from pecan_parallelism_mode/host_xml
 # below, which governs PEcAn's own sbatch-based submission of ensemble
 # members and is unaffected by workflow_parallelism_mode.
@@ -526,6 +541,9 @@ workflow_parallelism_mode: "slurm-srun"
 # Free-form extra flags appended to every srun invocation (e.g. "-p node
 # --mem=64G --time=02:00:00 --cpus-per-task=4"). No structured schema;
 # passed through verbatim, including the partition (-p) if one is wanted.
+# This is now the FALLBACK: a per-step step_dispatch_configuration.<name>
+# entry with its own additional_arguments takes precedence; a configured
+# step without one falls back here (and warns that it's doing so).
 srun_additional_arguments: ""
 # Free-form extra flags appended to every sbatch invocation issued by
 # pecan_parallelism_mode: slurm-sbatch for ensemble-member submission (e.g.
@@ -533,6 +551,9 @@ srun_additional_arguments: ""
 # is wanted. Independent of srun_additional_arguments -- sbatch and srun
 # don't share an identical flag surface, and the two mechanisms have very
 # different resource/blast-radius profiles (see magic-ensemble-DEVELOPERS.md).
+# Not affected by step_dispatch_configuration: step_dispatch_configuration's
+# method: sbatch (step-wrapping via sbatch, distinct from this ensemble-member
+# submission mechanism) is not implemented yet.
 sbatch_additional_arguments: ""
 
 
