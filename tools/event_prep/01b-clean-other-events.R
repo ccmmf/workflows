@@ -154,28 +154,31 @@ planting <- arrow::open_dataset(args$planting_dir, format = "parquet") |>
 message("Writing tillage output")
 tillage <- arrow::open_dataset(args$tillage_dir, format = "parquet") |>
   harmonize_siteid() |>
-  dplyr::filter(
-    as.character(.data$site_id) %in% siteids,
-    is.finite(.data$ndti_pct_change),
-    .data$ndti_pct_change >= 0
+  dplyr::filter(as.character(.data$site_id) %in% siteids) |>
+  dplyr::mutate(site_id = as.integer(site_id)) |>
+  dplyr::rename_with(
+    # Handle naming inconsistencies between input versions
+    \(x) dplyr::case_when(
+      x == "pct_ndti_change" ~ "ndti_pct_change",
+      x == "OGMn_date" ~ "date",
+      TRUE ~ x
+    )
   ) |>
-  dplyr::mutate(site_id = as.integer(site_id))
-
+  dplyr::filter(
+    is.finite(ndti_pct_change),
+    ndti_pct_change >= 0,
+    !is.na(date)
+  )
 if (!"tillage_eff_0to1" %in% colnames(tillage)) {
   tillage <- tillage |>
     dplyr::collect() |> # arrow can't inline ndti_to_sipnet_tillage()
     dplyr::mutate(
       tillage_eff_0to1 = PEcAn.data.land::ndti_to_sipnet_tillage(
-        ndti_pct_change / 100
+        .data$ndti_pct_change / 100
       )
     )
 }
-if (!"date" %in% colnames(tillage)) {
-  tillage <- tillage |>
-    dplyr::mutate(date = as.Date(.data$OGMn_date))
-}
 tillage <- tillage |>
-  tidyr::drop_na(date) |>
   dplyr::select(
     "event_type",
     "site_id",
