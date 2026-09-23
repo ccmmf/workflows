@@ -407,7 +407,7 @@ steps:
               event_outdir: event_dir
 
         - name: build-xml
-          script: "examples/3_rowcrop/03_xml_build_proj.R"
+          script: "workflow/06_xml_build_proj.R"
           slurm: true
           r_libraries: [PEcAn.settings]
           inputs:
@@ -440,8 +440,7 @@ steps:
             prev_run_dir: prev_inventory_dir
             settings: settings_xml
           params: {}
-          outputs:
-            new_run_dir: output_dir
+          outputs: {}
         - name: set-up-runs
           script: "workflow/04_set_up_runs.R"
           slurm: true
