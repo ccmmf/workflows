@@ -444,7 +444,7 @@ steps:
             new_run_dir: output_dir
         - name: set-up-runs
           script: "workflow/04_set_up_runs.R"
-          slurm: false
+          slurm: true
           r_libraries: [PEcAn.all]
           inputs:
               settings: settings_xml
@@ -462,7 +462,7 @@ steps:
               new_run_dir: output_dir
         - name: run-model
           script: "workflow/05_run_model.R"
-          slurm: false
+          slurm: true
           r_libraries: [PEcAn.all]
           inputs:
               settings: config_xml
@@ -473,7 +473,7 @@ steps:
     run-ensembles:
         - name: set-up-runs
           script: "workflow/04_set_up_runs.R"
-          slurm: false
+          slurm: true
           r_libraries: [PEcAn.all]
           inputs:
               settings: settings_xml
@@ -482,7 +482,7 @@ steps:
           outputs: {}
         - name: run-model
           script: "workflow/05_run_model.R"
-          slurm: false
+          slurm: true
           r_libraries: [PEcAn.all]
           inputs:
               settings: config_xml
