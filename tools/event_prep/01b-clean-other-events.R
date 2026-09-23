@@ -27,9 +27,6 @@ options <- list(
     default = "data_raw/management/tillage/v1.0",
     help = "Directory containing Parquet files of tillage events"
   ),
-  # Fertilization and organic amendment files can be added here when ready
-  # optparse::make_option("--fert_dir",...),
-  # optparse::make_option("--ncc_dir",...),
   optparse::make_option("--outdir",
     default = "data/management/",
     help = paste(
@@ -58,46 +55,96 @@ args <- optparse::OptionParser(option_list = options) |>
 
 ## -------------------------- end option parsing ------------------------------
 
+# Convert "parcel_id" columns to "site_id"
+#
+# Most management sources preserve DWR field identity via "parcel_id",
+# but some label it "site_id". PEcan's event JSON standard expects "site_id",
+# so converting it here.
+# Why the terminology change? Because this is the moment we conceptually switch
+# from data monitored on a whole field (parcel_id) to events used to model a
+# point location (site_id).
+harmonize_siteid <- function(dat) {
+  if ("site_id" %in% colnames(dat)) {
+    return(dat)
+  } else if (!"parcel_id" %in% colnames(dat)) {
+    stop("no parcel id found in data")
+  }
+
+  dplyr::rename(dat, site_id = parcel_id)
+}
+
+
 siteids <- read.csv(args$site_info_path) |>
-  _$field_id |>
+  _$id |>
   unique()
 
-harvest_files <- list.files(args$harvest_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
-planting_files <- list.files(args$planting_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
-phenology_files <- list.files(args$pheno_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
-tillage_files <- list.files(args$tillage_dir, "\\.parquet$", full.names = TRUE, recursive = TRUE)
 dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
 
 message("Writing harvest output")
-harvest <- arrow::open_dataset(harvest_files, format = "parquet") |>
-dplyr::filter(as.character(site_id) %in% siteids) |>
+harvest <- arrow::open_dataset(args$harvest_dir, format = "parquet") |>
+  harmonize_siteid() |>
+  dplyr::filter(
+    as.character(site_id) %in% siteids,
+    !is.na(date)
+  ) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = as.Date(date)
   ) |>
   dplyr::arrange(.data$site_id) |>
+  dplyr::select(
+    "event_type",
+    "site_id",
+    "date",
+    "frac_above_removed_0to1",
+    "frac_below_removed_0to1",
+    "frac_above_to_litter_0to1",
+    "frac_below_to_litter_0to1"
+  ) |>
   arrow::write_parquet(
     file.path(args$outdir, "harvest.parquet"),
     compression = "ZSTD"
   )
 
 message("Writing planting output")
-planting <- arrow::open_dataset(planting_files, format = "parquet") |>
-  dplyr::filter(as.character(site_id) %in% siteids) |>
+planting <- arrow::open_dataset(args$planting_dir, format = "parquet") |>
+  harmonize_siteid() |>
+  dplyr::filter(
+    as.character(site_id) %in% siteids,
+    !is.na(date)
+  ) |>
   dplyr::mutate(
     site_id = as.integer(site_id),
     date = pmax(as.Date(date), as.Date(args$adjust_start)) # push earlier plantings forward to avoid beginning-of-run boundary error
   ) |>
-  dplyr::rename(
-    crop_code = "code",
-    leaf_c_kg_m2 = "C_LEAF",
-    wood_c_kg_m2 = "C_STEM",
-    fine_root_c_kg_m2 = "C_FINEROOT",
-    coarse_root_c_kg_m2 = "C_COARSEROOT",
-    leaf_n_kg_m2 = "N_LEAF",
-    wood_n_kg_m2 = "N_STEM",
-    fine_root_n_kg_m2 = "N_FINEROOT",
-    coarse_root_n_kg_m2 = "N_COARSEROOT"
+  # Projection and inventory colnames differ
+  dplyr::rename_with(
+    \(x) dplyr::case_when(
+      x == "code" ~ "crop_code",
+      x == "C_LEAF" ~ "leaf_c_kg_m2",
+      x == "C_STEM" ~ "wood_c_kg_m2",
+      x == "C_FINEROOT" ~ "fine_root_c_kg_m2",
+      x == "C_COARSEROOT" ~ "coarse_root_c_kg_m2",
+      x == "N_LEAF" ~ "leaf_n_kg_m2",
+      x == "N_STEM" ~ "wood_n_kg_m2",
+      x == "N_FINEROOT" ~ "fine_root_n_kg_m2",
+      x == "N_COARSEROOT" ~ "coarse_root_n_kg_m2",
+      TRUE ~ x
+    )
+  ) |>
+  dplyr::select(
+    "event_type",
+    "site_id",
+    "date",
+    "crop_code",
+    "leaf_c_kg_m2",
+    "wood_c_kg_m2",
+    "fine_root_c_kg_m2",
+    "coarse_root_c_kg_m2",
+    "leaf_n_kg_m2",
+    "wood_n_kg_m2",
+    "fine_root_n_kg_m2",
+    "coarse_root_n_kg_m2"
   ) |>
   arrow::write_parquet(
     file.path(args$outdir, "planting.parquet"),
@@ -105,13 +152,14 @@ planting <- arrow::open_dataset(planting_files, format = "parquet") |>
   )
 
 message("Writing tillage output")
-tillage <- arrow::open_dataset(tillage_files, format = "parquet") |>
+tillage <- arrow::open_dataset(args$tillage_dir, format = "parquet") |>
+  harmonize_siteid() |>
   dplyr::filter(
-    as.character(parcel_id) %in% siteids,
+    as.character(.data$site_id) %in% siteids,
     is.finite(.data$ndti_pct_change),
     .data$ndti_pct_change >= 0
   ) |>
-  dplyr::mutate(parcel_id = as.integer(parcel_id))
+  dplyr::mutate(site_id = as.integer(site_id))
 
 if (!"tillage_eff_0to1" %in% colnames(tillage)) {
   tillage <- tillage |>
@@ -127,8 +175,10 @@ if (!"date" %in% colnames(tillage)) {
     dplyr::mutate(date = as.Date(.data$OGMn_date))
 }
 tillage <- tillage |>
+  tidyr::drop_na(date) |>
   dplyr::select(
-    site_id = "parcel_id", # TODO make downstream steps use parcel_id too
+    "event_type",
+    "site_id",
     "date",
     "tillage_eff_0to1"
   ) |>
@@ -138,11 +188,14 @@ tillage <- tillage |>
   )
 
 message("Writing phenology output")
-phenology <- arrow::open_dataset(phenology_files, format = "parquet")
+phenology <- arrow::open_dataset(args$pheno_dir, format = "parquet") |>
+  harmonize_siteid() |>
+  dplyr::filter(as.character(site_id) %in% siteids)
 leafon <- phenology |>
-  dplyr::filter(as.character(site_id) %in% siteids) |>
-  dplyr::select("site_id", date = "leafonday") |>
+  dplyr::filter(!is.na(leafonday)) |>
+  dplyr::select("site_id", "date" = leafonday) |>
   dplyr::mutate(
+    event_type = "leafon",
     site_id = as.integer(.data$site_id),
     date = pmax(as.Date(date), as.Date(args$adjust_start)) # push earlier leafons forward to avoid beginning-of-run boundary error
   )|>
@@ -151,9 +204,10 @@ leafon <- phenology |>
     compression = "ZSTD"
   )
 leafoff <- phenology |>
-  dplyr::filter(site_id %in% siteids) |>
-  dplyr::select("site_id", date = "leafoffday") |>
+  dplyr::filter(!is.na(leafoffday)) |>
+  dplyr::select("site_id", "date" = leafoffday) |>
   dplyr::mutate(
+    event_type = "leafoff",
     site_id = as.integer(.data$site_id),
     date = as.Date(.data$date)
   ) |>
