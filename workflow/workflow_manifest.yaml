@@ -458,7 +458,7 @@ steps:
               prev_run_dir: prev_inventory_dir
           params: {}
           outputs:
-              new_run_dir: output_dir
+              new_run_dir: run_dir
         - name: run-model
           script: "workflow/05_run_model.R"
           slurm: true

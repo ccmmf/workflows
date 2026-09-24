@@ -15,7 +15,7 @@
 #   `<RESTART_IN>restart.in</RESTART_IN>`
 
 # Tentative design: Copies restarts first from the previous rundir into a
-# `restarts` directory in the new dir, then each file is copied again from
+# `restarts_in` directory in the new dir, then each file is copied again from
 # `<outdir>/restarts/restart-<siteid>-<ensid>.out` to
 # `<outdir>/run/ENS-<ensid>-<siteid>/restart.in`.
 # TODO: consider deleting `restarts/` when finished once we're confident the
@@ -25,15 +25,18 @@ options <- list(
   optparse::make_option("--prev_run_dir",
     default = "output/",
     help = paste(
-      "Path to a set of PEcAn outputs, possibly segmented, that were run",
-      "using Sipnet 2.x with its restart.out file enabled"
+      "Path to the output/ folder of a previously run PEcAn workflow,",
+      "containing outputs that were run using Sipnet 2.x with its restart.out",
+      "file enabled. For outputs that were run in multiple segments, only the",
+      "last restart file will be copied."
     )
   ),
   optparse::make_option("--new_run_dir",
-    default = "collected_restarts",
+    default = "your_new_pecan_dir_here",
     help = paste(
       "Output path:",
-      "A new run directory into which restarts should be copied."
+      "A new PEcAn workflow directory into which restarts should be copied."
+      "Will create or populate subdirs `restarts_in` and `/output/run/ENS-*`"
     )
   )
 ) |>
@@ -52,7 +55,7 @@ if (!dir.exists(args$new_run_dir)) {
 
 # Dunno if we actually need to keep a separate copy of these,
 # but will do it that way at least for initial debug
-restart_dir <- file.path(args$new_run_dir, "restarts")
+restart_dir <- file.path(args$new_run_dir, "restarts_in")
  if (!dir.exists(restart_dir)) {
   dir.create(restart_dir, recursive = TRUE)
 }
@@ -71,7 +74,8 @@ restart_locs <- data.frame(path = basename(restarts)) |>
   dplyr::mutate(
     dest_path = file.path(
       args$new_run_dir,
-      "run", # TODO bake this into new_run_dir?
+      "output", # TODO make configurable?
+      "run",
       paste("ENS", ens, site, sep = "-"),
       "restart.in")
   )
