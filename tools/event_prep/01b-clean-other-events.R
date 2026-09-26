@@ -195,7 +195,8 @@ tillage <- tillage |>
 message("Writing phenology output")
 phenology <- arrow::open_dataset(args$pheno_dir, format = "parquet") |>
   harmonize_siteid() |>
-  dplyr::filter(as.character(site_id) %in% siteids) |> dplyr::collect()
+  dplyr::filter(as.character(site_id) %in% siteids) |>
+  dplyr::collect()
 
 if (all(c("leafonday", "leafoffday") %in% colnames(phenology))) {
   # wide form; use the appropriate column
@@ -227,7 +228,7 @@ leafon <- leafon |>
     file.path(args$outdir, "leafon.parquet"),
     compression = "ZSTD"
   )
-leafoff <- phenology |>
+leafoff <- leafoff |>
   dplyr::mutate(
     event_type = "leafoff",
     site_id = as.integer(.data$site_id),
