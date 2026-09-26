@@ -117,7 +117,7 @@ planting <- arrow::open_dataset(args$planting_dir, format = "parquet") |>
     site_id = as.integer(site_id),
     date = pmax(as.Date(date), as.Date(args$adjust_start)) # push earlier plantings forward to avoid beginning-of-run boundary error
   ) |>
-  # Projection and inventory colnames differ
+  # Keep accepting v1 naming scheme
   dplyr::rename_with(
     \(x) dplyr::case_when(
       x == "code" ~ "crop_code",
@@ -146,6 +146,8 @@ planting <- arrow::open_dataset(args$planting_dir, format = "parquet") |>
     "fine_root_n_kg_m2",
     "coarse_root_n_kg_m2"
   ) |>
+  # TODO maybe these should be louder warnings/errors?
+  dplyr::filter(dplyr::across(everything(), ~!is.na(.))) |>
   arrow::write_parquet(
     file.path(args$outdir, "planting.parquet"),
     compression = "ZSTD"
@@ -193,10 +195,29 @@ tillage <- tillage |>
 message("Writing phenology output")
 phenology <- arrow::open_dataset(args$pheno_dir, format = "parquet") |>
   harmonize_siteid() |>
-  dplyr::filter(as.character(site_id) %in% siteids)
-leafon <- phenology |>
-  dplyr::filter(!is.na(leafonday)) |>
-  dplyr::select("site_id", "date" = leafonday) |>
+  dplyr::filter(as.character(site_id) %in% siteids) |> dplyr::collect()
+
+if (all(c("leafonday", "leafoffday") %in% colnames(phenology))) {
+  # wide form; use the appropriate column
+  leafon <- phenology |>
+    dplyr::filter(!is.na(leafonday)) |>
+    dplyr::select("site_id", "date" = leafonday)
+  leafoff <- phenology |>
+    dplyr::filter(!is.na(leafoffday)) |>
+    dplyr::select("site_id", "date" = leafoffday)
+} else if (all(c("date", "event_type") %in% colnames(phenology))) {
+  # long form w/event type column distinguishing leafon from leafoff
+  leafon <- phenology |>
+    dplyr::filter(event_type == "leafon", !is.na(date)) |>
+    dplyr::select("site_id", "date")
+  leafoff <- phenology |>
+    dplyr::filter(event_type == "leafoff", !is.na(date)) |>
+    dplyr::select("site_id", "date")
+} else {
+  PEcAn.logger::logger.severe("Unrecognized phenology format")
+}
+
+leafon <- leafon |>
   dplyr::mutate(
     event_type = "leafon",
     site_id = as.integer(.data$site_id),
@@ -207,8 +228,6 @@ leafon <- phenology |>
     compression = "ZSTD"
   )
 leafoff <- phenology |>
-  dplyr::filter(!is.na(leafoffday)) |>
-  dplyr::select("site_id", "date" = leafoffday) |>
   dplyr::mutate(
     event_type = "leafoff",
     site_id = as.integer(.data$site_id),
