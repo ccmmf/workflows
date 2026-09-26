@@ -3,6 +3,10 @@
 # Retrieves the samples.Rdata from a previous run,
 # performs some basic compatibility checks (mostly for matching ensemble size),
 # copies it to the output directory of a new PEcAn workflow.
+#
+# Note that this makes PEcAn ignore any PFT files specified in the new run's
+# settings. This script does check that the old and new PFT _names_ match, but
+# will not warn if the values are inconsistent.
 
 options <- list(
   optparse::make_option("--prev_run_dir",

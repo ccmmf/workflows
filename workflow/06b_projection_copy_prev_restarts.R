@@ -25,7 +25,10 @@ options <- list(
   optparse::make_option("--prev_run_dir",
     default = "output/",
     help = paste(
-      "Path to the output/ folder of a previously run PEcAn workflow,",
+      "Path to a directory containing EITHER:",
+      "(1) a flat list of `restart-<site>id>-<ensid>.out` files",
+      "as produced by PEcAn.SIPNET::collect_restarts(),",
+      "or (2) the output/ folder of a previously run PEcAn workflow,",
       "containing outputs that were run using Sipnet 2.x with its restart.out",
       "file enabled. For outputs that were run in multiple segments, only the",
       "last restart file will be copied."
@@ -59,11 +62,21 @@ restart_dir <- file.path(args$new_run_dir, "restarts_in")
  if (!dir.exists(restart_dir)) {
   dir.create(restart_dir, recursive = TRUE)
 }
-restarts <- PEcAn.SIPNET::collect_restarts(
+
+# Looks first for already-collected restarts
+# Only treat as a workflow dir if none found
+restarts <- list.files(
   args$prev_run_dir,
-  restart_dir,
-  overwrite = TRUE
+  pattern = "restart-.*-\\d+.out",
+  recursive = FALSE
 )
+if (length(restarts) == 0) {
+  restarts <- PEcAn.SIPNET::collect_restarts(
+    args$prev_run_dir,
+    restart_dir,
+    overwrite = TRUE
+  )
+}
 
 restart_locs <- data.frame(path = basename(restarts)) |>
   tidyr::separate_wider_regex(
