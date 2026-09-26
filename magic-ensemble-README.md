@@ -200,17 +200,29 @@ to those calls instead.
 ## Supplying Your Own Data
 
 If you have your own ERA5, site, or template files, skip `get-demo-data` and
-use `external_paths` in your config to inject them:
+use `external_paths` in your config to inject them. You can specify whether to
+copy the entire file into the run drectory or create a symbolic link to the
+existing file at its original location.
 
 ```yaml
 external_paths:
-  template_file: /path/to/my-template.xml
+  copy_to_rundir:
+    template_file: /path/to/my-template.xml
+  link_in_place:
+    irrigation_info_path: "/projects/shared/magic/management/irrigation/v2.0"
 ```
 
 Each key must match a key under `paths` in `workflow/workflow_manifest.yaml`.
 The file is copied into `run_dir` at the location the workflow expects, before
 `prepare` runs. Paths may be absolute or relative to the directory where you
 invoke `./magic-ensemble`.
+
+When deciding whether to link or copy a file, be sure to check whether any step
+of the workflow will write to it. `magic-ensemble` will not stop you from linking
+to files that will be modified during the run (and therefore won't stop you from
+modifying the shared original), but please only do that if you're sure it's what
+you need.
+
 
 ---
 

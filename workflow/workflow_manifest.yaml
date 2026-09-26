@@ -15,7 +15,9 @@
 #                below). Defaults to false; must never be true for the
 #                00_fetch_s3_and_prepare_run_dir.sh / 00_stage_external_inputs.sh
 #                staging steps (fetch/copy, not compute) -- the CLI fails
-#                fast if it is.
+#                fast if it is. A step marked slurm: true here REQUIRES a
+#                matching step_dispatch_configuration.<name> entry in the
+#                user's config -- the CLI fails fast if one is missing.
 #   r_libraries: R packages to check before running this script
 #   inputs:      Dict of {cli_flag: path_key} for path-valued flags this script reads
 #   outputs:     Dict of {cli_flag: path_key} for path-valued flags this script
@@ -25,9 +27,22 @@
 #                falling back to the manifest's own top-level value)
 #
 # Slurm (srun) step wrapping: a step marked slurm: true is prepended with
-# `srun` (plus any config-supplied srun_additional_arguments, e.g. "-p
-# node") whenever srun is available on the invoking host and the user
-# config's workflow_parallelism_mode is not "local".
+# `srun` whenever srun is available on the invoking host and the user
+# config's workflow_parallelism_mode is not "local". The user's config MUST
+# also configure the step under a top-level step_dispatch_configuration map,
+# keyed by the step's `name` (e.g. build-ic), or the CLI fails fast before
+# running anything:
+#
+#   step_dispatch_configuration:
+#     build-ic:
+#       slurm: true                 # optional, default true; set false to opt this step out for this run
+#       method: srun                # optional, default "srun" (only method implemented so far)
+#       additional_arguments: "-p node --mem=0"   # optional; falls back (with a warning) to the global srun_additional_arguments below
+#
+# A step marked slurm: false in the manifest ignores any
+# step_dispatch_configuration entry for it (just warns that the entry has
+# no effect) -- the manifest is the source of truth for step eligibility;
+# the config only controls whether/how wrapping happens for eligible steps.
 # This is a wholly separate mechanism from pecan_parallelism_mode/host_xml
 # below, which governs PEcAn's own sbatch-based submission of ensemble
 # members and is unaffected by workflow_parallelism_mode.
@@ -127,6 +142,7 @@ steps:
               ic_dir: ic_dir
               met_dir: met_dir
               pft_dir: pft_dir
+              sipnet_parameter_file: param_template
           params:
               n_ens: n_ens
               n_met: n_met
@@ -332,6 +348,7 @@ steps:
               met_dir: met_dir
               event_dir: event_dir
               pft_dir: pft_dir
+              sipnet_parameter_file: param_template
           params:
               n_ens: n_ens
               n_met: n_met
@@ -343,10 +360,119 @@ steps:
               output_file: output_file
               output_dir: output_dir
 
+    prepare-projections:
+        - name: stage-inputs
+          script: "workflow/00_stage_external_inputs.sh"
+          slurm: false
+          r_libraries: []
+          inputs: {}
+          params: {}
+          outputs: {}
+
+        - name: convert-clim
+          script: "workflow/01_WRF_nc_to_clim.R"
+          slurm: true
+          r_libraries: [future, furrr]
+          inputs:
+              nc_dir: wrf_nc_dir
+              cells_wanted_file: site_info_file
+          params:
+              start_date: start_date
+              end_date: end_date
+              models: wrf_models
+              scenario: wrf_scenario
+              n_cores: n_workers
+              parallel_strategy: parallel_strategy
+          outputs:
+              sipnet_dir: met_dir
+
+        - name: build-events
+          script: "workflow/02a_build_events.R"
+          slurm: true
+          r_libraries: [tidyverse, callr, glue]
+          inputs:
+              site_info_path: site_info_file
+              phenology_path: phenology_info_path
+              planting_path: planting_info_path
+              harvest_path: harvest_info_path
+              tillage_path: tillage_info_path
+              irrigation_path: irrigation_info_path
+              fert_path: fertilization_info_path
+              ncc_path: ncc_info_path
+          params:
+              start_date: start_date
+              end_date: end_date
+          outputs:
+              clean_parquet_dir: clean_parquet_dir
+              event_outdir: event_dir
+
+        - name: build-xml
+          script: "workflow/06_xml_build_proj.R"
+          slurm: true
+          r_libraries: [PEcAn.settings]
+          inputs:
+              site_file: site_info_file
+              template_file: template_file
+              ic_dir: ic_dir
+              met_dir: met_dir
+              event_dir: event_dir
+              pft_dir: pft_dir
+              sipnet_parameter_file: param_template
+          params:
+              n_ens: n_ens
+              n_met: n_met_wrf
+              n_ic: n_ic
+              n_event: n_event
+              start_date: start_date
+              end_date: end_date
+              models: wrf_models
+              scenario: wrf_scenario
+          outputs:
+              output_file: output_file
+              output_dir: output_dir
+
+    run-projections:
+        - name: get-prev-samples
+          script: "workflow/06a_projection_copy_prev_samples.R"
+          slurm: false
+          r_libraries: [PEcAn.SIPNET]
+          inputs:
+            prev_run_dir: prev_inventory_dir
+            settings: settings_xml
+          params: {}
+          outputs: {}
+        - name: set-up-runs
+          script: "workflow/04_set_up_runs.R"
+          slurm: true
+          r_libraries: [PEcAn.all]
+          inputs:
+              settings: settings_xml
+              crop_pft_lookup: pft_map
+          params: {}
+          outputs: {}
+        - name: copy-prev-model-state
+          script: "workflow/06b_projection_copy_prev_restarts.R"
+          slurm: false
+          r_libraries: [PEcAn.settings, PEcAn.SIPNET, purrr]
+          inputs:
+              prev_run_dir: prev_inventory_dir
+          params: {}
+          outputs:
+              new_run_dir: run_dir
+        - name: run-model
+          script: "workflow/05_run_model.R"
+          slurm: true
+          r_libraries: [PEcAn.all]
+          inputs:
+              settings: config_xml
+          params:
+              check_interval: slurm_check_interval
+          outputs: {}
+
     run-ensembles:
         - name: set-up-runs
           script: "workflow/04_set_up_runs.R"
-          slurm: false
+          slurm: true
           r_libraries: [PEcAn.all]
           inputs:
               settings: settings_xml
@@ -355,11 +481,12 @@ steps:
           outputs: {}
         - name: run-model
           script: "workflow/05_run_model.R"
-          slurm: false
+          slurm: true
           r_libraries: [PEcAn.all]
           inputs:
               settings: config_xml
-          params: {}
+          params:
+              check_interval: slurm_check_interval
           outputs: {}
 
 # Path definitions: all contained within the run directory.
@@ -388,9 +515,9 @@ paths:
     event_dir: "data/events"
     raw_parquet_dir: "data_raw/management"
 
-# Fixed workflow values (not user overrides)
+# Fixed workflow values
 params_read_from_pft: "SLA,leafC,leafGrowth"
-additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005"
+additional_params: "varname=wood_carbon_fraction,distn=norm,parama=0.48,paramb=0.005;varname=soil_c_to_n,distn=norm,parama=10,paramb=2"
 parallel_strategy: "multisession"
 
 # Defaults that the user really _should_ set in their config,
@@ -405,6 +532,7 @@ n_ic: 100
 n_event: 20
 n_workers: 1
 use_apptainer: "false"
+slurm_check_interval: 60
 
 # Governs the CLI's own step-wrapping: "slurm-srun" wraps steps the manifest
 # marks slurm: true whenever srun is available; "local" forces every step to
@@ -415,6 +543,9 @@ workflow_parallelism_mode: "slurm-srun"
 # Free-form extra flags appended to every srun invocation (e.g. "-p node
 # --mem=64G --time=02:00:00 --cpus-per-task=4"). No structured schema;
 # passed through verbatim, including the partition (-p) if one is wanted.
+# This is now the FALLBACK: a per-step step_dispatch_configuration.<name>
+# entry with its own additional_arguments takes precedence; a configured
+# step without one falls back here (and warns that it's doing so).
 srun_additional_arguments: ""
 # Free-form extra flags appended to every sbatch invocation issued by
 # pecan_parallelism_mode: slurm-sbatch for ensemble-member submission (e.g.
@@ -422,6 +553,9 @@ srun_additional_arguments: ""
 # is wanted. Independent of srun_additional_arguments -- sbatch and srun
 # don't share an identical flag surface, and the two mechanisms have very
 # different resource/blast-radius profiles (see magic-ensemble-DEVELOPERS.md).
+# Not affected by step_dispatch_configuration: step_dispatch_configuration's
+# method: sbatch (step-wrapping via sbatch, distinct from this ensemble-member
+# submission mechanism) is not implemented yet.
 sbatch_additional_arguments: ""
 
 

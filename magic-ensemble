@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # magic-ensemble: minimal CLI for CCMMF ensemble workflows.
 # Usage: ./magic-ensemble <command> [--verbose] --config <path>
-# Commands: help | get-demo-data | prepare | prepare-example-1b | prepare-example-2a | prepare-example-3 | run-ensembles
+# Commands: help | get-demo-data | prepare | prepare-example-1b | prepare-example-2a | prepare-example-3 | prepare-projections | run-ensembles
 
 set -euo pipefail
 
@@ -27,7 +27,9 @@ Commands:
   prepare-example-1b    Run preparation steps using the 1b statewide woody crops example scripts.
   prepare-example-2a    Run preparation steps using the 2a grass example scripts.
   prepare-example-3     Run preparation steps using the 3 row crop example scripts (adds a management-events step).
+  prepare-projections   Run preparation steps for runs using future projected climate and management.
   run-ensembles         Run step 04 (run model) using existing settings.xml and prepared inputs.
+  run-projections       Set up run directory and run model using a previous ensemble output and prepared inputs.
 
 Global options (after command):
   --verbose       Echo each command before running (including apptainer run when use_apptainer is true).
@@ -91,7 +93,7 @@ VERBOSE=0
 CONFIG_FILE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    help|get-demo-data|prepare|prepare-example-1b|prepare-example-2a|prepare-example-3|run-ensembles)
+    help|get-demo-data|prepare|prepare-example-1b|prepare-example-2a|prepare-example-3|prepare-projections|run-projections|run-ensembles)
       if [[ -z "$COMMAND" ]]; then COMMAND="$1"; shift; continue; fi
       ;;
     --verbose)   VERBOSE=1; shift; continue ;;
@@ -121,7 +123,7 @@ if [[ -z "$COMMAND" || "$COMMAND" == "help" ]]; then
   exit 0
 fi
 
-if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "prepare-example-1b" && "$COMMAND" != "prepare-example-2a" && "$COMMAND" != "prepare-example-3" && "$COMMAND" != "run-ensembles" ]]; then
+if [[ "$COMMAND" != "get-demo-data" && "$COMMAND" != "prepare" && "$COMMAND" != "prepare-example-1b" && "$COMMAND" != "prepare-example-2a" && "$COMMAND" != "prepare-example-3" && "$COMMAND" != "run-ensembles" && "$COMMAND" != "prepare-projections" && "$COMMAND" != "run-projections" ]]; then
   echo "magic-ensemble: Unknown command: $COMMAND" >&2
   usage >&2
   exit 1
@@ -294,13 +296,14 @@ check_slurm_available() {
 # for srun). ---
 build_srun_prefix() {
   local job_name="$1"
+  local extra_args="$2"
   SRUN_PREFIX=(srun)
   if [[ -n "$job_name" ]]; then
     SRUN_PREFIX+=(--job-name "Magic-${job_name}")
   fi
-  if [[ -n "$srun_additional_arguments" && "$srun_additional_arguments" != "null" ]]; then
+  if [[ -n "$extra_args" && "$extra_args" != "null" ]]; then
     local -a extra
-    read -r -a extra <<< "$srun_additional_arguments"
+    read -r -a extra <<< "$extra_args"
     SRUN_PREFIX+=("${extra[@]}")
   fi
 }
@@ -391,6 +394,69 @@ validate_slurm_steps() {
   done
 }
 
+# --- Validate and resolve the user config's step_dispatch_configuration map
+# against the manifest's per-step 'slurm' flags. A step marked slurm: true
+# in the manifest requires a matching entry here, or the CLI fails fast
+# (before any step runs); a step marked slurm: false ignores any entry
+# present, but warns, since it indicates user intent that won't take
+# effect. Populates STEP_SLURM_USER_ENABLED[] (the entry's own opt-out) and
+# STEP_SLURM_PARAMS[] (resolved additional_arguments, falling back to the
+# global srun_additional_arguments -- with a warning -- when the entry
+# doesn't supply its own), both index-aligned with STEPS/STEP_NAMES/STEP_SLURM. ---
+validate_step_dispatch_configuration() {
+  STEP_SLURM_USER_ENABLED=()
+  STEP_SLURM_PARAMS=()
+  local i name entry enabled method params
+  for i in "${!STEPS[@]}"; do
+    name="${STEP_NAMES[i]}"
+    entry=$(yq eval ".step_dispatch_configuration[\"${name}\"]" "$CONFIG_FILE" 2>/dev/null)
+
+    if [[ "${STEP_SLURM[i]}" != "true" ]]; then
+      if [[ -n "$entry" && "$entry" != "null" ]]; then
+        echo "magic-ensemble: WARNING: step '${name}' has a step_dispatch_configuration entry in your config, but the manifest marks it slurm: false -- running it without Slurm, as the manifest requires." >&2
+      fi
+      STEP_SLURM_USER_ENABLED+=("false")
+      STEP_SLURM_PARAMS+=("")
+      continue
+    fi
+
+    if [[ -z "$entry" || "$entry" == "null" ]]; then
+      echo "magic-ensemble: step '${name}' is marked slurm: true in the manifest but has no step_dispatch_configuration entry in your config ($CONFIG_FILE). Add one (see workflow_manifest.yaml / magic-ensemble-DEVELOPERS.md) or the manifest cannot dispatch this step." >&2
+      exit 1
+    fi
+
+    enabled=$(yq eval ".step_dispatch_configuration[\"${name}\"].slurm" "$CONFIG_FILE" 2>/dev/null)
+    [[ -z "$enabled" || "$enabled" == "null" ]] && enabled="true"
+    STEP_SLURM_USER_ENABLED+=("$enabled")
+
+    if [[ "$enabled" != "true" ]]; then
+      STEP_SLURM_PARAMS+=("")
+      continue
+    fi
+
+    method=$(yq eval ".step_dispatch_configuration[\"${name}\"].method" "$CONFIG_FILE" 2>/dev/null)
+    [[ -z "$method" || "$method" == "null" ]] && method="srun"
+    case "$method" in
+      srun) ;;
+      sbatch)
+        echo "magic-ensemble: step '${name}' requests step_dispatch_configuration method 'sbatch', but sbatch step-wrapping is not yet implemented -- only 'srun' is supported. Use method: srun or remove the method key." >&2
+        exit 1
+        ;;
+      *)
+        echo "magic-ensemble: step '${name}' has unknown step_dispatch_configuration method '${method}'. Valid options: srun" >&2
+        exit 1
+        ;;
+    esac
+
+    params=$(yq eval ".step_dispatch_configuration[\"${name}\"].additional_arguments" "$CONFIG_FILE" 2>/dev/null)
+    if [[ -z "$params" || "$params" == "null" ]]; then
+      echo "magic-ensemble: WARNING: step '${name}' has no additional_arguments in its step_dispatch_configuration entry -- falling back to the global srun_additional_arguments." >&2
+      params="$srun_additional_arguments"
+    fi
+    STEP_SLURM_PARAMS+=("$params")
+  done
+}
+
 # --- Decide whether step i of the current command should be srun-wrapped:
 # manifest opts in, user config hasn't force-disabled it, and srun is
 # actually available. Sets STEP_SLURM_ARGS to () or ("--slurm" "<step name>")
@@ -410,6 +476,11 @@ compute_slurm_arg() {
 
   [[ "${STEP_SLURM[i]}" != "true" ]] && return
 
+  if [[ "${STEP_SLURM_USER_ENABLED[i]}" != "true" ]]; then
+    log_info "step '${STEP_NAMES[i]}': slurm disabled via step_dispatch_configuration in your config -- running it unwrapped, as configured."
+    return
+  fi
+
   if [[ "$workflow_parallelism_mode" == "local" ]]; then
     echo "magic-ensemble: WARNING: step '${STEP_NAMES[i]}' is marked slurm: true in the manifest, but workflow_parallelism_mode is set to 'local' in your config -- running it unwrapped, as configured." >&2
     return
@@ -420,7 +491,7 @@ compute_slurm_arg() {
     return
   fi
 
-  STEP_SLURM_ARGS=(--slurm "${STEP_NAMES[i]}")
+  STEP_SLURM_ARGS=(--slurm "${STEP_NAMES[i]}" "${STEP_SLURM_PARAMS[i]}")
 }
 
 # --- R library check for step at index i (reads r_libraries from manifest step; skip if empty or .sh) ---
@@ -461,19 +532,21 @@ run_script() {
   local use_apptainer=0
   local use_slurm=0
   local slurm_job_name=""
+  local slurm_params=""
   local script_cwd="$REPO_ROOT"
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
       '') shift ;;
       --apptainer) use_apptainer=1; shift ;;
       --slurm)
-        if [[ $# -lt 2 ]]; then
-          echo "magic-ensemble: run_script --slurm requires STEP_NAME." >&2
+        if [[ $# -lt 3 ]]; then
+          echo "magic-ensemble: run_script --slurm requires STEP_NAME PARAMS." >&2
           exit 1
         fi
         use_slurm=1
         slurm_job_name="$2"
-        shift 2
+        slurm_params="$3"
+        shift 3
         ;;
       --cwd)
         if [[ $# -lt 2 ]]; then
@@ -496,7 +569,7 @@ run_script() {
 
   local -a SRUN_PREFIX=()
   if [[ $use_slurm -eq 1 ]]; then
-    build_srun_prefix "$slurm_job_name"
+    build_srun_prefix "$slurm_job_name" "$slurm_params"
   fi
 
   if [[ $use_apptainer -eq 1 ]]; then
@@ -533,9 +606,11 @@ run_shell_script() {
   local step_index="${2:-0}"
   local use_slurm=0
   local slurm_job_name=""
+  local slurm_params=""
   if [[ "${3:-}" == "--slurm" ]]; then
     use_slurm=1
     slurm_job_name="${4:-}"
+    slurm_params="${5:-}"
   fi
   local script_path="${REPO_ROOT}/${script}"
   if [[ ! -f "$script_path" ]]; then
@@ -545,7 +620,7 @@ run_shell_script() {
 
   local -a SRUN_PREFIX=()
   if [[ $use_slurm -eq 1 ]]; then
-    build_srun_prefix "$slurm_job_name"
+    build_srun_prefix "$slurm_job_name" "$slurm_params"
   fi
 
   local script_basename="${script##*/}"
@@ -735,6 +810,7 @@ run_manifest_command() {
   { # block for output redirection
     get_steps_array
     validate_slurm_steps
+    validate_step_dispatch_configuration
     validate_pecan_parallelism_mode
     local apptainer_arg=""
     if [[ $use_apptainer -eq 1 ]]; then
@@ -788,6 +864,7 @@ run_manifest_command() {
 run_get_demo_data() {
   get_steps_array
   validate_slurm_steps
+  validate_step_dispatch_configuration
   check_aws
   for i in "${!STEPS[@]}"; do
     check_r_libs_for_step "$i"
@@ -807,6 +884,7 @@ run_run_ensembles() {
   { # block for output redirection
     get_steps_array
     validate_slurm_steps
+    validate_step_dispatch_configuration
 
     if [[ $use_apptainer -eq 1 ]]; then
       ensure_apptainer_available
@@ -832,6 +910,8 @@ case "$COMMAND" in
   prepare-example-1b)   run_manifest_command ;;
   prepare-example-2a)   run_manifest_command ;;
   prepare-example-3)    run_manifest_command ;;
+  prepare-projections)  run_manifest_command ;;
   run-ensembles)        run_run_ensembles ;;
+  run-projections)      run_run_ensembles ;;
   *)                    echo "magic-ensemble: Unknown command: $COMMAND" >&2; exit 1 ;;
 esac

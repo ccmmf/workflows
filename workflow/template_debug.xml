@@ -39,10 +39,10 @@
   <id>99000000003</id>
   <type>SIPNET</type>
   <revision>2.2.0</revision>
-  <delete.raw>TRUE</delete.raw>
+  <delete.raw>FALSE</delete.raw>
   <copy.restart>TRUE</copy.restart>
   <prerun>@BINARY@ --version</prerun>
-  <postrun>rm -rf '@RUNDIR@'</postrun>
+  <postrun>echo 'All run files kept in @RUNDIR@ for inspection'</postrun>
   <default.param><!-- inserted at config time --></default.param>
   <binary>/usr/local/bin/sipnet.git</binary>
   <options>

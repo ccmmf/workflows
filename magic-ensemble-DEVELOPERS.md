@@ -17,16 +17,16 @@ workflow_manifest.yaml   — fixed contract: internal paths, step definitions,
 user_config.yaml         — runtime overrides: run_dir, dates, ensemble sizes,
                            dispatch mode, use_apptainer, external_paths
         +
-external_paths (staged)  — user-provided files copied into run_dir before
+external_paths (staged)  — user-provided files materialized into run_dir before
                            prepare runs, mapped to manifest-defined destinations
 ```
 
 The manifest (`workflow/workflow_manifest.yaml`) is the source of truth for
 everything that is fixed per workflow. The user config contains only the values
 a user legitimately needs to vary between runs. External paths are the mechanism
-for injecting user-owned files (e.g. a custom `template.xml`) without making
-manifest paths user-overridable. As written, a user can only inject files that
-are expected by the pipeline.
+for injecting user-owned files (e.g. a custom `template.xml`) and can be
+specified either as outright copies (`external_paths: copy_to_rundir:`) or as
+symbolic links targeting the external location (`exteral_paths: link_in_place:`).
 
 ---
 
@@ -119,6 +119,16 @@ File paths for user-owned inputs that must be injected into `run_dir` before
 is `run_dir/$(basename manifest.paths.<key>)` — derived from the manifest, not
 from the source filename, so downstream scripts always find files where they
 expect them.
+
+It is likely that you will want to use copying for files that become artifacts
+of this specific run (especially ones that are edited during the
+workflow); in contrast we expect linking to be most useful for large, relatively
+static files that the workflow uses without editing.
+But the command line does not enforce any restrictions around this, so the
+decision whether to inject a file via copying or linking is entirely up to the
+user. Please think twice or more before linking valuable shared files to
+any target that is modified during the run.
+
 
 ---
 
@@ -263,12 +273,53 @@ srun availability. It does not touch `pecan_parallelism_mode:
 slurm-sbatch`. Any value other than `local`/`slurm-srun` is a hard error at
 startup.
 
-There's deliberately no per-step config override (no `slurm_steps: {name:
-bool}`-style dict) — the user config has no existing notion of addressing
-individual steps, and inventing one would mean every user/CI config needs
-updating whenever a step is added/renamed in the manifest. The manifest's
-per-step flag is the single source of truth for *which* steps are eligible;
-the config only controls whether wrapping happens *at all* this run.
+### Config: `step_dispatch_configuration` (per-step override)
+
+Users need more than a single global on/off switch: a specific step may
+need its own dispatch method and its own resource-flag string (e.g.
+`build-ic` needs a bigmem partition that other steps don't). The user
+config's top-level `step_dispatch_configuration` map, keyed by step `name`,
+provides that:
+
+```yaml
+step_dispatch_configuration:
+  build-ic:
+    slurm: true                                  # optional, default true when the entry exists
+    method: srun                                 # optional, default "srun"; "sbatch" is accepted but errors (not yet implemented)
+    additional_arguments: "-p bigmem --mem=0"     # optional; falls back to the global srun_additional_arguments (with a warning) if omitted
+  build-xml:
+    slurm: false                                  # opt out for this run even though the manifest marks it slurm: true
+```
+
+The manifest's per-step `slurm:` flag remains the single source of truth
+for *which* steps are eligible at all; `step_dispatch_configuration` only
+governs *how* an eligible step is dispatched, or whether it's dispatched
+this run. The two are cross-validated by `validate_step_dispatch_configuration()`
+before any step runs:
+
+- `slurm: true` in the manifest, no matching `step_dispatch_configuration.<name>`
+  entry → hard error, exit 1. Every step the manifest marks eligible must be
+  explicitly configured.
+- `slurm: true` in the manifest, entry present with its own `slurm: false`
+  → honored silently as a deliberate per-run opt-out (the entry itself
+  satisfies "configured"; no error, no warning).
+- `slurm: false` in the manifest, entry present anyway → warns (the entry
+  can't take effect; the manifest wins) and runs unwrapped.
+- An entry's `additional_arguments` is optional; if omitted, the CLI warns
+  and falls back to the global `srun_additional_arguments`.
+- `method: sbatch` is accepted by the schema but is a hard, fail-fast error
+  today — no sbatch-based step-wrapping code exists yet (see "Availability"
+  below for the wholly separate existing `sbatch` usage via
+  `pecan_parallelism_mode: slurm-sbatch`).
+
+This reverses an earlier design choice (this section used to say there was
+deliberately no per-step override, since the user config had no existing
+notion of addressing individual steps, and inventing one meant every
+user/CI config would need updating whenever a step is added/renamed in the
+manifest). That maintenance cost is now accepted deliberately, in exchange
+for per-step Slurm control — every `examples/*/example_user_config.yaml`
+and `.github/ci/example_*_config.yaml` fixture was updated alongside this
+change to add the now-required entries.
 
 `srun_additional_arguments` (default `""`) is a free-form string appended
 verbatim to every `srun` invocation (e.g. `"--mem=64G --time=02:00:00
@@ -318,27 +369,43 @@ tools are reachable at all. A user running interactively from within an
 
 - `get_steps_array()` populates a third array, `STEP_SLURM`, index-aligned
   with `STEPS`/`STEP_NAMES`.
+- `validate_step_dispatch_configuration()` runs right after
+  `validate_slurm_steps()` (in all three command handlers) and cross-checks
+  every step against the user config's `step_dispatch_configuration` map,
+  per the rules above. It fails fast (exit 1) on a missing entry for an
+  eligible step, an unknown `method`, or `method: sbatch`. It populates two
+  new index-aligned arrays: `STEP_SLURM_USER_ENABLED` (the entry's own
+  `slurm:` opt-out, default `true`) and `STEP_SLURM_PARAMS` (resolved
+  `additional_arguments`, falling back to the global
+  `srun_additional_arguments` with a warning when the entry omits one).
 - `compute_slurm_arg <i>` resolves the effective decision for step `i`
-  (manifest flag AND `workflow_parallelism_mode != local` AND `check_slurm_available`)
-  into `STEP_SLURM_ARGS` (`()` or `(--slurm "<step name>")`) for direct use
-  as `run_script`/`run_shell_script` arguments via
-  `"${STEP_SLURM_ARGS[@]}"`. The step name travels alongside the flag so the
-  eventual `srun` call can be tagged with a job name. Whenever a step's
-  manifest `slurm: true` can't be honored as requested, it warns on stderr
-  before falling back rather than downgrading silently: once if the step
-  conflicts with a config-level `workflow_parallelism_mode: local`, once if srun
-  simply isn't available on the host. A step with `slurm: false` never
-  triggers either warning.
-- `run_script()` and `run_shell_script()` both accept `--slurm STEP_NAME`
-  (a value, like `--cwd DIR`) and, when set, prefix their actual invocation
-  with `srun` (built by `build_srun_prefix "$slurm_job_name"`) — including
-  the Apptainer branch of `run_script()`, so `srun apptainer run ...` lands
-  the container itself on the allocated node rather than wrapping
-  `apptainer` around an `srun` that stays on the invocation host.
-  `build_srun_prefix` sets `--job-name "Magic-<step name>"` first, before
-  `srun_additional_arguments` — so if a user's `srun_additional_arguments`
-  happens to include its own `--job-name`/`-J`, that later flag wins
-  (`srun` uses last-flag-wins for repeated options).
+  (manifest flag AND `STEP_SLURM_USER_ENABLED[i]` AND
+  `workflow_parallelism_mode != local` AND `check_slurm_available`) into
+  `STEP_SLURM_ARGS` (`()` or `(--slurm "<step name>" "<params>")`) for
+  direct use as `run_script`/`run_shell_script` arguments via
+  `"${STEP_SLURM_ARGS[@]}"`. The step name and the resolved
+  `STEP_SLURM_PARAMS[i]` string travel alongside the flag, so the eventual
+  `srun` call can be tagged with a job name and given its own resolved
+  parameter string. Whenever a step's manifest `slurm: true` can't be
+  honored as requested, it warns/logs before falling back rather than
+  downgrading silently: `log_info` (not a warning — an expected, deliberate
+  choice) if the step's own `step_dispatch_configuration` entry sets
+  `slurm: false`; a `WARNING` if the step conflicts with a config-level
+  `workflow_parallelism_mode: local`; a `WARNING` if srun simply isn't
+  available on the host. A step with manifest `slurm: false` never triggers
+  either warning (though `validate_step_dispatch_configuration()` warns
+  earlier if it has a `step_dispatch_configuration` entry anyway).
+- `run_script()` and `run_shell_script()` both accept `--slurm STEP_NAME
+  PARAMS` (two values, like `--cwd DIR` takes one) and, when set, prefix
+  their actual invocation with `srun` (built by `build_srun_prefix
+  "$slurm_job_name" "$slurm_params"`) — including the Apptainer branch of
+  `run_script()`, so `srun apptainer run ...` lands the container itself on
+  the allocated node rather than wrapping `apptainer` around an `srun` that
+  stays on the invocation host. `build_srun_prefix` sets `--job-name
+  "Magic-<step name>"` first, before the resolved params string — so if a
+  step's `additional_arguments` (or the global `srun_additional_arguments`
+  fallback) happens to include its own `--job-name`/`-J`, that later flag
+  wins (`srun` uses last-flag-wins for repeated options).
 
 ---
 
