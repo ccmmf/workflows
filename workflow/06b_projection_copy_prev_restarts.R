@@ -38,7 +38,7 @@ options <- list(
     default = "your_new_pecan_dir_here",
     help = paste(
       "Output path:",
-      "A new PEcAn workflow directory into which restarts should be copied."
+      "A new PEcAn workflow directory into which restarts should be copied.",
       "Will create or populate subdirs `restarts_in` and `/output/run/ENS-*`"
     )
   )

@@ -458,7 +458,7 @@ steps:
               prev_run_dir: prev_inventory_dir
           params: {}
           outputs:
-              new_run_dir: run_dir
+              new_run_dir: restart_target_run_dir
         - name: run-model
           script: "workflow/05_run_model.R"
           slurm: true
@@ -514,6 +514,7 @@ paths:
     clean_parquet_dir: "data/management_ensembles"
     event_dir: "data/events"
     raw_parquet_dir: "data_raw/management"
+    restart_target_run_dir: "." # conceptually we just want to pass run_dir, but that key isn't visible to the steps
 
 # Fixed workflow values
 params_read_from_pft: "SLA,leafC,leafGrowth"
