@@ -12,6 +12,12 @@ options <- list(
       "working directory of the process that invokes run_model.R,",
       "not relative to the settings file path"
     )
+  ),
+  optparse::make_option(c("-c", "--check_interval"),
+    default = 60,
+    help = paste(
+      "Time in seconds to wait between checks on the status of Slurm jobs"
+    )
   )
 ) |>
   # Show default values in help message
@@ -64,40 +70,43 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
       stop_on_error <- FALSE
     }
   }
-  PEcAn.workflow::runModule_start_model_runs(settings,
-                                             stop.on.error = stop_on_error)
+  PEcAn.workflow::runModule_start_model_runs(
+    settings,
+    stop.on.error = stop_on_error,
+    check_interval = args$check_interval
+  )
   PEcAn.utils::status.end()
 }
 
 
-# Get results of model runs
-# this function is arguably too chatty, so we'll suppress
-# INFO-level log output for this step.
-loglevel <- PEcAn.logger::logger.setLevel("WARN")
-if (PEcAn.utils::status.check("OUTPUT") == 0) {
-  PEcAn.utils::status.start("OUTPUT")
-  runModule.get.results(settings)
-  PEcAn.utils::status.end()
-}
-PEcAn.logger::logger.setLevel(loglevel)
-
-
-# Run ensemble analysis on model output.
-# if ("ensemble" %in% names(settings)
-# && PEcAn.utils::status.check("ENSEMBLE") == 0) {
-#   PEcAn.utils::status.start("ENSEMBLE")
-#   runModule.run.ensemble.analysis(settings, TRUE)
+# # Get results of model runs
+# # this function is arguably too chatty, so we'll suppress
+# # INFO-level log output for this step.
+# loglevel <- PEcAn.logger::logger.setLevel("WARN")
+# if (PEcAn.utils::status.check("OUTPUT") == 0) {
+#   PEcAn.utils::status.start("OUTPUT")
+#   runModule.get.results(settings)
 #   PEcAn.utils::status.end()
 # }
+# PEcAn.logger::logger.setLevel(loglevel)
 
 
-# Run sensitivity analysis and variance decomposition on model output
-if ("sensitivity.analysis" %in% names(settings) &&
-      PEcAn.utils::status.check("SENSITIVITY") == 0) {
-  PEcAn.utils::status.start("SENSITIVITY")
-  runModule.run.sensitivity.analysis(settings)
-  PEcAn.utils::status.end()
-}
+# # Run ensemble analysis on model output.
+# # if ("ensemble" %in% names(settings)
+# # && PEcAn.utils::status.check("ENSEMBLE") == 0) {
+# #   PEcAn.utils::status.start("ENSEMBLE")
+# #   runModule.run.ensemble.analysis(settings, TRUE)
+# #   PEcAn.utils::status.end()
+# # }
+
+
+# # Run sensitivity analysis and variance decomposition on model output
+# if ("sensitivity.analysis" %in% names(settings) &&
+#       PEcAn.utils::status.check("SENSITIVITY") == 0) {
+#   PEcAn.utils::status.start("SENSITIVITY")
+#   runModule.run.sensitivity.analysis(settings)
+#   PEcAn.utils::status.end()
+# }
 
 # Pecan workflow complete
 if (PEcAn.utils::status.check("FINISHED") == 0) {

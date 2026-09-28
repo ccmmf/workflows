@@ -43,6 +43,23 @@ options <- list(
     default = 10,
     help = "number of met files available (ensemble will sample from all)"
   ),
+  optparse::make_option("--models",
+    default = paste0(
+      "CESM2,CNRM-ESM2-1,EC-Earth3,EC-Earth3-Veg,",
+      "FGOALS-g3,MIROC6,MPI-ESM1-2-HR,TaiESM1"
+    ),
+    help = paste(
+      "Comma-separated list of GCMs to convert.",
+      "See `caladaptaer::cae_models(\"WRF\")` for valid names."
+    )
+  ),
+  optparse::make_option("--scenario",
+    default = "ssp370",
+    help = paste(
+      "Climate scenario. See `caladaptaer::cae_scenarios(\"WRF\")`",
+      "for valid values."
+    )
+  ),
   optparse::make_option("--event_dir",
     default = "data/events",
     help = paste(
@@ -118,23 +135,13 @@ args <- optparse::OptionParser(option_list = options) |>
 # papply emits a lot of uninformative debug messages; let's ignore those
 PEcAn.logger::logger.setLevel("INFO")
 
-
+models <- strsplit(args$models, ",")[[1]] |>
+  trimws()
+stopifnot(length(models) == args$n_met)
 
 site_info <- read.csv(args$site_file)
 stopifnot(
-  length(unique(site_info$id)) == nrow(site_info),
-  all(site_info$lat > 0), # just to simplify grid naming below
-  all(site_info$lon < 0)
-)
-site_info <- site_info |>
-  dplyr::mutate(
-    # match locations to half-degree ERA5 grid cell centers
-    # CAUTION: Calculation only correct when all lats are N and all lons are W!
-    ERA5_grid_cell = paste0(
-      ((lat + 0.25) %/% 0.5) * 0.5, "N_",
-      ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
-    )
-  )
+  length(unique(site_info$id)) == nrow(site_info))
 
 settings <- read.settings(args$template_file) |>
   setDates(args$start_date, args$end_date)
@@ -162,20 +169,6 @@ settings$ensemble$size <- args$n_ens
 settings$run$inputs$poolinitcond$ensemble <- args$n_ens
 # TODO do we need to set settings$run$inputs$events$ensemble too?
 
-# Hack: setEnsemblePaths leaves all path components other than siteid
-# identical across sites.
-# To use site-specific grid id, I'll string-replace each siteid
-id2grid <- function(s) {
-  # replacing in place to preserve names (easier than thinking)
-  for (p in seq_along(s$run$inputs$met$path)) {
-    s$run$inputs$met$path[[p]] <- gsub(
-      pattern = s$run$site$id,
-      replacement = s$run$site$ERA5_grid_cell,
-      x = s$run$inputs$met$path[[p]]
-    )
-  }
-  s
-}
 
 add_soil_pft <- function(s) {
   s$run$site$site.pft <- list(veg = s$run$site$site.pft, soil = "soil")
@@ -190,17 +183,17 @@ settings <- settings |>
     path = args$met_dir,
     d1 = args$start_date,
     d2 = args$end_date,
-    # TODO use caladapt when ready
-    # path_template = "{path}/{id}/caladapt.{id}.{n}.{d1}.{d2}.nc"
-    path_template = "{path}/{id}/ERA5.{n}.{d1}.{d2}.clim"
+    model = models,
+    scenario = args$scenario,
+    path_template = "{path}/{WRF_grid_cell}/{model}.{scenario}.{d1}.{d2}.clim"
   ) |>
-  papply(id2grid) |>
-  setEnsemblePaths(
-    n_reps = args$n_ic,
-    input_type = "poolinitcond",
-    path = args$ic_dir,
-    path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
-  ) |>
+  # setEnsemblePaths(
+  #   n_reps = args$n_ic,
+  #   input_type = "poolinitcond",
+  #   path = args$ic_dir,
+  #   path_template = "{path}/{id}/IC_site_{id}_{n}.nc"
+  # ) |>
+  papply(\(s) {s$run$inputs$poolinitcond <- NULL; s}) |>
   setEnsemblePaths(
     n_reps = sprintf("%03d", seq_len(args$n_event)), # yes, n_reps secretly accepts a vector!
     input_type = "events",
@@ -222,6 +215,13 @@ settings$modeloutdir <- file.path(args$output_dir, "out")
 settings$rundir <- file.path(args$output_dir, "run")
 settings$host$outdir <- file.path(args$output_dir, "out")
 settings$host$rundir <- file.path(args$output_dir, "run")
+
+# Hack: drop IC from inputs section
+# (possible we could instead do one of
+# - maintain a projections template with no IC provided
+# - leave all IC machinery in place but quietly overwritten by restart.out
+# - ???
+settings$ensemble$samplingspace$poolinitcond <- NULL
 
 # Populate PFT section
 # Makes several key assumptions:
@@ -254,6 +254,9 @@ pft_list <- lapply(pft_names, build_pft_entry) |>
   # No, I don't like it, but am not going to try to change that today.
   setNames(nm = rep("pft", length(pft_names)))
 settings$pfts <- pft_list
+
+# not yet sure this is sufficient for segmented runs...
+settings$model$options$RESTART_IN <- "restart.in"
 
 settings$model$default.param <- args$sipnet_parameter_file
 

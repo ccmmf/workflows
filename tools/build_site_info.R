@@ -10,23 +10,42 @@
 ## ---------------------- parse command-line options --------------------------
 options <- list(
   optparse::make_option("--location_file",
-    default = "../data/design_points.csv",
+    default = "data/design_points.csv",
     help = paste(
       "CSV giving at least lat and lon for sites of interest.",
+      "If column `parcel_id` is present it will be used instead of",
+      "`--parcel_file`.",
       "Any other columns will be passed unchanged to the output."
-      )
+    )
   ),
   optparse::make_option("--out_file",
     default = "site_info.csv",
     help = "Path to write CSV with parcel ids and PFTs added"
   ),
+  optparse::make_option("--pft_lookup",
+    default = "data_raw/pfts/crop2pft.csv",
+    help = paste(
+      "CSV mapping DWR crop codes to pft names.",
+      "Must have columns 'CLASS', 'SUBCLASS', and 'pft'."
+    )
+  ),
   optparse::make_option("--parcel_file",
     default = "data_raw/management/crops/v4.1/parcels-consolidated.gpkg",
-    help = "Geopackage to be used for spatial lookup of parcel IDs"
+    help = paste(
+      "Geopackage to be used for spatial lookup of parcel IDs.",
+      "Not used if the location file has a `parcel_id` column."
+    )
   ),
   optparse::make_option("--crop_file",
     default = "data_raw/management/crops/v4.1/crops_all_years.parq",
     help = "Parquet file containing harmonized DWR crop history"
+  ),
+  optparse::make_option("--WRF_grid_lookup",
+    default = "data_raw/met/parcel_to_grid_d01.csv",
+    help = paste(
+      "CSV with at least columns `parcel_id` and `cell_id`,",
+      "mapping harmonized DWR parcel IDs to WRF grid cells."
+    )
   )
 ) |>
   # Show default values in help message
@@ -42,46 +61,6 @@ args <- optparse::OptionParser(option_list = options) |>
 
 
 library(tidyverse)
-
-
-
-#' Assign DWR/LandIQ California crop codes to Sipnet PFT names
-#'
-#' Built for the MAGiC project, may or may not be applicable elsewhere
-#'
-#' @param CLASS vector of crop class codes (1-2 capital letters each)
-#' @param SUBCLASS vector of crop identifiers (1-2 numeric digits each)
-#' @return PFT assignments as character, NA if unclassified
-dwr_crop_to_pft <- function(CLASS, SUBCLASS) {
-  dplyr::case_when(
-
-    ## N fixers, treated as generic annual until N fixer PFT is created
-    CLASS == "F" & SUBCLASS %in% c(10)     ~ "annual_crop", # dry beans
-    CLASS == "P" & SUBCLASS %in% c(1, 2)   ~ "annual_crop", # alfalfa, clover
-    CLASS == "T" & SUBCLASS %in% c(3, 11)  ~ "annual_crop", # Green beans, peas
-
-    ## subclasses with physiology differing from the rest of their class
-    # woody berries
-    CLASS == "T" & SUBCLASS %in% c(19, 28) ~ "temperate.deciduous",
-    # "Flowers, nursery & Christmas tree farms"
-    # (A weird grouping, but assuming these are most likely to be tree-like)
-    CLASS == "T" & SUBCLASS %in% c(16)     ~ "temperate.deciduous",
-    
-    ## Whole-class assignments
-    CLASS %in% c("F", "G", "T")       ~ "annual_crop", # field crops, grains/hay, truck crops
-    CLASS %in% c("P")                 ~ "grass", # perennial pasture grass; annual grasses in G
-    CLASS %in% c("D", "C", "V", "YP") ~ "temperate.deciduous", # deciduous, citrus, vineyard, young perennial
-    CLASS %in% c("R")                 ~ "grass", # Rice; TODO update when rice PFT is created
-    CLASS %in% c("X", "I")            ~ "annual_crop", # fallow, not cropped, or unclassified
-      # TODO maybe this should just get soil PFT or be skipped during site selection?
-      # Logic for defaulting to annual crop here:
-      # Temporarily idle/fallow likely to grow small amount annual weeds;
-      # If no plant/harv events, annual will grow very little. 
-
-    # Urban, industrial, native vegetation, semi-agricultural, vacant, etc
-    TRUE ~ NA_character_
-  )
-}
 
 #' Look up parcel IDs from harmonized DWR California crop map
 #'
@@ -139,10 +118,12 @@ dwr_parcelid_to_crop <- function(
     dplyr::filter(.data$parcel_id %in% ids) |>
     select(parcel_id, year, season, CLASS, SUBCLASS)
   if (!is.null(years)) {
-    cropdat <- cropdat |> dplyr::filter(.data$year %in% years)
+    cropdat <- cropdat |>
+      dplyr::filter(.data$year %in% years)
   }
   if (!is.null(seasons)) {
-    cropdat <- cropdat |> dplyr::filter(.data$season %in% seasons)
+    cropdat <- cropdat |>
+      dplyr::filter(.data$season %in% seasons)
   }
 
   dplyr::collect(cropdat)
@@ -150,22 +131,57 @@ dwr_parcelid_to_crop <- function(
 
 
 design_pts <- read.csv(args$location_file)
-pts_matched <- point_to_dwr_parcelid(design_pts)
-crop_2016 <- dwr_parcelid_to_crop(pts_matched$parcel_id, years = 2016, seasons = 2) |>
-  mutate(site.pft = dwr_crop_to_pft(CLASS, SUBCLASS)) |>
+
+# parcel_ids provided; assume they're correct instead of re-checking
+if (!("parcel_id" %in% colnames(design_pts))) {
+  pts_matched <- point_to_dwr_parcelid(design_pts)
+} else {
+  message("Using parcel_id column from location file")
+  pts_matched <- design_pts
+}
+
+pft_lookup <- read.csv(args$pft_lookup) |>
+  select(CLASS, SUBCLASS, site.pft = pft)
+
+crop_2016 <- dwr_parcelid_to_crop(
+    pts_matched$parcel_id,
+    years = 2016,
+    seasons = 2
+  ) |>
+  left_join(
+    pft_lookup,
+    by = c("CLASS", "SUBCLASS"),
+    relationship = "many-to-one"
+  ) |>
   dplyr::select("parcel_id", "site.pft")
+wrf_cells <- read.csv(args$WRF_grid_lookup) |>
+  select(parcel_id, WRF_grid_cell = cell_id)
 
 if (!is.null(design_pts$id) && anyDuplicated(design_pts$id)) {
   PEcAn.logger::logger.severe("column `id` of design points is not unique")
 }
 
+if (typeof(crop_2016$parcel_id) != typeof(pts_matched$parcel_id)
+    || typeof(crop_2016$parcel_id) != typeof(wrf_cells$parcel_id)) {
+  crop_2016$parcel_id <- as.character(crop_2016$parcel_id)
+  pts_matched$parcel_id = as.character(pts_matched$parcel_id)
+  wrf_cells$parcel_id = as.character(wrf_cells$parcel_id)
+}
+
 site_info <- pts_matched |>
   left_join(crop_2016, by = "parcel_id") |>
-  rename(field_id = parcel_id) # TODO propagate `parcel_id` convention further downstream?
-                               # OR rethink naming: id vs site_id vs something else?
-  
+  left_join(wrf_cells, by = "parcel_id") |>
+  dplyr::mutate(
+    # match locations to half-degree ERA5 grid cell centers
+    # CAUTION: Calculation only correct when all lats are N and all lons are W!
+    ERA5_grid_cell = paste0(
+      ((lat + 0.25) %/% 0.5) * 0.5, "N_",
+      ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
+    )
+  )
+
 if (is.null(site_info$id)) {
-  site_info$id <- site_info$field_id
+  site_info$id <- site_info$parcel_id
 }
 
 write.csv(site_info, args$out_file, row.names = FALSE)
