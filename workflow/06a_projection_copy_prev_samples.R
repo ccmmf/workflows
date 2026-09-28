@@ -50,9 +50,16 @@ sample_n_ens <- samps$ensemble.samples[[1]] |>
 
 stopifnot(
   all(setting_pfts %in% sample_pfts),
-  length(sample_n_ens) == 1,
-  sample_n_ens == setting_n_ens
+  length(sample_n_ens) == 1
 )
+
+if (setting_n_ens != sample_n_ens) {
+  PEcAn.logger::logger.warn(
+    "Settings file requests", setting_n_ens, "ensemble samples,",
+    "but sample file has", sample_n_ens,
+    "Please check whether this is really what you wanted."
+  )
+}
 
 new_run_dir <- settings$outdir
 if (!dir.exists(new_run_dir)) {
