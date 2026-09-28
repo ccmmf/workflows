@@ -56,21 +56,21 @@ if (!dir.exists(args$new_run_dir)) {
   dir.create(args$new_run_dir, recursive = TRUE)
 }
 
-# Dunno if we actually need to keep a separate copy of these,
-# but will do it that way at least for initial debug
-restart_dir <- file.path(args$new_run_dir, "restarts_in")
- if (!dir.exists(restart_dir)) {
-  dir.create(restart_dir, recursive = TRUE)
-}
-
 # Looks first for already-collected restarts
 # Only treat as a workflow dir if none found
 restarts <- list.files(
   args$prev_run_dir,
   pattern = "restart-.*-\\d+.out",
+  full.names = TRUE,
   recursive = FALSE
 )
 if (length(restarts) == 0) {
+  # Dunno if we actually need to keep a separate copy of these,
+  # but will do it that way at least for initial debug
+  restart_dir <- file.path(args$new_run_dir, "restarts_in")
+   if (!dir.exists(restart_dir)) {
+    dir.create(restart_dir, recursive = TRUE)
+  }
   restarts <- PEcAn.SIPNET::collect_restarts(
     args$prev_run_dir,
     restart_dir,
