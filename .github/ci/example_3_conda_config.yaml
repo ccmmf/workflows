@@ -30,10 +30,12 @@ step_dispatch_configuration:
     method: srun
     additional_arguments: "-p node --mem=0"
 aws_profile: magic
+
 external_paths:
   copy_to_rundir:
     template_file: "examples/3_rowcrop/template.xml"
     site_info_file: ".github/ci/site_info_3.csv"
+    param_template: "template.param_v2"
   link_in_place: {}
 
 paths:
