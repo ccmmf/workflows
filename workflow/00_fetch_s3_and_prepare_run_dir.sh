@@ -292,7 +292,7 @@ param_template_value=$(yq eval '.paths.param_template' "$MANIFEST")
 param_template_dest=$(resolve_run_path "$param_template_value")
 echo "00_fetch_s3_and_prepare_run_dir: Copying sipnet.default.param -> $(report_path "$param_template_dest")"
 mkdir -p "$(dirname "$param_template_dest")"
-cp -f "${inv_extract_dir}/sipnet.default.param" "$param_template_dest"
+cp -f "${inv_extract_dir}/magic-inventory-inputs-20260921/sipnet.default.param" "$param_template_dest"
 
 # --- Example 3 (row crop): download parcels-consolidated.gpkg and crops_all_years.parq ---
 # NOTE: do not grab the sibling `parcels.gpkg` at the same prefix -- similarly
