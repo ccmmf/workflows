@@ -494,6 +494,7 @@ steps:
 # Users should not modify these values unless you know what you are doing.
 # Values are relative to run_dir; CLI resolves as run_dir + "/" + value.
 paths:
+    param_template: "template.param_v2"
     site_info_file: "site_info.csv"
     site_sipnet_met_path: "data/ERA5_SIPNET"
     site_era5_path: "data_raw/ERA5_CA_nc"
