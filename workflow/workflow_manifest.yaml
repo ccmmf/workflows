@@ -591,6 +591,9 @@ s3:
     crops_all_years_parq:
         key_prefix: "management/crops/v4.1"
         filename: "crops_all_years.parq"
+    inventory_inputs_tgz:
+        key_prefix: "inventory"
+        filename: "magic-inventory-inputs-20260921.tgz"
     management_events:
         # Synced (not cp'd) directly into paths.management_raw_dir; excludes
         # mslsp/ (unused) and crops/ (covered by parcels_gpkg/crops_all_years_parq above).

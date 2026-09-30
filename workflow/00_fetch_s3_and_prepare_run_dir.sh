@@ -265,6 +265,35 @@ echo "00_fetch_s3_and_prepare_run_dir: Extracting ERA5 CA archive into run direc
 mkdir -p "${RUN_DIR_ABS}/data_raw"
 tar -xzf "$era5_ca_local" -C "${RUN_DIR_ABS}/data_raw"
 
+# --- Example 3 (row crop): download inventory input tarball; extract into an isolated
+# subdirectory (not run_dir root) since the archive's root also contains
+# site_info.csv/template.xml/etc. that would collide with files staged elsewhere.
+# Only sipnet.default.param is used, copied out to the manifest's param_template
+# destination (paths.param_template). ---
+inv_key_prefix=$(yq eval '.s3.inventory_inputs_tgz.key_prefix' "$MANIFEST")
+inv_filename=$(yq eval '.s3.inventory_inputs_tgz.filename' "$MANIFEST")
+inv_s3_key=$(s3_key "$inv_key_prefix" "$inv_filename")
+inv_s3_uri="s3://${s3_bucket}/${inv_s3_key}"
+inv_local="${RUN_DIR_ABS}/${inv_filename}"
+inv_report=$(report_path "$inv_local")
+if [[ -f "$inv_local" ]]; then
+  echo "00_fetch_s3_and_prepare_run_dir: Inventory input tarball already present: $inv_report"
+else
+  echo "00_fetch_s3_and_prepare_run_dir: Downloading inventory input tarball from S3"
+  echo "00_fetch_s3_and_prepare_run_dir: Saving to: $inv_report"
+  (cd "$RUN_DIR_ABS" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$inv_s3_uri" "$inv_filename")
+fi
+inv_extract_dir="${RUN_DIR_ABS}/data_raw/inventory_inputs"
+echo "00_fetch_s3_and_prepare_run_dir: Extracting inventory input tarball into $(report_path "$inv_extract_dir")"
+mkdir -p "$inv_extract_dir"
+tar -xzf "$inv_local" -C "$inv_extract_dir"
+
+param_template_value=$(yq eval '.paths.param_template' "$MANIFEST")
+param_template_dest=$(resolve_run_path "$param_template_value")
+echo "00_fetch_s3_and_prepare_run_dir: Copying sipnet.default.param -> $(report_path "$param_template_dest")"
+mkdir -p "$(dirname "$param_template_dest")"
+cp -f "${inv_extract_dir}/sipnet.default.param" "$param_template_dest"
+
 # --- Example 3 (row crop): download parcels-consolidated.gpkg and crops_all_years.parq ---
 # NOTE: do not grab the sibling `parcels.gpkg` at the same prefix -- similarly
 # named/sized but the wrong file. build_site_info.R and 02_ic_build.R both
