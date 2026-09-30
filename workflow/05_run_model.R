@@ -72,8 +72,7 @@ if (PEcAn.utils::status.check("MODEL") == 0) {
   }
   PEcAn.workflow::runModule_start_model_runs(
     settings,
-    stop.on.error = stop_on_error,
-    check_interval = args$check_interval
+    stop.on.error = stop_on_error
   )
   PEcAn.utils::status.end()
 }
