@@ -294,6 +294,12 @@ echo "00_fetch_s3_and_prepare_run_dir: Copying sipnet.default.param -> $(report_
 mkdir -p "$(dirname "$param_template_dest")"
 cp -f "${inv_extract_dir}/magic-inventory-inputs-20260921/sipnet.default.param" "$param_template_dest"
 
+pft_map_value=$(yq eval '.paths.pft_map' "$MANIFEST")
+pft_map_dest=$(resolve_run_path "$pft_map_value")
+echo "00_fetch_s3_and_prepare_run_dir: Copying crop2pft.csv -> $(report_path "$pft_map_dest")"
+mkdir -p "$(dirname "$pft_map_dest")"
+cp -f "${inv_extract_dir}/magic-inventory-inputs-20260921/crop2pft.csv" "$pft_map_dest"
+
 # --- Example 3 (row crop): download parcels-consolidated.gpkg and crops_all_years.parq ---
 # NOTE: do not grab the sibling `parcels.gpkg` at the same prefix -- similarly
 # named/sized but the wrong file. build_site_info.R and 02_ic_build.R both
