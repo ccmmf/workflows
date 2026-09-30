@@ -292,7 +292,7 @@ download_single_file "parcels_gpkg" "parcels-consolidated.gpkg"
 download_single_file "crops_all_years_parq" "crops_all_years.parq"
 
 # --- Example 3 (row crop): sync management event sources (harvest/irrigation/phenology/planting/tillage) ---
-# Excludes mslsp/ (unused) and crops/ (parcels-consolidated.gpkg/crops_all_years.parq handled above).
+# Excludes mslsp/ (unused), crops/ (parcels-consolidated.gpkg/crops_all_years.parq handled above), and session1/-session3/ (unused).
 mgmt_events_key_prefix=$(yq eval '.s3.management_events.key_prefix' "$MANIFEST")
 mgmt_events_s3_uri="s3://${s3_bucket}/${mgmt_events_key_prefix}/"
 mgmt_raw_dir_value=$(yq eval '.paths.raw_parquet_dir' "$MANIFEST")
@@ -300,7 +300,7 @@ mgmt_raw_dir=$(resolve_run_path "$mgmt_raw_dir_value")
 mkdir -p "$mgmt_raw_dir"
 echo "00_fetch_s3_and_prepare_run_dir: Syncing management event sources from S3 into $(report_path "$mgmt_raw_dir")"
 aws s3 sync --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" \
-  --exclude 'mslsp/*' --exclude 'crops/*' \
+  --exclude 'mslsp/*' --exclude 'crops/*' --exclude 'session1/*' --exclude 'session2/*' --exclude 'session3/*' \
   "$mgmt_events_s3_uri" "$mgmt_raw_dir"
 
 echo "00_fetch_s3_and_prepare_run_dir: Done."
