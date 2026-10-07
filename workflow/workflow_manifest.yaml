@@ -448,7 +448,8 @@ steps:
           inputs:
               settings: settings_xml
               crop_pft_lookup: pft_map
-          params: {}
+          params:
+              n_cores: n_workers
           outputs: {}
         - name: copy-prev-model-state
           script: "workflow/06b_projection_copy_prev_restarts.R"
@@ -477,7 +478,8 @@ steps:
           inputs:
               settings: settings_xml
               crop_pft_lookup: pft_map
-          params: {}
+          params:
+              n_cores: n_workers
           outputs: {}
         - name: run-model
           script: "workflow/05_run_model.R"

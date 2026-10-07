@@ -19,6 +19,10 @@ options <- list(
       "path to a CSV file mapping crop codes to PFTs.",
       "Must have columns 'crop_code' and 'pft'"
     )
+  ),
+  optparse::make_option("--n_cores",
+    default = 1L,
+    help = "number of CPUs to use in parallel"
   )
 ) |>
   # Show default values in help message
@@ -48,7 +52,13 @@ options(error = quote({
 # ----------------------------------------------------------------------
 
 library("PEcAn.all")
+library(future)
+# library(future.callr)
 
+# future::plan(future.callr::callr, workers = args$n_cores)
+future::plan(future.mirai::mirai_multisession, workers = args$n_cores)
+# future::plan(future::multisession, workers = args$n_cores)
+# future::plan(future::multicore, workers = args$n_cores)
 
 # Report package versions for provenance
 PEcAn.all::pecan_version()
@@ -114,7 +124,7 @@ look_up_pft <- function(crop) {
     dplyr::left_join(pft_lookup, by = "crop_code") |>
     dplyr::pull(pft)
 }
-run_script_paths <- papply(
+run_script_paths <- papply2(
   settings,
   \(s) PEcAn.SIPNET::write_segmented_configs.SIPNET(
     settings = s,

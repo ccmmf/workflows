@@ -92,7 +92,7 @@ step_dispatch_configuration:
   set-up-runs:
     slurm: true
     method: srun
-    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=8GB --tasks=1 --cpus-per-task=1 --time=24:00:00"
+    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=8GB --tasks=1 --cpus-per-task=24 --time=24:00:00"
   run-model:
     slurm: true
     method: srun
