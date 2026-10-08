@@ -265,6 +265,41 @@ echo "00_fetch_s3_and_prepare_run_dir: Extracting ERA5 CA archive into run direc
 mkdir -p "${RUN_DIR_ABS}/data_raw"
 tar -xzf "$era5_ca_local" -C "${RUN_DIR_ABS}/data_raw"
 
+# --- Example 3 (row crop): download inventory input tarball; extract into an isolated
+# subdirectory (not run_dir root) since the archive's root also contains
+# site_info.csv/template.xml/etc. that would collide with files staged elsewhere.
+# Only sipnet.default.param is used, copied out to the manifest's param_template
+# destination (paths.param_template). ---
+inv_key_prefix=$(yq eval '.s3.inventory_inputs_tgz.key_prefix' "$MANIFEST")
+inv_filename=$(yq eval '.s3.inventory_inputs_tgz.filename' "$MANIFEST")
+inv_s3_key=$(s3_key "$inv_key_prefix" "$inv_filename")
+inv_s3_uri="s3://${s3_bucket}/${inv_s3_key}"
+inv_local="${RUN_DIR_ABS}/${inv_filename}"
+inv_report=$(report_path "$inv_local")
+if [[ -f "$inv_local" ]]; then
+  echo "00_fetch_s3_and_prepare_run_dir: Inventory input tarball already present: $inv_report"
+else
+  echo "00_fetch_s3_and_prepare_run_dir: Downloading inventory input tarball from S3"
+  echo "00_fetch_s3_and_prepare_run_dir: Saving to: $inv_report"
+  (cd "$RUN_DIR_ABS" && aws s3 cp --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" "$inv_s3_uri" "$inv_filename")
+fi
+inv_extract_dir="${RUN_DIR_ABS}/data_raw/inventory_inputs"
+echo "00_fetch_s3_and_prepare_run_dir: Extracting inventory input tarball into $(report_path "$inv_extract_dir")"
+mkdir -p "$inv_extract_dir"
+tar -xzf "$inv_local" -C "$inv_extract_dir"
+
+param_template_value=$(yq eval '.paths.param_template' "$MANIFEST")
+param_template_dest=$(resolve_run_path "$param_template_value")
+echo "00_fetch_s3_and_prepare_run_dir: Copying sipnet.default.param -> $(report_path "$param_template_dest")"
+mkdir -p "$(dirname "$param_template_dest")"
+cp -f "${inv_extract_dir}/magic-inventory-inputs-20260921/sipnet.default.param" "$param_template_dest"
+
+pft_map_value=$(yq eval '.paths.pft_map' "$MANIFEST")
+pft_map_dest=$(resolve_run_path "$pft_map_value")
+echo "00_fetch_s3_and_prepare_run_dir: Copying crop2pft.csv -> $(report_path "$pft_map_dest")"
+mkdir -p "$(dirname "$pft_map_dest")"
+cp -f "${inv_extract_dir}/magic-inventory-inputs-20260921/crop2pft.csv" "$pft_map_dest"
+
 # --- Example 3 (row crop): download parcels-consolidated.gpkg and crops_all_years.parq ---
 # NOTE: do not grab the sibling `parcels.gpkg` at the same prefix -- similarly
 # named/sized but the wrong file. build_site_info.R and 02_ic_build.R both
@@ -292,7 +327,7 @@ download_single_file "parcels_gpkg" "parcels-consolidated.gpkg"
 download_single_file "crops_all_years_parq" "crops_all_years.parq"
 
 # --- Example 3 (row crop): sync management event sources (harvest/irrigation/phenology/planting/tillage) ---
-# Excludes mslsp/ (unused) and crops/ (parcels-consolidated.gpkg/crops_all_years.parq handled above).
+# Excludes mslsp/ (unused), crops/ (parcels-consolidated.gpkg/crops_all_years.parq handled above), and session1/-session3/ (unused).
 mgmt_events_key_prefix=$(yq eval '.s3.management_events.key_prefix' "$MANIFEST")
 mgmt_events_s3_uri="s3://${s3_bucket}/${mgmt_events_key_prefix}/"
 mgmt_raw_dir_value=$(yq eval '.paths.raw_parquet_dir' "$MANIFEST")
@@ -300,7 +335,7 @@ mgmt_raw_dir=$(resolve_run_path "$mgmt_raw_dir_value")
 mkdir -p "$mgmt_raw_dir"
 echo "00_fetch_s3_and_prepare_run_dir: Syncing management event sources from S3 into $(report_path "$mgmt_raw_dir")"
 aws s3 sync --profile "$AWS_PROFILE" --endpoint-url "$s3_endpoint" \
-  --exclude 'mslsp/*' --exclude 'crops/*' \
+  --exclude 'mslsp/*' --exclude 'crops/*' --exclude 'session1/*' --exclude 'session2/*' --exclude 'session3/*' \
   "$mgmt_events_s3_uri" "$mgmt_raw_dir"
 
 echo "00_fetch_s3_and_prepare_run_dir: Done."

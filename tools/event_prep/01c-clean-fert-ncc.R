@@ -75,16 +75,27 @@ if (!has_fert && !has_ncc) {
        args$fert_path, " or ", args$ncc_path)
 }
 
+# If no ens_id provided, insert a constant
+fert <- arrow::open_dataset(args$fert_path)
+fert_ensid_clause <- "ens_id"
+if (!"ens_id" %in% colnames(fert)) {
+  fert_ensid_clause <- "'ens_001'"
+}
+ncc <- arrow::open_dataset(args$ncc_path)
+ncc_ensid_clause <- "ens_id"
+if (!"ens_id" %in% colnames(ncc)) {
+  ncc_ensid_clause <- "'ens_001'"
+}
+
 fert_select <- glue::glue("
   SELECT
     CAST (parcel_id AS INTEGER) AS site_id,
-    CAST (ens_id AS event_ens_id_enum) AS event_member_id,
+    CAST ({fert_ensid_clause} AS event_ens_id_enum) AS event_member_id,
     date,
     CAST (nh4_n_kg_m2 AS DECIMAL(10, 8)) AS nh4_n_kg_m2,
     CAST (no3_n_kg_m2 AS DECIMAL(10, 8)) AS no3_n_kg_m2,
     CAST (org_c_kg_m2 AS DECIMAL(10, 8)) AS org_c_kg_m2,
-    CAST (org_n_kg_m2 AS DECIMAL(10, 8)) AS org_n_kg_m2,
-    crop_code
+    CAST (org_n_kg_m2 AS DECIMAL(10, 8)) AS org_n_kg_m2
   FROM read_parquet('{args$fert_path}/*.parquet')
   WHERE site_id IN ({siteids})
 ")
@@ -92,27 +103,26 @@ fert_select <- glue::glue("
 ncc_select <- glue::glue("
   SELECT
     CAST (parcel_id AS INTEGER) AS site_id,
-    CAST (ens_id AS event_ens_id_enum) AS event_member_id,
+    CAST ({ncc_ensid_clause} AS event_ens_id_enum) AS event_member_id,
     date,
     CAST (nh4_n_kg_m2 AS DECIMAL(10, 8)) AS nh4_n_kg_m2,
     CAST (no3_n_kg_m2 AS DECIMAL(10, 8)) AS no3_n_kg_m2,
     CAST (org_c_kg_m2 AS DECIMAL(10, 8)) AS org_c_kg_m2,
-    CAST (org_n_kg_m2 AS DECIMAL(10, 8)) AS org_n_kg_m2,
-    crop_code
+    CAST (org_n_kg_m2 AS DECIMAL(10, 8)) AS org_n_kg_m2
   FROM read_parquet('{args$ncc_path}/*.parquet')
   WHERE site_id IN ({siteids})
 ")
 
 ens_source <- if (has_fert && has_ncc) {
   glue::glue("
-    SELECT DISTINCT ens_id FROM read_parquet('{args$fert_path}/*.parquet')
+    SELECT DISTINCT {fert_ensid_clause} FROM read_parquet('{args$fert_path}/*.parquet')
     UNION
-    SELECT DISTINCT ens_id FROM read_parquet('{args$ncc_path}/*.parquet')
+    SELECT DISTINCT {ncc_ensid_clause} FROM read_parquet('{args$ncc_path}/*.parquet')
   ")
 } else if (has_fert) {
-  glue::glue("SELECT DISTINCT ens_id FROM read_parquet('{args$fert_path}/*.parquet')")
+  glue::glue("SELECT DISTINCT {fert_ensid_clause} FROM read_parquet('{args$fert_path}/*.parquet')")
 } else {
-  glue::glue("SELECT DISTINCT ens_id FROM read_parquet('{args$ncc_path}/*.parquet')")
+  glue::glue("SELECT DISTINCT {ncc_ensid_clause} FROM read_parquet('{args$ncc_path}/*.parquet')")
 }
 
 union_query <- if (has_fert && has_ncc) {
