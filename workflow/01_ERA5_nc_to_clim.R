@@ -82,6 +82,7 @@ loc_info <- read.csv(args$site_info_file) |>
       ((abs(lon) + 0.25) %/% 0.5) * 0.5, "W"
     )
   ) |>
+  dplyr::distinct(ERA5_grid_cell, .keep_all = TRUE) |>
   dplyr::cross_join(data.frame(ens_id = 1:10))
 
 if (!dir.exists(args$site_sipnet_met_path)) {

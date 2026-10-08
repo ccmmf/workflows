@@ -63,6 +63,15 @@ options <- list(
       "Will be expanded to contain all sites at requested ensemble size"
     )
   ),
+  optparse::make_option("--sipnet_parameter_file",
+    default = "sipnet.default.param",
+    help = paste(
+      "Sipnet parameter file to be used as defaults for any model parameter",
+      "not set by parameter sampling or initial conditions.",
+      "Should be in the same format as",
+      "`system.file(\"template.param_v2\", package = \"PEcAn.SIPNET\')`."
+    )
+  ),
   optparse::make_option("--output_file",
     default = "settings.xml",
     help = "path to write output XML"
@@ -172,6 +181,8 @@ pft_list <- lapply(pft_names, build_pft_entry) |>
   # No, I don't like it, but am not going to try to change that today.
   setNames(nm = rep("pft", length(pft_names)))
 settings$pfts <- pft_list
+
+settings$model$default.param <- args$sipnet_parameter_file
 
 write.settings(
   settings,

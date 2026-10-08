@@ -36,6 +36,26 @@ workflow_parallelism_mode: slurm-srun
 # separate slurm_partition key -- pass -p <partition> here if your cluster needs one.
 srun_additional_arguments: "--mem=0"
 
+# Steps the manifest marks slurm: true for prepare-example-3 (convert-clim,
+# build-ic, build-events, build-xml) must each have a matching entry below
+# or the CLI fails fast.
+step_dispatch_configuration:
+  convert-clim:
+    slurm: true
+    method: srun
+    additional_arguments: "--mem=0"
+  build-ic:
+    slurm: true
+    method: srun
+    additional_arguments: "--mem=0"
+  build-events:
+    slurm: true
+    method: srun
+    additional_arguments: "--mem=0"
+  build-xml:
+    slurm: true
+    method: srun
+    additional_arguments: "--mem=0"
 
 # Pecan parallelism
 pecan_parallelism_mode: slurm-sbatch
@@ -48,9 +68,10 @@ aws_profile: magic
 external_paths:
   copy_to_rundir:
     template_file: "examples/3_rowcrop/template.xml"
+    pft_map: "examples/3_rowcrop/crop2pft.csv"
   link_in_place:
-    site_era5_path: "data_raw/ERA5_CA_nc"
-    landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
+  #  site_era5_path: "data_raw/ERA5_CA_nc"
+  #  landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
 
 paths:
   phenology_info_path: "data_raw/management/phenology/v1.0/"
@@ -60,3 +81,5 @@ paths:
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
   fertilization_info_path: "data_raw/management/fertilization/v1.0/"
   ncc_info_path: "data_raw/management/ncc/v1.0/"
+  site_era5_path: "data_raw/ERA5_CA_nc"
+  landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
