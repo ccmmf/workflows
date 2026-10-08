@@ -63,9 +63,13 @@ PEcAn.logger::logger.setLevel("WARN")
 
 PEcAn.utils::status.start("DESIGN")
 # If samples are already present, assume we're extending/projecting a prev run.
-# Reuse them instead of drawing new samples
-# NOTE: This preserves parameter samples but re-samples all other columns of the
-# design matrix. This is what we want when e.g. changing weather sources,
+# Reuse them instead of drawing new samples.
+# If they aren't present, generate_joint_ensemble_design(..., samples = NULL)
+# draws new samples and saves them in samples.Rdata as well as returning
+# them in ens_design$samples.
+# NOTE: Passing existing samples preserves the _parameter_ samples,
+# but re-samples all other columns of the design matrix.
+# This is what we want when e.g. changing weather sources,
 # but if some inputs want to be passed through unchanged (soil physics files?),
 # we'd instead need to load old and new designs and choose the appropriate
 # column from each one.
