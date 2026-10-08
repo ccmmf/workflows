@@ -29,7 +29,16 @@ step_dispatch_configuration:
     slurm: true
     method: srun
     additional_arguments: "-p node --mem=0"
+  set-up-runs:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
+  run-model:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
 aws_profile: magic
+
 external_paths:
   copy_to_rundir:
     template_file: "examples/3_rowcrop/template.xml"
@@ -37,14 +46,12 @@ external_paths:
   link_in_place: {}
 
 paths:
-  template_file: "examples/3_rowcrop/template.xml"
-  site_info_file: ".github/ci/site_info_3.csv"
   phenology_info_path: "data_raw/management/phenology/v1.0/"
   planting_info_path: "data_raw/management/planting/v1.0/"
   harvest_info_path: "data_raw/management/harvest/v1.0/"
   tillage_info_path: "data_raw/management/tillage/v1.0/"
   irrigation_info_path: "data_raw/management/irrigation/v1.1/"
-  fertilization_info_path: "data_raw/management/fertilization/v1.0/"
-  ncc_info_path: "data_raw/management/ncc/v1.0/"
+  fertilization_info_path: "data_raw/management/fertilization/v2.0/"
+  ncc_info_path: "data_raw/management/ncc/v2.0/"
   site_era5_path: "data_raw/ERA5_CA_nc"
   landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"

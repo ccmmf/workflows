@@ -16,6 +16,14 @@ step_dispatch_configuration:
     slurm: true
     method: srun
     additional_arguments: "-p node --mem=0"
+  set-up-runs:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
+  run-model:
+    slurm: true
+    method: srun
+    additional_arguments: "-p node --mem=0"
 aws_profile: magic
 external_paths:
   copy_to_rundir:

@@ -164,8 +164,8 @@ resolve_key_src() {
   # Split on first ": " — key is everything before, value everything after.
   key="${line%%: *}"
   src="${line#*: }"
-  [[ -z "$key" || "$key" == "$line" ]] && return  # no ": " found
-  [[ -z "$src" || "$src" == "null" ]] && return
+  [[ -z "$key" || "$key" == "$line" ]] && return 1  # no ": " found (e.g. yq's "{}" for an empty map)
+  [[ -z "$src" || "$src" == "null" ]] && return 1
   # Strip surrounding quotes that yq may preserve from the YAML source.
   src="${src#\"}" ; src="${src%\"}"
 
@@ -203,7 +203,7 @@ resolve_dest() {
 
 while IFS= read -r line; do
   [[ -z "$line" ]] && continue
-  resolve_key_src
+  resolve_key_src || continue
   resolve_dest
   echo "00_stage_external_inputs: Copying $(report_path "$src") -> $(report_path "$dest")"
   cpflags='f'
@@ -215,7 +215,7 @@ done <<< "$external_block_copy"
 
 while IFS= read -r line; do
   [[ -z "$line" ]] && continue
-  resolve_key_src
+  resolve_key_src || continue
   resolve_dest
   echo "00_stage_external_inputs: linking $(report_path "$src") -> $(report_path "$dest")"
 
