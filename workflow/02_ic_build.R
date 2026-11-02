@@ -432,7 +432,15 @@ ic_samples <- initial_condition_estimated |>
   dplyr::mutate(
     AbvGrndBiomass = if_else(force_zero_agb, 0, AbvGrndBiomass),
     AbvGrndWood = AbvGrndBiomass * wood_carbon_fraction,
-    leaf_carbon_content = tidyr::replace_na(LAI, 0) / SLA * (leafC / 100),
+    # A bare field has no leaves either. The LAI estimate is from midsummer
+    # (run_LAI_date) and nothing in an annual run sheds it before the first
+    # planting, so the crop would start photosynthesizing on that canopy.
+    leaf_carbon_content = if_else(
+      force_zero_agb,
+      0,
+      tidyr::replace_na(LAI, 0) / SLA * (leafC / 100)
+    ),
+    LAI = if_else(force_zero_agb, 0, LAI),
     wood_carbon_content = pmax(AbvGrndWood - leaf_carbon_content, 0)
   )
 
