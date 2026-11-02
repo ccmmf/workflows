@@ -1,0 +1,12 @@
+== sipnet.param values written by PEcAn.SIPNET::write.config.SIPNET (start 2016-01-01, IC member 1) ==
+ version            site member  laiInit plantWoodInit soilWFracInit fracLeafFall
+    base          annual      1 1.160191         0.000     0.3156799          0.0
+   fixed          annual      1 0.000000         0.000     0.3156799          0.0
+    base           mixed      1 1.088358         0.000     0.3122982          0.0
+   fixed           mixed      1 0.000000         0.000     0.3122982          0.0
+    base          nonveg      1 1.220858     30000.000     0.2993485          0.0
+   fixed          nonveg      1 0.000000         0.000     0.2993485          0.0
+    base       perennial      1 1.768537      1158.915     0.2786996          0.3
+   fixed       perennial      1 1.768537      1158.915     0.2786996          0.3
+    base perennial_nolai      1 0.000000      1609.182     0.2412947          0.3
+   fixed perennial_nolai      1 0.000000      1609.182     0.2412947          0.3

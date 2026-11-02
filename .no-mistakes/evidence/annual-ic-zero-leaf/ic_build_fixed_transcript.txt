@@ -1,0 +1,43 @@
+$ Rscript workflow/02_ic_build.R --site_info_path site_info.csv --ic_ensemble_size 10 --run_start_date 2016-01-01 --run_LAI_date 2016-07-01 --ic_outdir IC_files --data_dir data/IC_prep --pft_dir pfts --agb_file /nonexistent.parquet
+── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.1     ✔ tibble    3.3.1
+✔ lubridate 1.9.4     ✔ tidyr     1.3.2
+✔ purrr     1.2.1     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+2026-11-02 23:40:25.762992 INFO   [console] : 
+   Getting estimated soil carbon from SoilGrids 250m 
+2026-11-02 23:40:25.796304 INFO   [console] : 
+   using existing soil C file data/IC_prep/soilgrids_soilC_data.csv 
+2026-11-02 23:40:25.803167 INFO   [console] : Soil moisture 
+2026-11-02 23:40:25.804753 INFO   [console] : 
+   using existing soil moisture file data/IC_prep/sm.csv 
+2026-11-02 23:40:25.809519 INFO   [console] : LAI 
+2026-11-02 23:40:25.811185 INFO   [console] : 
+   using existing LAI file data/IC_prep/LAI_bysite.csv 
+2026-11-02 23:40:25.816343 INFO   [console] : 
+   Aboveground biomass from LandTrendr 
+2026-11-02 23:40:25.818103 INFO   [console] : 
+   using existing LandTrendr AGB file 
+   data/IC_prep/aboveground_biomass_landtrendr.csv 
+2026-11-02 23:40:25.82293 INFO   [console] : Building IC files 
+Warning message:
+There were 3 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `samp = purrr::map(data$pft_path, sample_pft)`.
+ℹ In row 1.
+Caused by warning in `.f()`:
+! leafGrowth is zero inpfts/annual_crop. Assuming annual crop that starts wth zero AGB.
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 2 remaining warnings. 
+2026-11-02 23:40:26.534402 DEBUG  [console] : 
+   Not writing these nonstandard variables to the IC files: AbvGrndBiomass, 
+   SLA, leafC, leafGrowth, wood_carbon_fraction, soil_c_to_n, 
+   force_zero_agb 
+2026-11-02 23:40:26.860983 INFO   [console] : 
+   IC files written to IC_files 
+2026-11-02 23:40:26.862335 INFO   [console] : Done 
+exit status: 0

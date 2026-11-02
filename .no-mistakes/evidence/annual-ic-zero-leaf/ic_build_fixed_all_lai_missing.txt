@@ -1,0 +1,18 @@
+# edge case: all MODIS LAI missing (NA) for an annual-only + non-vegetative site set
+"site_id","2016-07-01_LAI","2016-07-01_SD"
+"annual",NA,NA
+"nonveg",NA,NA
+"perennial",NA,NA
+"perennial_nolai",NA,NA
+"mixed",NA,NA
+$ Rscript workflow/02_ic_build.R --site_info_path site_info.csv --ic_ensemble_size 10 --ic_outdir IC_files --data_dir data/IC_prep --pft_dir pfts --agb_file /nonexistent.parquet
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+   IC files written to IC_files 
+2026-11-02 23:41:55.826291 INFO   [console] : Done 
+exit status: 0
+IC_site_annual_1.nc              LAI=0 leaf_carbon_content=0 wood_carbon_content=0
+IC_site_annual_2.nc              LAI=0 leaf_carbon_content=0 wood_carbon_content=0
+IC_site_annual_3.nc              LAI=0 leaf_carbon_content=0 wood_carbon_content=0
+IC_site_nonveg_1.nc              LAI=0 leaf_carbon_content=0 wood_carbon_content=0
+IC_site_nonveg_2.nc              LAI=0 leaf_carbon_content=0 wood_carbon_content=0
+IC_site_nonveg_3.nc              LAI=0 leaf_carbon_content=0 wood_carbon_content=0
