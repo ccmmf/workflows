@@ -1,0 +1,120 @@
+# User-facing config for magic-ensemble.
+# Run with:
+#   ./magic-ensemble prepare-example-3a --config inventory-config.yaml
+#   ./magic-ensemble run-ensembles --config inventory-config.yaml
+#
+# This file overrides settings in the workflow manifest;
+# Each key here must exactly match the manifest key that it overrides.
+
+# Run directory: where outputs and run-specific data live.
+# Relative to the CWD where you invoke the CLI, unless you use an absolute path.
+run_dir: "/work/nvme/bgat/cblack3/magic/magic-inventory-20260925-3ens-10site"
+
+# Dates used by prepare and run-ensembles.
+start_date: "2016-01-01"
+end_date: "2023-12-31"
+run_LAI_date: "2016-07-01"
+
+# Ensemble sizes.
+n_ens: 3
+n_met: 10
+n_event: 20
+n_ic: 50
+
+# User-provided external resources.
+
+# Absolute paths are used as-is; relative paths are resolved from the
+# directory where you invoke ./magic-ensemble.
+# paths in external_paths will be localized to the run_dir before the workflow is run.
+external_paths:
+    copy_to_rundir:
+        template_file: "./workflow/template.xml"
+        site_info_file: "/work/hdd/bgat/cblack3/magic/magic-ensemble-configs-20260925/site_info_10.csv"
+        ic_prep: "/work/hdd/bgat/cblack3/magic/data_raw/IC/1000_sites"
+        pft_map: "/work/hdd/bgat/cblack3/magic/data_raw/pfts/magic_v1.2/crop2pft.csv"
+        param_template: "/work/hdd/bgat/cblack3/magic/data_raw/pfts/magic_v1.2/sipnet.default.param"
+    link_in_place:
+        phenology_info_path: "/work/hdd/bgat/cblack3/magic/data_raw/management/phenology/v5.0"
+        planting_info_path: "/work/hdd/bgat/cblack3/magic/data_raw/management/planting/v5.0"
+        harvest_info_path: "/work/hdd/bgat/cblack3/magic/data_raw/management/harvest/v5.0"
+        tillage_info_path: "/work/hdd/bgat/cblack3/magic/data_raw/management/tillage/v5.0"
+        irrigation_info_path: "/work/hdd/bgat/cblack3/magic/data_raw/management/irrigation/v5.0"
+        fertilization_info_path: "/work/hdd/bgat/cblack3/magic/data_raw/management/fertilization/v5.0"
+        ncc_info_path: "/work/hdd/bgat/cblack3/magic/data_raw/management/ncc/v5.0"
+        site_era5_path: "/work/hdd/bgat/cblack3/magic/data_raw/ERA5_CA_nc"
+        landtrendr_agb_file: "/work/hdd/bgat/cblack3/magic/data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
+        pft_dir: "/work/hdd/bgat/cblack3/magic/data_raw/pfts/magic_v1.2/pfts"
+    
+
+paths:
+  phenology_info_path: "data_raw/management/phenology"
+  planting_info_path: "data_raw/management/planting"
+  harvest_info_path: "data_raw/management/harvest"
+  tillage_info_path: "data_raw/management/tillage"
+  irrigation_info_path: "data_raw/management/irrigation"
+  fertilization_info_path: "data_raw/management/fertilization"
+  ncc_info_path: "data_raw/management/ncc"
+  ic_prep: "data/IC_prep"
+  landtrendr_agb_file: "data_raw/IC/landtrendr_2016_biomass_by_dwr_parcel.parquet"
+  pft_dir: "data_raw/pfts"
+  pft_map: "data_raw/crop2pft.csv"
+  param_template: "data_raw/sipnet.default.param"
+  
+# Parallelism (e.g. for step 01 --n_cores).
+n_workers: 24
+
+# Run prepare steps inside Apptainer (single image from workflow manifest; pull-if-not-present).
+# When true: 'module load apptainer' is attempted, then apptainer must be on PATH; SIF is
+# pulled from manifest remote if not present. No user override of remote; local image only.
+use_apptainer: false
+
+
+# Steps the manifest marks slurm: true for prepare-example-3 (convert-clim,
+# build-ic, build-events, build-xml) must each have a matching entry below
+# or the CLI fails fast.
+step_dispatch_configuration:
+  convert-clim:
+    slurm: true
+    method: srun
+    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=0 --tasks=1 --cpus-per-task=24 --time=01:00:00"
+  build-ic:
+    slurm: true
+    method: srun
+    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=0 --tasks=1 --cpus-per-task=24 --time=02:00:00"
+  build-events:
+    slurm: true
+    method: srun
+    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=0 --tasks=1 --cpus-per-task=1 --time=04:00:00"
+  build-xml:
+    slurm: true
+    method: srun
+    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=4GB --tasks=1 --cpus-per-task=1 --time=01:00:00"
+  set-up-runs:
+    slurm: true
+    method: srun
+    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=8GB --tasks=1 --cpus-per-task=1 --time=24:00:00"
+  run-model:
+    slurm: true
+    method: srun
+    additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=2GB --tasks=1 --cpus-per-task=1 --time=12:00:00"
+
+# Switch dispatch method for parallel execution (local-gnu-parallel, slurm-dispatch, etc.).
+pecan_parallelism_mode: slurm-sbatch
+sbatch_additional_arguments: "--account=bgat-delta-cpu --partition=cpu --tasks=1 --cpus-per-task=1 --mem=2GB --time=00:05:00"  # Extra flags for every sbatch call (ensemble-member submission), e.g. "-p node --account=foo".
+
+# Steps the manifest marks eligible for srun-wrapping run under srun
+# automatically when workflow_parallelism_mode is slurm-srun (the default);
+# set to local to force every step to run unwrapped (does not affect
+# pecan_parallelism_mode: slurm-sbatch above).
+workflow_parallelism_mode: slurm-srun
+# --mem=0 requests all memory on the allocated node (documented Slurm
+# behavior, not "unlimited") -- default here to avoid OOM on steps like
+# build-ic; add "-p <partition>" here too if your cluster needs one (no
+# separate slurm_partition key -- it's just another srun flag).
+srun_additional_arguments: "--account=bgat-delta-cpu --partition=cpu --mem=0 --tasks=1 --cpus-per-task=1"
+
+# AWS CLI named profile for S3 access (get-demo-data command).
+aws_profile: magic
+
+sipnet_install:
+    revision: "v2.2.0"
