@@ -1,0 +1,31 @@
+$ cd <run_dir> && Rscript examples/3_rowcrop/03_xml_build.R --pft_dir data_raw/pfts --site_file site_info.csv --template_file template.xml --n_ens 200 --output_file settings.xml --output_dir ensemble_output
+pft dirs:
+./corn/mcmc.pda.corn.Rdata
+./corn/post.distns.Rdata
+./grass/post.distns.Rdata
+./soil/trait.mcmc.Rdata
+./woody/post.distns.Rdata
+./woody/trait.mcmc.Rdata
+2026-11-25 16:12:34.998723 INFO   [read.settings] : 
+   Loading inpufile= template.xml 
+[1] "./settings.xml"
+exit status: 0
+--- <pfts> block of generated settings.xml ---
+ <pfts>
+  <pft>
+   <name>corn</name>
+   <posterior.files>data_raw/pfts/corn</posterior.files>
+  </pft>
+  <pft>
+   <name>grass</name>
+   <posterior.files>data_raw/pfts/grass/post.distns.Rdata</posterior.files>
+  </pft>
+  <pft>
+   <name>soil</name>
+   <posterior.files>data_raw/pfts/soil/trait.mcmc.Rdata</posterior.files>
+  </pft>
+  <pft>
+   <name>woody</name>
+   <posterior.files>data_raw/pfts/woody/trait.mcmc.Rdata</posterior.files>
+  </pft>
+ </pfts>

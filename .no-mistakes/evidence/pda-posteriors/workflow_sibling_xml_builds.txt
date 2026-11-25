@@ -1,0 +1,83 @@
+=== workflow/03_xml_build.R (prepare build-xml) on the same pft fixture ===
+2026-11-25 16:13:49.936345 DEBUG  [papply] : 
+   papply executing set_site_paths on element 1 of 2 . 
+2026-11-25 16:13:49.937733 DEBUG  [papply] : 
+   papply executing set_site_paths on element 2 of 2 . 
+2026-11-25 16:13:49.938504 DEBUG  [papply] : 
+   papply executing id2grid on element 1 of 2 . 
+2026-11-25 16:13:49.942612 DEBUG  [papply] : 
+   papply executing id2grid on element 2 of 2 . 
+2026-11-25 16:13:49.943195 DEBUG  [papply] : 
+   papply executing set_site_paths on element 1 of 2 . 
+2026-11-25 16:13:49.944023 DEBUG  [papply] : 
+   papply executing set_site_paths on element 2 of 2 . 
+[1] "./wf03.xml"
+exit status: 0
+ <pfts>
+  <pft>
+   <name>corn</name>
+   <posterior.files>data_raw/pfts/corn</posterior.files>
+   <outdir>output/pfts/corn</outdir>
+  </pft>
+  <pft>
+   <name>grass</name>
+   <posterior.files>data_raw/pfts/grass/post.distns.Rdata</posterior.files>
+   <outdir>output/pfts/grass</outdir>
+  </pft>
+  <pft>
+   <name>soil</name>
+   <posterior.files>data_raw/pfts/soil/trait.mcmc.Rdata</posterior.files>
+   <outdir>output/pfts/soil</outdir>
+  </pft>
+  <pft>
+   <name>woody</name>
+   <posterior.files>data_raw/pfts/woody/trait.mcmc.Rdata</posterior.files>
+   <outdir>output/pfts/woody</outdir>
+  </pft>
+ </pfts>
+
+=== workflow/06_xml_build_proj.R (prepare-projections build-xml) on the same pft fixture ===
+2026-11-25 16:13:50.506541 WARN   [papply] : 
+   papply threw an error for element 1 of 2, but is continuing since 
+   stop.on.error=FALSE (there will be no results for this element, 
+   however). Message was: 'Error : Failed to evaluate glue component 
+   {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not found ' 
+2026-11-25 16:13:50.510644 WARN   [papply] : 
+   papply threw an error for element 2 of 2, but is continuing since 
+   stop.on.error=FALSE (there will be no results for this element, 
+   however). Message was: 'Error : Failed to evaluate glue component 
+   {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not found ' 
+2026-11-25 16:13:50.511413 WARN   [papply] : 
+   papply encountered errors for 2 elements, but continued since 
+   stop.on.error=FALSE. Element 1: 'Error : Failed to evaluate glue 
+   component {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not 
+   found '; Element 2: 'Error : Failed to evaluate glue component 
+   {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not found ' 
+Error in result[[1]] : subscript out of bounds
+Calls: $ -> $.MultiSettings -> [[ -> [[.MultiSettings
+Execution halted
+exit status: 1
+sed: can't read wf06.xml: No such file or directory
+
+=== workflow/06_xml_build_proj.R rerun with a site file that has WRF_grid_cell (prepare-projections input) ===
+2026-11-25 16:13:58.188015 WARN   [papply] : 
+   papply threw an error for element 1 of 2, but is continuing since 
+   stop.on.error=FALSE (there will be no results for this element, 
+   however). Message was: 'Error : Failed to evaluate glue component 
+   {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not found ' 
+2026-11-25 16:13:58.192207 WARN   [papply] : 
+   papply threw an error for element 2 of 2, but is continuing since 
+   stop.on.error=FALSE (there will be no results for this element, 
+   however). Message was: 'Error : Failed to evaluate glue component 
+   {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not found ' 
+2026-11-25 16:13:58.192948 WARN   [papply] : 
+   papply encountered errors for 2 elements, but continued since 
+   stop.on.error=FALSE. Element 1: 'Error : Failed to evaluate glue 
+   component {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not 
+   found '; Element 2: 'Error : Failed to evaluate glue component 
+   {WRF_grid_cell} Caused by error: ! object 'WRF_grid_cell' not found ' 
+Error in result[[1]] : subscript out of bounds
+Calls: $ -> $.MultiSettings -> [[ -> [[.MultiSettings
+Execution halted
+exit status: 1
+sed: can't read wf06.xml: No such file or directory

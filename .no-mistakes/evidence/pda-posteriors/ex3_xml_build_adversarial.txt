@@ -1,0 +1,66 @@
+=== adversarial pft layouts (examples/3_rowcrop/03_xml_build.R) ===
+./both/mcmc.pda.corn.Rdata
+./both/post.distns.Rdata
+./both/trait.mcmc.Rdata
+./case_RData/mcmc.pda.case_RData.RData
+./case_RData/post.distns.Rdata
+./decoy_postonly/mcmc_pda_x.Rdata
+./decoy_postonly/mcmc.pdaX.Rdata
+./decoy_postonly/mcmc.pda.x.Rdata.bak
+./decoy_postonly/old_mcmc.pda.x.Rdata
+./decoy_postonly/post.distns.Rdata
+./decoy_traitmcmc/post.distns.Rdata
+./decoy_traitmcmc/trait.mcmc.Rdata
+./decoy_traitmcmc/xmcmc.pda.woody.Rdata
+[1] "./adv.xml"
+exit status: 0
+ <pfts>
+  <pft>
+   <name>both</name>
+   <posterior.files>pfts/both</posterior.files>
+  </pft>
+  <pft>
+   <name>case_RData</name>
+   <posterior.files>pfts/case_RData</posterior.files>
+  </pft>
+  <pft>
+   <name>decoy_postonly</name>
+   <posterior.files>pfts/decoy_postonly/post.distns.Rdata</posterior.files>
+  </pft>
+  <pft>
+   <name>decoy_traitmcmc</name>
+   <posterior.files>pfts/decoy_traitmcmc/trait.mcmc.Rdata</posterior.files>
+  </pft>
+ </pfts>
+
+=== absolute pft_dir, as magic-ensemble passes ${run_dir}/data_raw/pfts ===
+[1] "./abs.xml"
+exit status: 0
+ <pfts>
+  <pft>
+   <name>corn</name>
+   <posterior.files>/tmp/nm-test-01M893/run/data_raw/pfts/corn</posterior.files>
+  </pft>
+  <pft>
+   <name>grass</name>
+   <posterior.files>/tmp/nm-test-01M893/run/data_raw/pfts/grass/post.distns.Rdata</posterior.files>
+  </pft>
+  <pft>
+   <name>soil</name>
+   <posterior.files>/tmp/nm-test-01M893/run/data_raw/pfts/soil/trait.mcmc.Rdata</posterior.files>
+  </pft>
+  <pft>
+   <name>woody</name>
+   <posterior.files>/tmp/nm-test-01M893/run/data_raw/pfts/woody/trait.mcmc.Rdata</posterior.files>
+  </pft>
+ </pfts>
+
+=== empty pft dir must still error ===
+2026-11-25 16:13:33.360677 SEVERE [find_posterior] : 
+   Don't know what posterior to use for pft 'empty/emptypft' 
+Error in PEcAn.logger::logger.severe("Don't know what posterior to use for pft",  : 
+  Don't know what posterior to use for pft ‘empty/emptypft’
+Calls: setNames -> lapply -> FUN -> find_posterior -> <Anonymous>
+Execution halted
+exit status: 1
+ls: cannot access 'empty.xml': No such file or directory

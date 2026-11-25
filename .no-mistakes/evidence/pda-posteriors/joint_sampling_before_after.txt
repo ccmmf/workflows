@@ -1,0 +1,17 @@
+=== workflow/04_set_up_runs.R DESIGN step (PEcAn.uncertainty develop 9fa7807a), n_ens=200, same synthetic corn draws ===
+--- base commit 3635c8e find_posterior: corn posterior.files = data_raw/pfts/corn/post.distns.Rdata ---
+[base 3635c8e] corn ensemble members: 200
+[base 3635c8e] members whose (leaf, wood, fine root) triple is one source draw: 0 of 200
+[base 3635c8e] members with coarse root = 1 - leaf - wood - fine root <= 0: 166 of 200
+[base 3635c8e] min coarse root fraction: -1.6864
+[base 3635c8e] pfts sampled: corn, grass, soil, woody, env
+--- this change 96de729 find_posterior: corn posterior.files = data_raw/pfts/corn ---
+[this change] corn ensemble members: 200
+[this change] members whose (leaf, wood, fine root) triple is one source draw: 200 of 200
+[this change] members with coarse root = 1 - leaf - wood - fine root <= 0: 0 of 200
+[this change] min coarse root fraction: 0.0085
+[this change] pfts sampled: corn, grass, soil, woody, env
+
+Note: both 04_set_up_runs.R runs exit 1 after DESIGN, in the later CONFIG step, because the installed PEcAn.workflow predates the develop design return shape:
+Error in if (!is.null(settings$ensemble$size) && nrow(input_design) !=  : 
+  missing value where TRUE/FALSE needed
