@@ -77,6 +77,8 @@ options <- list(
       "Directory containing PFT definitions.",
       "Should contain subdirs whose names match the values in the 'site.pft'",
       "column of the site file.",
+      "A pft whose traits must be sampled jointly keeps its samples as",
+      "mcmc.pda.<pft>.Rdata (renamed from trait.mcmc.Rdata, not copied).",
       "The <pfts> block of the output will contain one entry for each subdir."
     )
   ),
@@ -230,13 +232,27 @@ settings$ensemble$samplingspace$poolinitcond <- NULL
 # 2. User wants all PFTs in pft_dir to be inserted into settings.xml
 # 3. pft dir already exists on disk (unlike input paths that are constructed
 #   without checking)
-# 4. Posterior priority: a directory holding mcmc.pda.*.Rdata (the pft directory itself, so PEcAn
-#    samples the pft's traits jointly) > trait.mcmc > post.distns > error
+# 4. Posterior priority: the pft directory itself when it holds one
+#    mcmc.pda.*.Rdata file (so PEcAn samples the pft's traits jointly)
+#    > trait.mcmc > post.distns > error
 find_posterior <- function(dir) {
-  # A pft whose samples are named mcmc.pda.*.Rdata (matched ignoring case, as PEcAn does) gets the
-  # directory: PEcAn then loads the samples and post.distns together and, seeing the pda name,
-  # samples each pft's traits on one row (allocation closure; see ccmmf/organization#305).
-  if (length(list.files(dir, pattern = "^mcmc[.]pda[.].*[.]rdata$", ignore.case = TRUE)) > 0) {
+  # A pft whose samples are named mcmc.pda.*.Rdata (matched ignoring case, as
+  # PEcAn does) gets the directory: PEcAn then loads the samples and
+  # post.distns together and samples the pft's traits on one row (allocation
+  # closure; see ccmmf/organization#305). PEcAn's joint switch is run wide:
+  # once any pft is joint, every pft with MCMC samples in the run (soil too)
+  # is drawn by one row index, so their traits need equal draw counts.
+  pda <- list.files(dir, pattern = "^mcmc[.]pda[.].*[.]rdata$",
+                    ignore.case = TRUE)
+  if (length(pda) > 0) {
+    # PEcAn keeps the last samples file it reads in a directory, so a second
+    # samples file beside the pda one would silently win: rename, don't copy.
+    if (length(pda) > 1 || file.exists(file.path(dir, "trait.mcmc.Rdata"))) {
+      PEcAn.logger::logger.severe(
+        "pft", sQuote(dir), "must hold one mcmc.pda.*.Rdata and no",
+        "trait.mcmc.Rdata (rename the samples file, don't copy it)"
+      )
+    }
     return(dir)
   } else if (file.exists(file.path(dir, "trait.mcmc.Rdata"))) {
     return(file.path(dir, "trait.mcmc.Rdata"))
