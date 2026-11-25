@@ -233,10 +233,10 @@ settings$host$rundir <- file.path(args$output_dir, "run")
 # 4. Posterior priority: a directory holding mcmc.pda.*.Rdata (the pft directory itself, so PEcAn
 #    samples the pft's traits jointly) > trait.mcmc > post.distns > error
 find_posterior <- function(dir) {
-  # A pft whose samples are named mcmc.pda.*.Rdata gets the directory: PEcAn then loads the samples
-  # and post.distns together and, seeing the pda name, samples each pft's traits on one row
-  # (allocation closure; see ccmmf/organization#305).
-  if (length(list.files(dir, pattern = "^mcmc[.]pda[.].*[.][Rr]data$")) > 0) {
+  # A pft whose samples are named mcmc.pda.*.Rdata (matched ignoring case, as PEcAn does) gets the
+  # directory: PEcAn then loads the samples and post.distns together and, seeing the pda name,
+  # samples each pft's traits on one row (allocation closure; see ccmmf/organization#305).
+  if (length(list.files(dir, pattern = "^mcmc[.]pda[.].*[.]rdata$", ignore.case = TRUE)) > 0) {
     return(dir)
   } else if (file.exists(file.path(dir, "trait.mcmc.Rdata"))) {
     return(file.path(dir, "trait.mcmc.Rdata"))
