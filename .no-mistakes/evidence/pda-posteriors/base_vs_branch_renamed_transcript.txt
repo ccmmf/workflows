@@ -1,0 +1,8 @@
+== base commit 3635c8e script, crop pft renamed to mcmc.pda.corn.Rdata ==
+exit status: 0
+   corn -> pfts/renamed/corn/post.distns.Rdata
+   soil -> pfts/renamed/soil/trait.mcmc.Rdata
+== this branch (409eb82) script, same folder ==
+exit status: 0
+   corn -> pfts/renamed/corn
+   soil -> pfts/renamed/soil/trait.mcmc.Rdata

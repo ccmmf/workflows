@@ -1,0 +1,12 @@
+$ Rscript examples/3_rowcrop/03_xml_build.R --help  (pft_dir section)
+	--pft_dir=PFT_DIR
+		Directory containing PFT definitions. Should contain subdirs whose names match the values in the 'site.pft' column of the site file. A pft whose traits must be sampled jointly keeps its samples as mcmc.pda.<pft>.Rdata (renamed from trait.mcmc.Rdata, not copied). The <pfts> block of the output will contain one entry for each subdir. [default: data_raw/pfts]
+
+$ Rscript workflow/03_xml_build.R --help  (pft_dir section)
+	--pft_dir=PFT_DIR
+		Directory containing PFT definitions. Should contain subdirs whose names match the values in the 'site.pft' column of the site file. A pft whose traits must be sampled jointly keeps its samples as mcmc.pda.<pft>.Rdata (renamed from trait.mcmc.Rdata, not copied). The <pfts> block of the output will contain one entry for each subdir. [default: data_raw/pfts]
+
+$ Rscript workflow/06_xml_build_proj.R --help  (pft_dir section)
+	--pft_dir=PFT_DIR
+		Directory containing PFT definitions. Should contain subdirs whose names match the values in the 'site.pft' column of the site file. A pft whose traits must be sampled jointly keeps its samples as mcmc.pda.<pft>.Rdata (renamed from trait.mcmc.Rdata, not copied). The <pfts> block of the output will contain one entry for each subdir. [default: data_raw/pfts]
+

@@ -1,0 +1,40 @@
+$ Rscript examples/3_rowcrop/03_xml_build.R --pft_dir pfts/main --site_file site_info.csv --template_file 3_rowcrop/template.xml --output_file out/ex3_main.xml --n_ens 20
+exit status: 0
+<pfts> written to out/ex3_main.xml:
+   annual_crop -> pfts/main/annual_crop/post.distns.Rdata
+   corn -> pfts/main/corn
+   rice -> pfts/main/rice
+   soil -> pfts/main/soil/trait.mcmc.Rdata
+
+$ Rscript examples/3_rowcrop/03_xml_build.R --pft_dir pfts/lookalike --site_file site_info.csv --template_file 3_rowcrop/template.xml --output_file out/ex3_lookalike.xml --n_ens 20
+exit status: 0
+<pfts> written to out/ex3_lookalike.xml:
+   corn -> pfts/lookalike/corn/post.distns.Rdata
+
+$ Rscript examples/3_rowcrop/03_xml_build.R --pft_dir pfts/old --site_file site_info.csv --template_file 3_rowcrop/template.xml --output_file out/ex3_old.xml --n_ens 20
+exit status: 0
+<pfts> written to out/ex3_old.xml:
+   corn -> pfts/old/corn/trait.mcmc.Rdata
+   soil -> pfts/old/soil/trait.mcmc.Rdata
+
+$ Rscript examples/3_rowcrop/03_xml_build.R --pft_dir pfts/copied --site_file site_info.csv --template_file 3_rowcrop/template.xml --output_file out/ex3_copied.xml --n_ens 20
+exit status: 1
+  2026-11-25 16:45:53.980866 SEVERE [find_posterior] : 
+     pft 'pfts/copied/corn' must hold one mcmc.pda.*.Rdata and no 
+  Error in PEcAn.logger::logger.severe("pft", sQuote(dir), "must hold one mcmc.pda.*.Rdata and no",  : 
+    pft ‘pfts/copied/corn’ must hold one mcmc.pda.*.Rdata and no trait.mcmc.Rdata (rename the samples file, don't copy it)
+
+$ Rscript examples/3_rowcrop/03_xml_build.R --pft_dir pfts/twopda --site_file site_info.csv --template_file 3_rowcrop/template.xml --output_file out/ex3_twopda.xml --n_ens 20
+exit status: 1
+  2026-11-25 16:45:54.676737 SEVERE [find_posterior] : 
+     pft 'pfts/twopda/corn' must hold one mcmc.pda.*.Rdata and no 
+  Error in PEcAn.logger::logger.severe("pft", sQuote(dir), "must hold one mcmc.pda.*.Rdata and no",  : 
+    pft ‘pfts/twopda/corn’ must hold one mcmc.pda.*.Rdata and no trait.mcmc.Rdata (rename the samples file, don't copy it)
+
+$ Rscript examples/3_rowcrop/03_xml_build.R --pft_dir pfts/empty --site_file site_info.csv --template_file 3_rowcrop/template.xml --output_file out/ex3_empty.xml --n_ens 20
+exit status: 1
+  2026-11-25 16:45:55.288452 SEVERE [find_posterior] : 
+     Don't know what posterior to use for pft 'pfts/empty/corn' 
+  Error in PEcAn.logger::logger.severe("Don't know what posterior to use for pft",  : 
+    Don't know what posterior to use for pft ‘pfts/empty/corn’
+

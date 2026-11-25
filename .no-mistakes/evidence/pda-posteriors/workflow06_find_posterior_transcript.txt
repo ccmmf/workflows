@@ -1,0 +1,37 @@
+$ Rscript workflow/06_xml_build_proj.R --pft_dir pfts/main --site_file site_info_proj.csv --n_met 8 --output_file out/wf06_main.xml   (via set_site_paths shim)
+exit status: 0
+   annual_crop -> pfts/main/annual_crop/post.distns.Rdata
+   corn -> pfts/main/corn
+   rice -> pfts/main/rice
+   soil -> pfts/main/soil/trait.mcmc.Rdata
+
+$ Rscript workflow/06_xml_build_proj.R --pft_dir pfts/lookalike --site_file site_info_proj.csv --n_met 8 --output_file out/wf06_lookalike.xml   (via set_site_paths shim)
+exit status: 0
+   corn -> pfts/lookalike/corn/post.distns.Rdata
+
+$ Rscript workflow/06_xml_build_proj.R --pft_dir pfts/old --site_file site_info_proj.csv --n_met 8 --output_file out/wf06_old.xml   (via set_site_paths shim)
+exit status: 0
+   corn -> pfts/old/corn/trait.mcmc.Rdata
+   soil -> pfts/old/soil/trait.mcmc.Rdata
+
+$ Rscript workflow/06_xml_build_proj.R --pft_dir pfts/copied --site_file site_info_proj.csv --n_met 8 --output_file out/wf06_copied.xml   (via set_site_paths shim)
+exit status: 1
+  2026-11-25 16:46:01.401698 SEVERE [find_posterior] : 
+     pft 'pfts/copied/corn' must hold one mcmc.pda.*.Rdata and no 
+  Error in PEcAn.logger::logger.severe("pft", sQuote(dir), "must hold one mcmc.pda.*.Rdata and no",  : 
+    pft ‘pfts/copied/corn’ must hold one mcmc.pda.*.Rdata and no trait.mcmc.Rdata (rename the samples file, don't copy it)
+
+$ Rscript workflow/06_xml_build_proj.R --pft_dir pfts/twopda --site_file site_info_proj.csv --n_met 8 --output_file out/wf06_twopda.xml   (via set_site_paths shim)
+exit status: 1
+  2026-11-25 16:46:01.899039 SEVERE [find_posterior] : 
+     pft 'pfts/twopda/corn' must hold one mcmc.pda.*.Rdata and no 
+  Error in PEcAn.logger::logger.severe("pft", sQuote(dir), "must hold one mcmc.pda.*.Rdata and no",  : 
+    pft ‘pfts/twopda/corn’ must hold one mcmc.pda.*.Rdata and no trait.mcmc.Rdata (rename the samples file, don't copy it)
+
+$ Rscript workflow/06_xml_build_proj.R --pft_dir pfts/empty --site_file site_info_proj.csv --n_met 8 --output_file out/wf06_empty.xml   (via set_site_paths shim)
+exit status: 1
+  2026-11-25 16:46:02.416595 SEVERE [find_posterior] : 
+     Don't know what posterior to use for pft 'pfts/empty/corn' 
+  Error in PEcAn.logger::logger.severe("Don't know what posterior to use for pft",  : 
+    Don't know what posterior to use for pft ‘pfts/empty/corn’
+

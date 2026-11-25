@@ -1,0 +1,10 @@
+PEcAn.uncertainty from: /tmp/nm-pda-RXMW/rlib/PEcAn.uncertainty 
+base_renamed.xml: corn posterior.files = pfts/renamed/corn/post.distns.Rdata
+  corn draws: 200; coarse root <= 0 in 79 of 200
+  soil draws: 200, any NA: FALSE
+exit status: 0
+PEcAn.uncertainty from: /tmp/nm-pda-RXMW/rlib/PEcAn.uncertainty 
+new_renamed.xml: corn posterior.files = pfts/renamed/corn
+  corn draws: 200; coarse root <= 0 in 0 of 200
+  soil draws: 200, any NA: FALSE
+exit status: 0

@@ -1,0 +1,40 @@
+$ Rscript workflow/03_xml_build.R --pft_dir pfts/main --site_file site_info.csv --template_file workflow/template.xml --output_file out/wf03_main.xml --n_ens 20
+exit status: 0
+<pfts> written to out/wf03_main.xml:
+   annual_crop -> pfts/main/annual_crop/post.distns.Rdata
+   corn -> pfts/main/corn
+   rice -> pfts/main/rice
+   soil -> pfts/main/soil/trait.mcmc.Rdata
+
+$ Rscript workflow/03_xml_build.R --pft_dir pfts/lookalike --site_file site_info.csv --template_file workflow/template.xml --output_file out/wf03_lookalike.xml --n_ens 20
+exit status: 0
+<pfts> written to out/wf03_lookalike.xml:
+   corn -> pfts/lookalike/corn/post.distns.Rdata
+
+$ Rscript workflow/03_xml_build.R --pft_dir pfts/old --site_file site_info.csv --template_file workflow/template.xml --output_file out/wf03_old.xml --n_ens 20
+exit status: 0
+<pfts> written to out/wf03_old.xml:
+   corn -> pfts/old/corn/trait.mcmc.Rdata
+   soil -> pfts/old/soil/trait.mcmc.Rdata
+
+$ Rscript workflow/03_xml_build.R --pft_dir pfts/copied --site_file site_info.csv --template_file workflow/template.xml --output_file out/wf03_copied.xml --n_ens 20
+exit status: 1
+  2026-11-25 16:45:57.888164 SEVERE [find_posterior] : 
+     pft 'pfts/copied/corn' must hold one mcmc.pda.*.Rdata and no 
+  Error in PEcAn.logger::logger.severe("pft", sQuote(dir), "must hold one mcmc.pda.*.Rdata and no",  : 
+    pft ‘pfts/copied/corn’ must hold one mcmc.pda.*.Rdata and no trait.mcmc.Rdata (rename the samples file, don't copy it)
+
+$ Rscript workflow/03_xml_build.R --pft_dir pfts/twopda --site_file site_info.csv --template_file workflow/template.xml --output_file out/wf03_twopda.xml --n_ens 20
+exit status: 1
+  2026-11-25 16:45:58.554953 SEVERE [find_posterior] : 
+     pft 'pfts/twopda/corn' must hold one mcmc.pda.*.Rdata and no 
+  Error in PEcAn.logger::logger.severe("pft", sQuote(dir), "must hold one mcmc.pda.*.Rdata and no",  : 
+    pft ‘pfts/twopda/corn’ must hold one mcmc.pda.*.Rdata and no trait.mcmc.Rdata (rename the samples file, don't copy it)
+
+$ Rscript workflow/03_xml_build.R --pft_dir pfts/empty --site_file site_info.csv --template_file workflow/template.xml --output_file out/wf03_empty.xml --n_ens 20
+exit status: 1
+  2026-11-25 16:45:59.137528 SEVERE [find_posterior] : 
+     Don't know what posterior to use for pft 'pfts/empty/corn' 
+  Error in PEcAn.logger::logger.severe("Don't know what posterior to use for pft",  : 
+    Don't know what posterior to use for pft ‘pfts/empty/corn’
+
